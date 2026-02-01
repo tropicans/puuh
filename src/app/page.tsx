@@ -1,65 +1,251 @@
-import Image from "next/image";
+import { RegulationList } from '@/components/regulations/RegulationList';
+import { Card, CardContent } from '@/components/ui/card';
+import { seedInitialData } from '@/actions/regulations';
+import { SearchInput } from '@/components/search/SearchInput';
+import { RegulationFilters } from '@/components/search/RegulationFilters';
+import { Pagination } from '@/components/common/Pagination';
+import { getFilteredRegulations, getFilterOptions } from '@/lib/data-service';
 
-export default function Home() {
+// ... transformRegulation function (keep as is) ...
+
+// Transform database regulation to match component interface
+function transformRegulation(reg: {
+  id: string;
+  title: string;
+  description: string | null;
+  type: { name: string; shortName: string };
+  versions: Array<{
+    id: string;
+    number: string;
+    year: number;
+    fullTitle: string;
+    status: string;
+    effectiveDate: Date | null;
+    pdfPath: string | null;
+    articles: Array<{
+      id: string;
+      articleNumber: string;
+      content: string;
+      status: string;
+    }>;
+  }>;
+}) {
+  return {
+    id: reg.id,
+    title: reg.title,
+    type: reg.type.shortName,
+    description: reg.description || '',
+    versions: reg.versions.map(v => ({
+      id: v.id,
+      number: v.number,
+      year: v.year,
+      fullTitle: v.fullTitle,
+      status: v.status.toLowerCase() as 'active' | 'amended' | 'revoked',
+      effectiveDate: v.effectiveDate?.toISOString() || '',
+      pdfPath: v.pdfPath || undefined,
+      articles: v.articles.map(a => ({
+        id: a.id,
+        number: a.articleNumber,
+        content: a.content,
+        status: a.status.toLowerCase() as 'active' | 'modified' | 'deleted' | 'new'
+      }))
+    }))
+  };
+}
+
+export default async function HomePage(props: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const q = typeof searchParams?.q === 'string' ? searchParams.q : undefined;
+  const typeId = typeof searchParams?.type === 'string' ? searchParams.type : undefined;
+  const yearStr = typeof searchParams?.year === 'string' ? searchParams.year : undefined;
+  const year = yearStr ? parseInt(yearStr) : undefined;
+
+  // Pagination
+  const pageStr = typeof searchParams?.page === 'string' ? searchParams.page : '1';
+  const page = parseInt(pageStr) || 1;
+  const pageSize = 10;
+
+  // Fetch data via service
+  const { types, years } = await getFilterOptions();
+  const { regulations: dbRegulations, totalPages } = await getFilteredRegulations({
+    q,
+    typeId,
+    year,
+    page,
+    pageSize
+  });
+
+  const regulations = dbRegulations.map(transformRegulation);
+  const totalVersions = regulations.reduce((sum, r) => sum + r.versions.length, 0);
+  const totalArticles = regulations.reduce(
+    (sum, r) => sum + r.versions.reduce((vs: number, v: any) => vs + v.articles.length, 0),
+    0
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <div className="space-y-8 animate-fade-in">
+      {/* Hero section */}
+      <div className="text-center py-8">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <span className="gradient-text">Perbandingan Peraturan</span>
+          <br />
+          <span className="text-white">Secara Verbatim</span>
+        </h1>
+        <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-8">
+          Bandingkan peraturan perundang-undangan dari waktu ke waktu.
+          Lihat pasal mana yang masih berlaku, diubah, atau dicabut dengan highlighting warna.
+        </p>
+
+        {/* Search & Filters */}
+        <div className="flex flex-col md:flex-row gap-4 justify-center items-center max-w-4xl mx-auto">
+          <SearchInput placeholder="Cari peraturan (judul, konten)..." />
+          <RegulationFilters types={types} years={years} />
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href={`/api/export${q || typeId || year ? '?' : ''}${new URLSearchParams({
+              ...(q && { q }),
+              ...(typeId && { type: typeId }),
+              ...(year && { year: year.toString() })
+            }).toString()}`}
             target="_blank"
-            rel="noopener noreferrer"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            📄 PDF
           </a>
         </div>
-      </main>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/30">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-white mb-1">
+                {regulations.length}
+              </div>
+              <div className="text-gray-400">Peraturan</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-purple-500/30">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-white mb-1">
+                {totalVersions}
+              </div>
+              <div className="text-gray-400">Versi</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-pink-600/20 to-rose-600/20 border-pink-500/30">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-white mb-1">
+                {totalArticles}
+              </div>
+              <div className="text-gray-400">Pasal</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* How it works */}
+      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">
+          🎯 Cara Kerja
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[
+            { icon: '📤', title: 'Upload', desc: 'Upload PDF peraturan' },
+            { icon: '🔍', title: 'Parse', desc: 'AI ekstrak pasal-pasal' },
+            { icon: '⚖️', title: 'Bandingkan', desc: 'Bandingkan versi' },
+            { icon: '✨', title: 'Lihat Diff', desc: 'Verbatim highlighting' },
+          ].map((step, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 p-4 bg-gray-800/50 rounded-xl"
+            >
+              <span className="text-2xl">{step.icon}</span>
+              <div>
+                <h3 className="font-medium text-white">{step.title}</h3>
+                <p className="text-sm text-gray-400">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Diff legend */}
+      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">
+          🎨 Legenda Warna
+        </h2>
+        <div className="flex flex-wrap gap-6">
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1 bg-emerald-500/30 text-emerald-300 rounded text-sm font-mono">
+              Teks baru
+            </div>
+            <span className="text-gray-400">= Ditambahkan</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1 bg-red-500/30 text-red-300 line-through rounded text-sm font-mono">
+              Teks lama
+            </div>
+            <span className="text-gray-400">= Dihapus</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm font-mono">
+              Teks sama
+            </div>
+            <span className="text-gray-400">= Tidak berubah</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Regulation list */}
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-6">
+          📚 Daftar Peraturan
+        </h2>
+        {regulations.length > 0 ? (
+          <>
+            <RegulationList regulations={regulations} />
+            <Pagination currentPage={page} totalPages={totalPages || 1} />
+          </>
+        ) : (
+          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-12 text-center">
+            <div className="text-5xl mb-4">📭</div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Belum Ada Peraturan
+            </h3>
+            <p className="text-gray-400 mb-6">
+              Upload peraturan pertama Anda untuk memulai perbandingan
+            </p>
+            <div className="flex justify-center gap-4">
+              <a
+                href="/upload"
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
+              >
+                📤 Upload Peraturan
+              </a>
+              <form action={async () => {
+                'use server';
+                await seedInitialData();
+              }}>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+                >
+                  🌱 Load Sample Data
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

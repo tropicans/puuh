@@ -1,26 +1,107 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: oklch(0.03 0 0);
+  --color-foreground: oklch(0.98 0 0);
+  --color-card: oklch(0.07 0 0);
+  --color-card-foreground: oklch(0.98 0 0);
+  --color-popover: oklch(0.07 0 0);
+  --color-popover-foreground: oklch(0.98 0 0);
+  --color-primary: oklch(0.65 0.2 265);
+  --color-primary-foreground: oklch(0.98 0 0);
+  --color-secondary: oklch(0.14 0 0);
+  --color-secondary-foreground: oklch(0.98 0 0);
+  --color-muted: oklch(0.14 0 0);
+  --color-muted-foreground: oklch(0.64 0 0);
+  --color-accent: oklch(0.14 0 0);
+  --color-accent-foreground: oklch(0.98 0 0);
+  --color-destructive: oklch(0.6 0.2 30);
+  --color-destructive-foreground: oklch(0.98 0 0);
+  --color-border: oklch(0.18 0 0);
+  --color-input: oklch(0.18 0 0);
+  --color-ring: oklch(0.65 0.2 265);
+  --radius: 0.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--color-border);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(to right, oklch(0.7 0.15 260), oklch(0.7 0.18 300), oklch(0.7 0.2 340));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-indigo {
+  box-shadow: 0 0 20px oklch(0.5 0.2 265 / 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px oklch(0.5 0.2 300 / 0.3);
+}
+
+/* Animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Diff highlighting */
+.diff-added {
+  background-color: oklch(0.5 0.15 150 / 0.3);
+  color: oklch(0.7 0.15 150);
+}
+
+.diff-deleted {
+  background-color: oklch(0.5 0.2 30 / 0.3);
+  color: oklch(0.7 0.2 30);
+  text-decoration: line-through;
+}
+
+.diff-modified {
+  background-color: oklch(0.5 0.15 80 / 0.3);
+  color: oklch(0.7 0.15 80);
 }

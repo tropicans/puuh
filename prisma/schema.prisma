@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Jenis peraturan (UU, PP, Perpres, Permen, dll)
+model RegulationType {
+  id          String       @id @default(cuid())
+  name        String       @unique // "Peraturan Presiden"
+  shortName   String       @unique // "Perpres"
+  regulations Regulation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// Kelompok peraturan (misal: "Jaminan Kesehatan")
+model Regulation {
+  id          String              @id @default(cuid())
+  title       String              // "Jaminan Kesehatan"
+  description String?
+  typeId      String
+  type        RegulationType      @relation(fields: [typeId], references: [id])
+  versions    RegulationVersion[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([typeId])
+}
+
+// Versi spesifik (misal: Perpres No. 82 Tahun 2018)
+model RegulationVersion {
+  id            String        @id @default(cuid())
+  regulationId  String
+  regulation    Regulation    @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  number        String        // "82"
+  year          Int           // 2018
+  fullTitle     String        // "Perpres No. 82 Tahun 2018 tentang Jaminan Kesehatan"
+  effectiveDate DateTime?     // Tanggal berlaku
+  pdfPath       String?       // Path ke file PDF (Local)
+  originalFileUrl String?     // URL file di Object Storage (MinIO)
+  rawText       String?       @db.Text // Teks hasil parsing
+  articles      Article[]
+  status        VersionStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Self-relation untuk tracking amandemen
+  amendsId  String?
+  amends    RegulationVersion?  @relation("Amendments", fields: [amendsId], references: [id])
+  amendedBy RegulationVersion[] @relation("Amendments")
+
+  @@unique([regulationId, number, year])
+  @@index([regulationId])
+  @@index([year])
+}
+
+enum VersionStatus {
+  ACTIVE  // Masih berlaku
+  AMENDED // Sudah diamandemen (sebagian berlaku)
+  REVOKED // Dicabut seluruhnya
+}
+
+// Pasal individual
+model Article {
+  id            String            @id @default(cuid())
+  versionId     String
+  version       RegulationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  articleNumber String            // "Pasal 1", "Pasal 2 ayat (1)"
+  content       String            @db.Text
+  status        ArticleStatus     @default(ACTIVE)
+  orderIndex    Int               @default(0)
+  changes       ArticleChange[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([versionId, articleNumber])
+  @@index([versionId])
+}
+
+enum ArticleStatus {
+  ACTIVE   // Masih berlaku
+  MODIFIED // Diubah di versi baru
+  DELETED  // Dihapus di versi baru
+  NEW      // Baru ditambahkan
+}
+
+// Tracking perubahan pasal antar versi
+model ArticleChange {
+  id            String     @id @default(cuid())
+  articleId     String
+  article       Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  changeType    ChangeType
+  oldContent    String?    @db.Text
+  newContent    String?    @db.Text
+  diffHtml      String?    @db.Text // HTML diff untuk display
+  changedInYear Int        // Tahun perubahan
+  notes         String?    // Catatan AI tentang perubahan
+  createdAt     DateTime   @default(now())
+
+  @@index([articleId])
+}
+
+enum ChangeType {
+  ADDED
+  MODIFIED
+  DELETED
+}
+
+// User untuk authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // hashed with bcrypt
+  name      String?
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN   // Can create, edit, delete
+  VIEWER  // Read-only access
+}
