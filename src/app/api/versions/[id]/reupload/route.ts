@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { parseArticlesFromText } from '@/lib/ai-service';
+import { getCurrentUser, isAdminRole } from '@/lib/authorization';
 
 // Re-upload PDF file to update rawText and re-parse articles
 export async function POST(
@@ -8,6 +9,14 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+        if (!isAdminRole(user.role)) {
+            return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+        }
+
         const { id } = await params;
         const formData = await request.formData();
         const file = formData.get('file') as File | null;

@@ -1,8 +1,14 @@
 import { getFilteredRegulations } from '@/lib/data-service';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { getCurrentUser } from '@/lib/authorization';
 
 export async function GET(request: Request) {
     try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return new Response('Unauthorized', { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const q = searchParams.get('q') || undefined;
         const typeId = searchParams.get('type') || undefined;
@@ -24,7 +30,7 @@ export async function GET(request: Request) {
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
         let page = pdfDoc.addPage();
-        const { width, height } = page.getSize();
+        const { height } = page.getSize();
         let y = height - 50;
 
         // Header

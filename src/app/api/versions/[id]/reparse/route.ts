@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { parseArticlesFromText } from '@/lib/ai-service';
 import { cleanPdfText } from '@/lib/utils';
+import { getCurrentUser, isAdminRole } from '@/lib/authorization';
 
 // Re-parse articles from stored rawText
 export async function POST(
@@ -9,6 +10,14 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+        if (!isAdminRole(user.role)) {
+            return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+        }
+
         const { id } = await params;
 
         // Get version with rawText

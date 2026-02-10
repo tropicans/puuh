@@ -1,6 +1,6 @@
 'use client';
 
-import { RegulationVersion, Regulation } from '@/lib/dummy-data';
+import { Regulation } from '@/lib/dummy-data';
 import { Badge } from '@/components/ui/badge';
 import { getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
 
@@ -128,7 +128,7 @@ export function CompactTimeline({ regulation }: { regulation: Regulation }) {
             <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600" />
                 <div className="relative flex justify-between h-full">
-                    {versions.map((version, index) => (
+                    {versions.map((version) => (
                         <div
                             key={version.id}
                             className="w-3 h-3 -mt-0.5 bg-white rounded-full border-2 border-indigo-600"

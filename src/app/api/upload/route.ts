@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { parseArticlesFromText } from '@/lib/ai-service';
 import rateLimit from '@/lib/rate-limit';
 import { uploadSchema } from '@/lib/validations';
+import { getCurrentUser, isAdminRole } from '@/lib/authorization';
 
 // Initialize rate limiter: 10 requests per minute
 const limiter = rateLimit({
@@ -12,6 +12,14 @@ const limiter = rateLimit({
 
 export async function POST(request: NextRequest) {
     try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+        }
+        if (!isAdminRole(user.role)) {
+            return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+        }
+
         // Rate Limiting Check
         const ip = request.headers.get('x-forwarded-for') ?? 'anonymous';
         try {
@@ -79,7 +87,7 @@ export async function POST(request: NextRequest) {
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
             async start(controller) {
-                const send = (data: any) => {
+                const send = (data: unknown) => {
                     controller.enqueue(encoder.encode(JSON.stringify(data) + '\n'));
                 };
 

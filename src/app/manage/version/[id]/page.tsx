@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -36,22 +36,25 @@ export default function EditArticlesPage() {
     const [editForm, setEditForm] = useState({ articleNumber: '', content: '' });
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    useEffect(() => {
-        fetchVersion();
+    const loadVersion = useCallback(async (): Promise<Version | null> => {
+        const res = await fetch(`/api/versions/${versionId}`);
+        const data = await res.json();
+        return data.success ? data.version : null;
     }, [versionId]);
 
-    const fetchVersion = async () => {
-        try {
-            const res = await fetch(`/api/versions/${versionId}`);
-            const data = await res.json();
-            if (data.success) {
-                setVersion(data.version);
+    useEffect(() => {
+        async function initialFetch() {
+            try {
+                const data = await loadVersion();
+                setVersion(data);
+            } catch (error) {
+                console.error('Failed to fetch:', error);
             }
-        } catch (error) {
-            console.error('Failed to fetch:', error);
+            setLoading(false);
         }
-        setLoading(false);
-    };
+
+        initialFetch();
+    }, [loadVersion]);
 
     const handleEditClick = (article: Article) => {
         setEditingArticle(article);
@@ -76,11 +79,12 @@ export default function EditArticlesPage() {
             if (data.success) {
                 setMessage({ type: 'success', text: 'Pasal berhasil diupdate!' });
                 setEditingArticle(null);
-                fetchVersion(); // Refresh list
+                const updatedVersion = await loadVersion();
+                setVersion(updatedVersion);
             } else {
                 setMessage({ type: 'error', text: 'Gagal update pasal' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Terjadi kesalahan' });
         }
 
@@ -97,9 +101,10 @@ export default function EditArticlesPage() {
 
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Pasal dihapus' });
-                fetchVersion();
+                const updatedVersion = await loadVersion();
+                setVersion(updatedVersion);
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Gagal hapus' });
         }
     };

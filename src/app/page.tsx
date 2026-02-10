@@ -1,10 +1,10 @@
 import { RegulationList } from '@/components/regulations/RegulationList';
 import { Card, CardContent } from '@/components/ui/card';
 import { seedInitialData } from '@/actions/regulations';
-import { SearchInput } from '@/components/search/SearchInput';
-import { RegulationFilters } from '@/components/search/RegulationFilters';
+import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar';
 import { Pagination } from '@/components/common/Pagination';
 import { getFilteredRegulations, getFilterOptions } from '@/lib/data-service';
+import type { Regulation } from '@/lib/dummy-data';
 
 // ... transformRegulation function (keep as is) ...
 
@@ -77,42 +77,38 @@ export default async function HomePage(props: {
     pageSize
   });
 
-  const regulations = dbRegulations.map(transformRegulation);
+  const regulations: Regulation[] = dbRegulations.map(transformRegulation);
   const totalVersions = regulations.reduce((sum, r) => sum + r.versions.length, 0);
   const totalArticles = regulations.reduce(
-    (sum, r) => sum + r.versions.reduce((vs: number, v: any) => vs + v.articles.length, 0),
+    (sum, r) => sum + r.versions.reduce((vs, v) => vs + v.articles.length, 0),
     0
   );
 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Hero section */}
-      <div className="text-center py-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          <span className="gradient-text">Perbandingan Peraturan</span>
-          <br />
-          <span className="text-white">Secara Verbatim</span>
-        </h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-8">
-          Bandingkan peraturan perundang-undangan dari waktu ke waktu.
-          Lihat pasal mana yang masih berlaku, diubah, atau dicabut dengan highlighting warna.
-        </p>
+      <div className="relative text-center py-16 md:py-24 overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-4xl opacity-20 pointer-events-none">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] animate-pulse-glow" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 rounded-full blur-[100px] animate-pulse-glow" style={{ animationDuration: '10s' }} />
+        </div>
 
-        {/* Search & Filters */}
-        <div className="flex flex-col md:flex-row gap-4 justify-center items-center max-w-4xl mx-auto">
-          <SearchInput placeholder="Cari peraturan (judul, konten)..." />
-          <RegulationFilters types={types} years={years} />
-          <a
-            href={`/api/export${q || typeId || year ? '?' : ''}${new URLSearchParams({
-              ...(q && { q }),
-              ...(typeId && { type: typeId }),
-              ...(year && { year: year.toString() })
-            }).toString()}`}
-            target="_blank"
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
-          >
-            📄 PDF
-          </a>
+        <div className="relative z-10 space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold tracking-widest uppercase mb-4 animate-fade-in">
+            Powered by AI Verbatim Diff
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-4 leading-[1.1]">
+            <span className="gradient-text">Perbandingan Peraturan</span>
+            <br />
+            <span className="text-white drop-shadow-sm">Secara Verbatim</span>
+          </h1>
+          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed px-4">
+            Bandingkan peraturan perundang-undangan dari waktu ke waktu.
+            Lihat pasal mana yang masih berlaku, diubah, atau dicabut dengan tracing visual yang cerdas.
+          </p>
+
+          <UnifiedSearchBar types={types} years={years} />
         </div>
       </div>
 

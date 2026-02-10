@@ -270,8 +270,6 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                                                     const oldContent = row.versions[selectedVersions[0]];
                                                     const newContent = row.versions[selectedVersions[1]];
 
-                                                    // Find first available version with content (fallback)
-                                                    const firstAvailable = row.versions.find(v => v !== null);
                                                     const lastAvailable = [...row.versions].reverse().find(v => v !== null);
 
                                                     if (oldContent && newContent) {

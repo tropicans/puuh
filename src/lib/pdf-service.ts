@@ -1,4 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { cleanPdfText } from './utils';
+
+type PdfDocument = Awaited<ReturnType<typeof pdfjsLib.getDocument>['promise']>;
 
 // Configure worker for Node.js
 if (typeof window === 'undefined') {
@@ -28,16 +31,15 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<{
         });
 
         // Timeout wrapper for pdf loading
-        const timeoutPromise = new Promise<{ numPages: number }>((_, reject) => {
+        const timeoutPromise = new Promise<PdfDocument>((_, reject) => {
             setTimeout(() => reject(new Error('PDFJS_TIMEOUT')), 5000);
         });
 
         // Race between loading and timeout
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const pdf = await Promise.race([
             loadingTask.promise,
             timeoutPromise
-        ]) as any;
+        ]);
         const numPages = pdf.numPages;
 
         console.log(`PDF loaded: ${numPages} pages`);
@@ -53,8 +55,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<{
 
                 // Combine text items
                 const pageText = textContent.items
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .map((item: any) => item.str || '')
+                    .map((item) => ('str' in item ? item.str : ''))
                     .join(' ');
 
                 fullText += pageText + '\n\n';
@@ -137,7 +138,3 @@ export async function smartExtractPdfText(
         method: 'ocr'
     };
 }
-
-import { cleanPdfText } from './utils';
-
-// ... (imports)

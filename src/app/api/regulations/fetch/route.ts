@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { fetchRegulation, parseRegulationInput } from '@/lib/regulation-fetcher';
 import { parseArticlesFromText } from '@/lib/ai-service';
+import { getCurrentUser, isAdminRole } from '@/lib/authorization';
 
 export async function POST(request: NextRequest) {
     try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+        }
+        if (!isAdminRole(user.role)) {
+            return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { type, number, year, title, query } = body;
 

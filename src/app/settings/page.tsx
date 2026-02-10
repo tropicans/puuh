@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 interface AIStatus {
     status: 'connected' | 'error' | 'loading' | 'idle';
@@ -32,11 +33,6 @@ export default function SettingsPage() {
     const [dbStatus, setDBStatus] = useState<DBStatus>({ status: 'idle' });
     const [seeding, setSeeding] = useState(false);
     const [seedMessage, setSeedMessage] = useState<string | null>(null);
-
-    // Check database connection on load
-    useEffect(() => {
-        checkDatabase();
-    }, []);
 
     const testAIConnection = async () => {
         setAIStatus({ status: 'loading' });
@@ -90,12 +86,16 @@ export default function SettingsPage() {
         }
     };
 
+    const fetchDatabaseStatus = async () => {
+        const response = await fetch('/api/db-status');
+        return response.json();
+    };
+
     const checkDatabase = async () => {
         setDBStatus({ status: 'loading' });
 
         try {
-            const response = await fetch('/api/db-status');
-            const data = await response.json();
+            const data = await fetchDatabaseStatus();
 
             if (data.connected) {
                 setDBStatus({
@@ -115,6 +115,36 @@ export default function SettingsPage() {
             });
         }
     };
+
+    // Check database connection on load
+    useEffect(() => {
+        async function initialCheck() {
+            setDBStatus({ status: 'loading' });
+
+            try {
+                const data = await fetchDatabaseStatus();
+
+                if (data.connected) {
+                    setDBStatus({
+                        status: 'connected',
+                        stats: data.stats
+                    });
+                } else {
+                    setDBStatus({
+                        status: 'error',
+                        error: data.error || 'Tidak terhubung'
+                    });
+                }
+            } catch (error) {
+                setDBStatus({
+                    status: 'error',
+                    error: error instanceof Error ? error.message : 'Network error'
+                });
+            }
+        }
+
+        initialCheck();
+    }, []);
 
     const seedDatabase = async () => {
         setSeeding(true);
@@ -142,9 +172,9 @@ export default function SettingsPage() {
     return (
         <div className="space-y-8 animate-fade-in max-w-3xl mx-auto">
             <div>
-                <a href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
+                <Link href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
                     ← Kembali ke Dashboard
-                </a>
+                </Link>
                 <h1 className="text-3xl font-bold text-white mb-2">⚙️ Pengaturan</h1>
                 <p className="text-gray-400">
                     Konfigurasi database dan integrasi AI

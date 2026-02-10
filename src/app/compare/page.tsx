@@ -6,6 +6,7 @@ import { MatrixComparisonView } from '@/components/comparison/MatrixComparisonVi
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface Article {
     id: string;
@@ -133,7 +134,7 @@ export default function ComparePage() {
     return (
         <div className="space-y-8 animate-fade-in">
             <div>
-                <a href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">← Kembali ke Beranda</a>
+                <Link href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">← Kembali ke Beranda</Link>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-2">
@@ -198,11 +199,11 @@ export default function ComparePage() {
                         <p className="text-gray-400 max-w-md mx-auto mb-4">
                             Untuk membandingkan, upload minimal 2 versi dari regulasi yang sama.
                         </p>
-                        <a href="/upload">
+                        <Link href="/upload">
                             <Button className="bg-indigo-600 hover:bg-indigo-500">
                                 + Upload Peraturan
                             </Button>
-                        </a>
+                        </Link>
                     </CardContent>
                 </Card>
             )}

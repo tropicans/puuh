@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 interface Version {
     id: string;
@@ -28,23 +29,25 @@ export default function ManagePage() {
     const [editingVersion, setEditingVersion] = useState<Version | null>(null);
     const [editForm, setEditForm] = useState({ number: '', year: '', fullTitle: '' });
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [reuploadingVersion, setReuploadingVersion] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const loadRegulations = async (): Promise<Regulation[]> => {
+        const res = await fetch('/api/regulations');
+        const data = await res.json();
+        return data.regulations || [];
+    };
 
     useEffect(() => {
-        fetchRegulations();
-    }, []);
-
-    const fetchRegulations = async () => {
-        try {
-            const res = await fetch('/api/regulations');
-            const data = await res.json();
-            setRegulations(data.regulations || []);
-        } catch (error) {
-            console.error('Failed to fetch:', error);
+        async function initialFetch() {
+            try {
+                const items = await loadRegulations();
+                setRegulations(items);
+            } catch (error) {
+                console.error('Failed to fetch:', error);
+            }
+            setLoading(false);
         }
-        setLoading(false);
-    };
+
+        initialFetch();
+    }, []);
 
     const handleEditVersion = (version: Version) => {
         setEditingVersion(version);
@@ -70,11 +73,12 @@ export default function ManagePage() {
             if (data.success) {
                 setMessage({ type: 'success', text: 'Versi berhasil diupdate!' });
                 setEditingVersion(null);
-                fetchRegulations();
+                const items = await loadRegulations();
+                setRegulations(items);
             } else {
                 setMessage({ type: 'error', text: data.error || 'Gagal update' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Terjadi kesalahan' });
         }
 
@@ -93,11 +97,12 @@ export default function ManagePage() {
 
             if (data.success) {
                 setMessage({ type: 'success', text: 'Versi berhasil dihapus!' });
-                fetchRegulations();
+                const items = await loadRegulations();
+                setRegulations(items);
             } else {
                 setMessage({ type: 'error', text: data.error || 'Gagal hapus' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Terjadi kesalahan' });
         }
 
@@ -116,11 +121,12 @@ export default function ManagePage() {
 
             if (data.success) {
                 setMessage({ type: 'success', text: 'Peraturan berhasil dihapus!' });
-                fetchRegulations();
+                const items = await loadRegulations();
+                setRegulations(items);
             } else {
                 setMessage({ type: 'error', text: data.error || 'Gagal hapus' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Terjadi kesalahan' });
         }
 
@@ -141,11 +147,12 @@ export default function ManagePage() {
 
             if (data.success) {
                 setMessage({ type: 'success', text: data.message });
-                fetchRegulations();
+                const items = await loadRegulations();
+                setRegulations(items);
             } else {
                 setMessage({ type: 'error', text: data.error || 'Gagal re-parse' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Terjadi kesalahan' });
         }
 
@@ -172,9 +179,9 @@ export default function ManagePage() {
     return (
         <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
             <div>
-                <a href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
+                <Link href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
                     ← Kembali ke Dashboard
-                </a>
+                </Link>
                 <h1 className="text-3xl font-bold text-white mb-2">🔧 Kelola Peraturan</h1>
                 <p className="text-gray-400">
                     Edit, hapus, atau kelola peraturan dan versi

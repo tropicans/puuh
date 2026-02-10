@@ -114,7 +114,7 @@ async function extractChunkWithVision(pdfBuffer: Buffer, chunkIndex: number): Pr
             try {
                 const parsed = JSON.parse(errorText);
                 errorDetail = parsed.error?.message || errorText;
-            } catch (e) {
+            } catch {
                 // Not JSON
             }
             if (response.status === 413 || errorDetail.includes('too large')) {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
 import { use } from 'react';
+import Link from 'next/link';
 
 interface Article {
     id: string;
@@ -122,9 +123,9 @@ export default function RegulationDetailPage({ params }: PageProps) {
                 <div className="text-5xl mb-4">😕</div>
                 <h2 className="text-2xl font-bold text-white mb-2">Peraturan tidak ditemukan</h2>
                 <p className="text-gray-400 mb-6">{error || `ID: ${id}`}</p>
-                <a href="/" className="text-indigo-400 hover:text-indigo-300">
+                <Link href="/" className="text-indigo-400 hover:text-indigo-300">
                     ← Kembali ke Dashboard
-                </a>
+                </Link>
             </div>
         );
     }
@@ -158,13 +159,10 @@ export default function RegulationDetailPage({ params }: PageProps) {
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Back button */}
-            <a
-                href="/"
-                className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-            >
+            <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
                 <span>←</span>
                 <span>Kembali ke Dashboard</span>
-            </a>
+            </Link>
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -189,11 +187,11 @@ export default function RegulationDetailPage({ params }: PageProps) {
                     <Button variant="outline" className="border-gray-700">
                         📤 Export
                     </Button>
-                    <a href={`/upload?amends=${regulation.id}&title=${encodeURIComponent(regulation.title)}`}>
+                    <Link href={`/upload?amends=${regulation.id}&title=${encodeURIComponent(regulation.title)}`}>
                         <Button className="bg-indigo-600 hover:bg-indigo-500">
                             + Tambah Versi
                         </Button>
-                    </a>
+                    </Link>
                 </div>
             </div>
 
