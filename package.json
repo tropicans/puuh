@@ -6,7 +6,8 @@
     "dev": "next dev -p 3006",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "smoke": "node scripts/smoke-flow.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",

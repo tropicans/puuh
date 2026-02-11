@@ -16,6 +16,25 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+This project runs locally on port `3006` by default (`npm run dev`).
+
+## Smoke Check
+
+After starting the app, run:
+
+```bash
+npm run smoke
+```
+
+Optional authenticated checks:
+
+```bash
+SMOKE_BASE_URL=http://localhost:3006
+SMOKE_TEST_EMAIL=admin@example.com
+SMOKE_TEST_PASSWORD=your-password
+npm run smoke
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
