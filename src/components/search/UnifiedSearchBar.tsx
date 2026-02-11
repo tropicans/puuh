@@ -55,13 +55,16 @@ export function UnifiedSearchBar({ types, years }: Props) {
             <div className="glass-container rounded-2xl p-2 md:p-3 shadow-2xl shadow-indigo-500/10 flex flex-col md:flex-row items-stretch md:items-center gap-3">
                 {/* Search Input Box */}
                 <div className="relative flex-1 group">
+                    <label htmlFor="dashboard-search" className="sr-only">Cari regulasi</label>
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-indigo-400 transition-colors" />
                     <Input
+                        id="dashboard-search"
                         type="text"
                         placeholder="Cari kata kunci, nomor, atau judul..."
                         className="w-full bg-white/5 border-transparent h-12 pl-12 pr-10 rounded-xl focus:border-indigo-500/50 focus:bg-white/10 transition-all text-white placeholder:text-gray-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        aria-label="Cari regulasi"
                     />
                     {isPending && (
                         <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400 animate-spin" />
@@ -74,11 +77,14 @@ export function UnifiedSearchBar({ types, years }: Props) {
                 {/* Filters Group */}
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                     <div className="relative w-full sm:w-auto min-w-[140px]">
+                        <label htmlFor="dashboard-filter-type" className="sr-only">Filter jenis peraturan</label>
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                         <select
+                            id="dashboard-filter-type"
                             className="w-full appearance-none bg-white/5 border border-transparent hover:border-white/10 h-10 pl-9 pr-8 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer transition-all"
                             value={currentType}
                             onChange={(e) => handleFilterChange('type', e.target.value)}
+                            aria-label="Filter jenis peraturan"
                         >
                             <option value="all">Semua Jenis</option>
                             {types.map((t) => (
@@ -89,10 +95,13 @@ export function UnifiedSearchBar({ types, years }: Props) {
                     </div>
 
                     <div className="relative w-full sm:w-auto min-w-[120px]">
+                        <label htmlFor="dashboard-filter-year" className="sr-only">Filter tahun peraturan</label>
                         <select
+                            id="dashboard-filter-year"
                             className="w-full appearance-none bg-white/5 border border-transparent hover:border-white/10 h-10 px-4 rounded-lg text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 cursor-pointer transition-all"
                             value={currentYear}
                             onChange={(e) => handleFilterChange('year', e.target.value)}
+                            aria-label="Filter tahun peraturan"
                         >
                             <option value="all">Semua Tahun</option>
                             {years.map((y) => (
@@ -106,6 +115,7 @@ export function UnifiedSearchBar({ types, years }: Props) {
                     <a
                         href={exportUrl}
                         target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center gap-2 px-5 h-10 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-lg font-semibold text-sm transition-all shadow-lg shadow-indigo-600/20 whitespace-nowrap w-full sm:w-auto justify-center"
                     >
                         <FileText className="w-4 h-4" />
@@ -134,6 +144,7 @@ export function UnifiedSearchBar({ types, years }: Props) {
                         </Badge>
                     )}
                     <button
+                        type="button"
                         onClick={() => router.replace('/dashboard')}
                         className="text-xs text-rose-400 hover:text-rose-300 hover:underline transition-colors ml-2"
                     >

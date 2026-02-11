@@ -4,6 +4,8 @@ import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { StatusBanner } from '@/components/common/StatusBanner';
+import { useAsyncAction } from '@/hooks/useAsyncAction';
 
 type UploadMode = 'auto' | 'url' | 'manual';
 
@@ -21,7 +23,8 @@ function UploadContent() {
         url: ''
     });
     const [file, setFile] = useState<File | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [manualLoading, setManualLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
     const [result, setResult] = useState<{
         success: boolean;
         message: string;
@@ -30,6 +33,9 @@ function UploadContent() {
     } | null>(null);
 
     // Set initial mode to manual if adding version (usually we have the file)
+    const autoFetchAction = useAsyncAction();
+    const loading = manualLoading || autoFetchAction.loading;
+
     useEffect(() => {
         if (amendsId) {
             setMode('manual');
@@ -38,47 +44,63 @@ function UploadContent() {
 
     const handleAutoFetch = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError(null);
         if (!formData.number || !formData.year) {
-            setResult({ success: false, message: 'Nomor dan tahun wajib diisi' });
+            setFormError('Nomor dan tahun wajib diisi');
             return;
         }
 
-        setLoading(true);
+        const parsedYear = Number(formData.year);
+        if (!Number.isInteger(parsedYear) || parsedYear < 1945 || parsedYear > 2100) {
+            setFormError('Tahun harus angka valid antara 1945 sampai 2100');
+            return;
+        }
+
         setResult(null);
 
-        try {
+        const data = await autoFetchAction.run(async () => {
             const body = { ...formData, existingRegulationId: amendsId };
             const res = await fetch('/api/regulations/fetch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
-            const data = await res.json();
-            setResult({
-                success: data.success,
-                message: data.message,
-                articlesCount: data.articlesCount,
-                sourceUrl: data.sourceUrl
-            });
-            if (data.success) {
-                setFormData({ ...formData, number: '', year: '', title: '' });
-            }
-        } catch (error) {
-            setResult({ success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan' });
+            return res.json();
+        });
+
+        if (!data) {
+            setResult({ success: false, message: autoFetchAction.error || 'Terjadi kesalahan' });
+            return;
         }
-        setLoading(false);
+
+        setResult({
+            success: data.success,
+            message: data.message,
+            articlesCount: data.articlesCount,
+            sourceUrl: data.sourceUrl
+        });
+        if (data.success) {
+            setFormData({ ...formData, number: '', year: '', title: '' });
+        }
     };
 
     const [statusMessage, setStatusMessage] = useState('');
 
     const handleManualUpload = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError(null);
         if (!file || !formData.number || !formData.year) {
-            setResult({ success: false, message: 'File, nomor dan tahun wajib diisi' });
+            setFormError('File, nomor dan tahun wajib diisi');
             return;
         }
 
-        setLoading(true);
+        const parsedYear = Number(formData.year);
+        if (!Number.isInteger(parsedYear) || parsedYear < 1945 || parsedYear > 2100) {
+            setFormError('Tahun harus angka valid antara 1945 sampai 2100');
+            return;
+        }
+
+        setManualLoading(true);
         setStatusMessage('Memulai upload...');
         setResult(null);
 
@@ -144,7 +166,7 @@ function UploadContent() {
         } catch (error) {
             setResult({ success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan' });
         }
-        setLoading(false);
+        setManualLoading(false);
         setStatusMessage('');
     };
 
@@ -175,30 +197,36 @@ function UploadContent() {
                     onClick={() => setMode('auto')}
                     className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${mode === 'auto' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                         }`}
-                >🔍 Auto Cari</button>
+                >Cari Otomatis</button>
                 <button
                     onClick={() => setMode('manual')}
                     className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                         }`}
-                >📄 Upload PDF</button>
+                >Upload PDF</button>
             </div>
 
             <Card className="border-border/70 bg-card/70">
                 <CardHeader>
                     <CardTitle className="text-lg text-foreground">
-                        {mode === 'auto' && '🔍 Cari Otomatis dari JDIH'}
-                        {mode === 'manual' && '📄 Upload File PDF'}
+                        {mode === 'auto' && 'Cari Otomatis dari JDIH'}
+                        {mode === 'manual' && 'Upload File PDF'}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={mode === 'auto' ? handleAutoFetch : handleManualUpload} className="space-y-4">
+                        {formError && (
+                            <StatusBanner tone="error" message={formError} className="text-sm" />
+                        )}
+
                         {/* Type Selector */}
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-muted-foreground">Jenis Peraturan</label>
+                            <label htmlFor="upload-regulation-type" className="mb-2 block text-sm font-medium text-muted-foreground">Jenis Peraturan</label>
                             <select
+                                id="upload-regulation-type"
                                 value={formData.type}
                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                                 className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground focus:ring-2 focus:ring-primary"
+                                aria-label="Jenis Peraturan"
                             >
                                 <option value="Perpres">Peraturan Presiden (Perpres)</option>
                                 <option value="PP">Peraturan Pemerintah (PP)</option>
@@ -211,19 +239,22 @@ function UploadContent() {
                         {/* Number and Year */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-muted-foreground">Nomor *</label>
+                                <label htmlFor="upload-regulation-number" className="mb-2 block text-sm font-medium text-muted-foreground">Nomor *</label>
                                 <input
+                                    id="upload-regulation-number"
                                     type="text"
                                     value={formData.number}
                                     onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                                     placeholder="82"
                                     className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground placeholder:text-muted-foreground"
                                     required
+                                    aria-required="true"
                                 />
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-muted-foreground">Tahun *</label>
+                                <label htmlFor="upload-regulation-year" className="mb-2 block text-sm font-medium text-muted-foreground">Tahun *</label>
                                 <input
+                                    id="upload-regulation-year"
                                     type="number"
                                     value={formData.year}
                                     onChange={(e) => setFormData({ ...formData, year: e.target.value })}
@@ -231,14 +262,16 @@ function UploadContent() {
                                     min="1945" max="2030"
                                     className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground placeholder:text-muted-foreground"
                                     required
+                                    aria-required="true"
                                 />
                             </div>
                         </div>
 
                         {/* Title (optional) */}
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-muted-foreground">Judul (opsional)</label>
+                            <label htmlFor="upload-regulation-title" className="mb-2 block text-sm font-medium text-muted-foreground">Judul (opsional)</label>
                             <input
+                                id="upload-regulation-title"
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -250,13 +283,15 @@ function UploadContent() {
                         {/* Manual upload: File input */}
                         {mode === 'manual' && (
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-muted-foreground">File PDF *</label>
+                                <label htmlFor="upload-regulation-file" className="mb-2 block text-sm font-medium text-muted-foreground">File PDF *</label>
                                 <input
+                                    id="upload-regulation-file"
                                     type="file"
                                     accept=".pdf"
                                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                                     className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground"
                                     required
+                                    aria-required="true"
                                 />
                             </div>
                         )}
@@ -276,24 +311,24 @@ function UploadContent() {
                                 </span>
                             ) : (
                                 mode === 'auto'
-                                    ? (amendsId ? '🔍 Cari & Tambah Versi' : '🔍 Cari & Tambahkan')
-                                    : (amendsId ? '📥 Upload & Tambah Versi' : '📥 Upload & Parse')
+                                    ? (amendsId ? 'Cari dan Tambah Versi' : 'Cari dan Tambahkan')
+                                    : (amendsId ? 'Upload dan Tambah Versi' : 'Upload dan Parse')
                             )}
                         </Button>
                     </form>
 
                     {/* Result */}
                     {result && (
-                            <div className={`mt-6 rounded-lg p-4 ${result.success ? 'border border-emerald-500/30 bg-emerald-500/10' : 'border border-red-500/30 bg-red-500/10'}`}>
-                            <div className={`font-medium ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {result.success ? '✅ Berhasil!' : '❌ Gagal'}
-                            </div>
-                            <div className={`text-sm mt-1 ${result.success ? 'text-emerald-300' : 'text-red-300'}`}>{result.message}</div>
+                            <div className="mt-6 space-y-3">
+                            <StatusBanner
+                                tone={result.success ? 'success' : 'error'}
+                                message={`${result.success ? 'Berhasil! ' : 'Gagal! '}${result.message}`}
+                            />
                             {result.success && result.articlesCount !== undefined && (
                                 <div className="mt-2 text-sm text-muted-foreground">📄 Pasal diekstrak: <span className="text-foreground">{result.articlesCount}</span></div>
                             )}
                             {result.success && result.sourceUrl && (
-                                <div className="mt-1 text-sm text-muted-foreground">🔗 <a href={result.sourceUrl} target="_blank" className="break-all text-primary hover:underline">{result.sourceUrl}</a></div>
+                                <div className="mt-1 text-sm text-muted-foreground">🔗 <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer" className="break-all text-primary hover:underline">{result.sourceUrl}</a></div>
                             )}
                             {result.success && amendsId && (
                                 <div className="mt-3">
@@ -305,6 +340,7 @@ function UploadContent() {
                             {!result.success && mode === 'auto' && (
                                 <div className="mt-3">
                                     <button
+                                        type="button"
                                         onClick={() => setMode('manual')}
                                         className="text-sm text-primary underline hover:text-primary/80"
                                     >
@@ -314,6 +350,8 @@ function UploadContent() {
                             )}
                         </div>
                     )}
+
+                    <div className="sr-only" aria-live="polite">{statusMessage}</div>
                 </CardContent>
             </Card>
 

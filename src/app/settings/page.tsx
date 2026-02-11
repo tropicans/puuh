@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBanner } from '@/components/common/StatusBanner';
+import { useAsyncAction } from '@/hooks/useAsyncAction';
 import Link from 'next/link';
 
 interface AIStatus {
@@ -31,8 +33,8 @@ export default function SettingsPage() {
     const [aiStatus, setAIStatus] = useState<AIStatus>({ status: 'idle' });
     const [visionStatus, setVisionStatus] = useState<VisionStatus>({ status: 'idle' });
     const [dbStatus, setDBStatus] = useState<DBStatus>({ status: 'idle' });
-    const [seeding, setSeeding] = useState(false);
-    const [seedMessage, setSeedMessage] = useState<string | null>(null);
+    const [seedMessage, setSeedMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+    const seedAction = useAsyncAction();
 
     const testAIConnection = async () => {
         setAIStatus({ status: 'loading' });
@@ -147,26 +149,26 @@ export default function SettingsPage() {
     }, []);
 
     const seedDatabase = async () => {
-        setSeeding(true);
         setSeedMessage(null);
 
-        try {
+        const result = await seedAction.run(async () => {
             const response = await fetch('/api/seed', {
                 method: 'POST'
             });
-            const data = await response.json();
+            return response.json();
+        });
 
-            if (data.success) {
-                setSeedMessage('✅ ' + (data.message || 'Data berhasil di-seed'));
-                checkDatabase(); // Refresh stats
-            } else {
-                setSeedMessage('❌ ' + (data.error || 'Gagal seed data'));
-            }
-        } catch (error) {
-            setSeedMessage('❌ ' + (error instanceof Error ? error.message : 'Network error'));
+        if (!result) {
+            setSeedMessage({ tone: 'error', text: seedAction.error || 'Network error' });
+            return;
         }
 
-        setSeeding(false);
+        if (result.success) {
+            setSeedMessage({ tone: 'success', text: result.message || 'Data berhasil di-seed' });
+            checkDatabase();
+        } else {
+            setSeedMessage({ tone: 'error', text: result.error || 'Gagal seed data' });
+        }
     };
 
     return (
@@ -193,13 +195,11 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <div className="text-muted-foreground">Base URL</div>
-                            <div className="font-mono text-foreground">
-                                {process.env.NEXT_PUBLIC_OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1'}
-                            </div>
+                            <div className="font-mono text-foreground">Configured on server</div>
                         </div>
                         <div>
                             <div className="text-muted-foreground">Model</div>
-                            <div className="font-mono text-foreground">gpt-oss-120b-medium</div>
+                            <div className="font-mono text-foreground">{aiStatus.model || 'Unknown (run AI test)'}</div>
                         </div>
                     </div>
 
@@ -351,20 +351,15 @@ export default function SettingsPage() {
                         </p>
                         <Button
                             onClick={seedDatabase}
-                            disabled={seeding || dbStatus.status !== 'connected'}
+                            disabled={seedAction.loading || dbStatus.status !== 'connected'}
                             variant="outline"
                             className="border-border/70"
                         >
-                            {seeding ? '⏳ Loading...' : '🌱 Seed Sample Data'}
+                            {seedAction.loading ? '⏳ Loading...' : '🌱 Seed Sample Data'}
                         </Button>
 
                         {seedMessage && (
-                            <div className={`mt-3 p-3 rounded-lg text-sm ${seedMessage.startsWith('✅')
-                                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                                : 'bg-red-500/10 border border-red-500/30 text-red-400'
-                                }`}>
-                                {seedMessage}
-                            </div>
+                            <StatusBanner className="mt-3" tone={seedMessage.tone} message={seedMessage.text} />
                         )}
                     </div>
                 </CardContent>
@@ -386,7 +381,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="flex justify-between rounded border border-border/50 bg-background/60 p-2">
                             <span className="text-muted-foreground">Database</span>
-                            <span className="text-foreground">PostgreSQL (port 5433)</span>
+                            <span className="text-foreground">PostgreSQL (configured via DATABASE_URL)</span>
                         </div>
                         <div className="flex justify-between rounded border border-border/50 bg-background/60 p-2">
                             <span className="text-muted-foreground">ORM</span>

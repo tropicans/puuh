@@ -14,21 +14,21 @@ function transformRegulation(reg: {
   title: string;
   description: string | null;
   type: { name: string; shortName: string };
-  versions: Array<{
-    id: string;
-    number: string;
+    versions: Array<{
+      id: string;
+      number: string;
     year: number;
     fullTitle: string;
     status: string;
     effectiveDate: Date | null;
-    pdfPath: string | null;
-    articles: Array<{
-      id: string;
-      articleNumber: string;
-      content: string;
-      status: string;
+      pdfPath: string | null;
+      articles: Array<{
+        id: string;
+        articleNumber: string;
+        content?: string;
+        status: string;
+      }>;
     }>;
-  }>;
 }) {
   return {
     id: reg.id,
@@ -43,13 +43,13 @@ function transformRegulation(reg: {
       status: v.status.toLowerCase() as 'active' | 'amended' | 'revoked',
       effectiveDate: v.effectiveDate?.toISOString() || '',
       pdfPath: v.pdfPath || undefined,
-      articles: v.articles.map(a => ({
-        id: a.id,
-        number: a.articleNumber,
-        content: a.content,
-        status: a.status.toLowerCase() as 'active' | 'modified' | 'deleted' | 'new'
+        articles: v.articles.map(a => ({
+          id: a.id,
+          number: a.articleNumber,
+          content: a.content || '',
+          status: a.status.toLowerCase() as 'active' | 'modified' | 'deleted' | 'new'
+        }))
       }))
-    }))
   };
 }
 

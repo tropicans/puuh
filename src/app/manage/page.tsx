@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { StatusBanner } from '@/components/common/StatusBanner';
+import { useAsyncAction } from '@/hooks/useAsyncAction';
+import { useFlashMessage } from '@/hooks/useFlashMessage';
 import Link from 'next/link';
 
 interface Version {
@@ -23,14 +27,29 @@ interface Regulation {
     versions: Version[];
 }
 
+type ConfirmAction =
+    | { kind: 'delete-version'; versionId: string }
+    | { kind: 'delete-regulation'; regId: string }
+    | { kind: 'reparse-version'; versionId: string }
+    | null;
+
 export default function ManagePage() {
     const [regulations, setRegulations] = useState<Regulation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [editingVersion, setEditingVersion] = useState<Version | null>(null);
     const [editForm, setEditForm] = useState({ number: '', year: '', fullTitle: '' });
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [actionKey, setActionKey] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+    const editNumberInputRef = useRef<HTMLInputElement | null>(null);
+    const { message, showMessage } = useFlashMessage();
+    const mutationAction = useAsyncAction();
+
     const loadRegulations = async (): Promise<Regulation[]> => {
         const res = await fetch('/api/regulations');
+        if (!res.ok) {
+            throw new Error('Gagal memuat data peraturan');
+        }
         const data = await res.json();
         return data.regulations || [];
     };
@@ -40,8 +59,10 @@ export default function ManagePage() {
             try {
                 const items = await loadRegulations();
                 setRegulations(items);
+                setLoadError(null);
             } catch (error) {
                 console.error('Failed to fetch:', error);
+                setLoadError(error instanceof Error ? error.message : 'Gagal memuat data');
             }
             setLoading(false);
         }
@@ -58,105 +79,134 @@ export default function ManagePage() {
         });
     };
 
+    useEffect(() => {
+        if (!editingVersion) return;
+        const timer = window.setTimeout(() => {
+            editNumberInputRef.current?.focus();
+            editNumberInputRef.current?.select();
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [editingVersion]);
+
+    useEffect(() => {
+        if (!editingVersion) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setEditingVersion(null);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [editingVersion]);
+
     const handleSaveVersion = async () => {
         if (!editingVersion) return;
+        setActionKey(`save:${editingVersion.id}`);
 
-        try {
+        const data = await mutationAction.run(async () => {
             const res = await fetch(`/api/versions/${editingVersion.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editForm)
             });
+            return res.json();
+        });
 
-            const data = await res.json();
-
-            if (data.success) {
-                setMessage({ type: 'success', text: 'Versi berhasil diupdate!' });
-                setEditingVersion(null);
-                const items = await loadRegulations();
-                setRegulations(items);
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Gagal update' });
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Terjadi kesalahan' });
+        if (!data) {
+            showMessage({ type: 'error', text: mutationAction.error || 'Terjadi kesalahan jaringan' });
+            setActionKey(null);
+            return;
         }
 
-        setTimeout(() => setMessage(null), 3000);
+        if (data.success) {
+            showMessage({ type: 'success', text: 'Versi berhasil diupdate!' });
+            setEditingVersion(null);
+            const items = await loadRegulations();
+            setRegulations(items);
+        } else {
+            showMessage({ type: 'error', text: data.error || 'Gagal update' });
+        }
+        setActionKey(null);
     };
 
     const handleDeleteVersion = async (versionId: string) => {
-        if (!confirm('Yakin hapus versi ini? Semua pasal akan ikut terhapus.')) return;
+        setActionKey(`delete-version:${versionId}`);
 
-        try {
+        const data = await mutationAction.run(async () => {
             const res = await fetch(`/api/versions/${versionId}`, {
                 method: 'DELETE'
             });
+            return res.json();
+        });
 
-            const data = await res.json();
-
-            if (data.success) {
-                setMessage({ type: 'success', text: 'Versi berhasil dihapus!' });
-                const items = await loadRegulations();
-                setRegulations(items);
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Gagal hapus' });
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Terjadi kesalahan' });
+        if (!data) {
+            showMessage({ type: 'error', text: mutationAction.error || 'Terjadi kesalahan jaringan' });
+            setActionKey(null);
+            return;
         }
 
-        setTimeout(() => setMessage(null), 3000);
+        if (data.success) {
+            showMessage({ type: 'success', text: 'Versi berhasil dihapus!' });
+            const items = await loadRegulations();
+            setRegulations(items);
+        } else {
+            showMessage({ type: 'error', text: data.error || 'Gagal hapus' });
+        }
+        setActionKey(null);
     };
 
     const handleDeleteRegulation = async (regId: string) => {
-        if (!confirm('Yakin hapus peraturan ini? SEMUA versi akan ikut terhapus.')) return;
+        setActionKey(`delete-regulation:${regId}`);
 
-        try {
+        const data = await mutationAction.run(async () => {
             const res = await fetch(`/api/regulations/${regId}/manage`, {
                 method: 'DELETE'
             });
+            return res.json();
+        });
 
-            const data = await res.json();
-
-            if (data.success) {
-                setMessage({ type: 'success', text: 'Peraturan berhasil dihapus!' });
-                const items = await loadRegulations();
-                setRegulations(items);
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Gagal hapus' });
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Terjadi kesalahan' });
+        if (!data) {
+            showMessage({ type: 'error', text: mutationAction.error || 'Terjadi kesalahan jaringan' });
+            setActionKey(null);
+            return;
         }
 
-        setTimeout(() => setMessage(null), 3000);
+        if (data.success) {
+            showMessage({ type: 'success', text: 'Peraturan berhasil dihapus!' });
+            const items = await loadRegulations();
+            setRegulations(items);
+        } else {
+            showMessage({ type: 'error', text: data.error || 'Gagal hapus' });
+        }
+        setActionKey(null);
     };
 
     const handleReparse = async (versionId: string) => {
-        if (!confirm('Re-parse akan menghapus pasal lama dan mengekstrak ulang. Lanjutkan?')) return;
+        setActionKey(`reparse:${versionId}`);
 
-        setMessage({ type: 'success', text: 'Sedang parsing dengan AI...' });
+        showMessage({ type: 'success', text: 'Sedang parsing dengan AI...' }, 5000);
 
-        try {
+        const data = await mutationAction.run(async () => {
             const res = await fetch(`/api/versions/${versionId}/reparse`, {
                 method: 'POST'
             });
+            return res.json();
+        });
 
-            const data = await res.json();
-
-            if (data.success) {
-                setMessage({ type: 'success', text: data.message });
-                const items = await loadRegulations();
-                setRegulations(items);
-            } else {
-                setMessage({ type: 'error', text: data.error || 'Gagal re-parse' });
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Terjadi kesalahan' });
+        if (!data) {
+            showMessage({ type: 'error', text: mutationAction.error || 'Terjadi kesalahan jaringan' }, 5000);
+            setActionKey(null);
+            return;
         }
 
-        setTimeout(() => setMessage(null), 5000);
+        if (data.success) {
+            showMessage({ type: 'success', text: data.message }, 5000);
+            const items = await loadRegulations();
+            setRegulations(items);
+        } else {
+            showMessage({ type: 'error', text: data.error || 'Gagal re-parse' }, 5000);
+        }
+        setActionKey(null);
     };
 
     const getStatusColor = (status: string) => {
@@ -171,10 +221,42 @@ export default function ManagePage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="text-muted-foreground">Loading...</div>
+                <div className="text-muted-foreground">Memuat data kelola...</div>
             </div>
         );
     }
+
+    const confirmDialogConfig = (() => {
+        if (!confirmAction) return null;
+        if (confirmAction.kind === 'delete-version') {
+            return {
+                title: 'Hapus versi ini?',
+                description: 'Semua pasal pada versi ini akan ikut terhapus dan tindakan ini tidak dapat dibatalkan.',
+                confirmLabel: 'Hapus Versi',
+                destructive: true,
+                onConfirm: () => handleDeleteVersion(confirmAction.versionId),
+                loading: actionKey === `delete-version:${confirmAction.versionId}`,
+            };
+        }
+        if (confirmAction.kind === 'delete-regulation') {
+            return {
+                title: 'Hapus seluruh peraturan?',
+                description: 'Semua versi dan pasal pada peraturan ini akan ikut terhapus permanen.',
+                confirmLabel: 'Hapus Peraturan',
+                destructive: true,
+                onConfirm: () => handleDeleteRegulation(confirmAction.regId),
+                loading: actionKey === `delete-regulation:${confirmAction.regId}`,
+            };
+        }
+        return {
+            title: 'Re-parse versi ini?',
+            description: 'Pasal lama akan diganti oleh hasil ekstraksi terbaru. Pastikan raw text sudah benar.',
+            confirmLabel: 'Lanjut Re-parse',
+            destructive: false,
+            onConfirm: () => handleReparse(confirmAction.versionId),
+            loading: actionKey === `reparse:${confirmAction.versionId}`,
+        };
+    })();
 
     return (
         <div className="mx-auto max-w-5xl space-y-8 animate-fade-in">
@@ -190,25 +272,26 @@ export default function ManagePage() {
 
             {/* Message toast */}
             {message && (
-                <div className={`rounded-lg p-4 ${message.type === 'success'
-                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                    : 'border border-red-500/30 bg-red-500/10 text-red-400'
-                    }`}>
-                    {message.text}
-                </div>
+                <StatusBanner tone={message.type === 'success' ? 'success' : 'error'} message={message.text} />
+            )}
+
+            {loadError && (
+                <StatusBanner tone="error" message={loadError} />
             )}
 
             {/* Edit Modal */}
             {editingVersion && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-version-title">
                     <Card className="w-full max-w-lg border-border/70 bg-card">
                         <CardHeader>
-                            <CardTitle className="text-foreground">Edit Versi</CardTitle>
+                            <CardTitle id="edit-version-title" className="text-foreground">Edit Versi</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <label className="mb-1 block text-sm text-muted-foreground">Nomor</label>
+                                <label htmlFor="edit-version-number" className="mb-1 block text-sm text-muted-foreground">Nomor</label>
                                 <input
+                                    id="edit-version-number"
+                                    ref={editNumberInputRef}
                                     type="text"
                                     value={editForm.number}
                                     onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
@@ -216,8 +299,9 @@ export default function ManagePage() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm text-muted-foreground">Tahun</label>
+                                <label htmlFor="edit-version-year" className="mb-1 block text-sm text-muted-foreground">Tahun</label>
                                 <input
+                                    id="edit-version-year"
                                     type="number"
                                     value={editForm.year}
                                     onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
@@ -225,8 +309,9 @@ export default function ManagePage() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-sm text-muted-foreground">Judul Lengkap</label>
+                                <label htmlFor="edit-version-title-input" className="mb-1 block text-sm text-muted-foreground">Judul Lengkap</label>
                                 <input
+                                    id="edit-version-title-input"
                                     type="text"
                                     value={editForm.fullTitle}
                                     onChange={(e) => setEditForm({ ...editForm, fullTitle: e.target.value })}
@@ -236,9 +321,10 @@ export default function ManagePage() {
                             <div className="flex gap-3 pt-4">
                                 <Button
                                     onClick={handleSaveVersion}
+                                    disabled={actionKey === `save:${editingVersion.id}`}
                                     className="flex-1"
                                 >
-                                    💾 Simpan
+                                    {actionKey === `save:${editingVersion.id}` ? 'Menyimpan...' : 'Simpan'}
                                 </Button>
                                 <Button
                                     onClick={() => setEditingVersion(null)}
@@ -276,12 +362,13 @@ export default function ManagePage() {
                                     )}
                                 </div>
                                 <Button
-                                    onClick={() => handleDeleteRegulation(reg.id)}
+                                    onClick={() => setConfirmAction({ kind: 'delete-regulation', regId: reg.id })}
                                     variant="outline"
                                     size="sm"
+                                    disabled={actionKey === `delete-regulation:${reg.id}`}
                                     className="border-red-500/30 text-red-400 hover:bg-red-500/20"
                                 >
-                                    🗑️ Hapus Semua
+                                    {actionKey === `delete-regulation:${reg.id}` ? 'Menghapus...' : 'Hapus Semua'}
                                 </Button>
                             </CardHeader>
                             <CardContent>
@@ -307,20 +394,16 @@ export default function ManagePage() {
                                             </div>
                                             <div className="flex gap-2">
                                                 <Button
-                                                    onClick={() => handleReparse(version.id)}
+                                                    onClick={() => setConfirmAction({ kind: 'reparse-version', versionId: version.id })}
                                                     size="sm"
                                                     variant="outline"
+                                                    disabled={actionKey === `reparse:${version.id}`}
                                                     className="border-primary/40 text-primary hover:bg-primary/10"
                                                 >
-                                                    🔄 Parse
+                                                    {actionKey === `reparse:${version.id}` ? 'Parsing...' : 'Parse Ulang'}
                                                 </Button>
-                                                <Button
-                                                    onClick={() => window.location.href = `/manage/version/${version.id}`}
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="border-primary/40 text-primary hover:bg-primary/10"
-                                                >
-                                                    📝 Edit Pasal
+                                                <Button size="sm" variant="outline" asChild className="border-primary/40 text-primary hover:bg-primary/10">
+                                                    <Link href={`/manage/version/${version.id}`}>Edit Pasal</Link>
                                                 </Button>
                                                 <Button
                                                     onClick={() => handleEditVersion(version)}
@@ -328,15 +411,16 @@ export default function ManagePage() {
                                                     variant="outline"
                                                     className="border-border/70 text-foreground"
                                                 >
-                                                    ⚙️ Meta
+                                                    Edit Meta
                                                 </Button>
                                                 <Button
-                                                    onClick={() => handleDeleteVersion(version.id)}
+                                                    onClick={() => setConfirmAction({ kind: 'delete-version', versionId: version.id })}
                                                     size="sm"
                                                     variant="outline"
+                                                    disabled={actionKey === `delete-version:${version.id}`}
                                                     className="border-red-500/30 text-red-400 hover:bg-red-500/20"
                                                 >
-                                                    🗑️
+                                                    {actionKey === `delete-version:${version.id}` ? 'Menghapus...' : 'Hapus'}
                                                 </Button>
                                             </div>
                                         </div>
@@ -346,6 +430,22 @@ export default function ManagePage() {
                         </Card>
                     ))}
                 </div>
+            )}
+
+            {confirmDialogConfig && (
+                <ConfirmDialog
+                    open={!!confirmDialogConfig}
+                    title={confirmDialogConfig.title}
+                    description={confirmDialogConfig.description}
+                    confirmLabel={confirmDialogConfig.confirmLabel}
+                    destructive={confirmDialogConfig.destructive}
+                    loading={confirmDialogConfig.loading}
+                    onConfirm={async () => {
+                        await confirmDialogConfig.onConfirm();
+                        setConfirmAction(null);
+                    }}
+                    onClose={() => setConfirmAction(null)}
+                />
             )}
         </div>
     );

@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { StatusBanner } from '@/components/common/StatusBanner';
+import { useAsyncAction } from '@/hooks/useAsyncAction';
+import { useFlashMessage } from '@/hooks/useFlashMessage';
 
 interface Article {
     id: string;
@@ -32,12 +36,20 @@ export default function EditArticlesPage() {
 
     const [version, setVersion] = useState<Version | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [editingArticle, setEditingArticle] = useState<Article | null>(null);
     const [editForm, setEditForm] = useState({ articleNumber: '', content: '' });
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [actionKey, setActionKey] = useState<string | null>(null);
+    const [deleteTargetArticleId, setDeleteTargetArticleId] = useState<string | null>(null);
+    const articleNumberInputRef = useRef<HTMLInputElement | null>(null);
+    const { message, showMessage } = useFlashMessage();
+    const mutationAction = useAsyncAction();
 
     const loadVersion = useCallback(async (): Promise<Version | null> => {
         const res = await fetch(`/api/versions/${versionId}`);
+        if (!res.ok) {
+            throw new Error('Gagal memuat data versi');
+        }
         const data = await res.json();
         return data.success ? data.version : null;
     }, [versionId]);
@@ -47,8 +59,10 @@ export default function EditArticlesPage() {
             try {
                 const data = await loadVersion();
                 setVersion(data);
+                setLoadError(null);
             } catch (error) {
                 console.error('Failed to fetch:', error);
+                setLoadError(error instanceof Error ? error.message : 'Gagal memuat data');
             }
             setLoading(false);
         }
@@ -64,52 +78,73 @@ export default function EditArticlesPage() {
         });
     };
 
+    useEffect(() => {
+        if (!editingArticle) return;
+        const timer = window.setTimeout(() => {
+            articleNumberInputRef.current?.focus();
+            articleNumberInputRef.current?.select();
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [editingArticle]);
+
     const handleSave = async () => {
         if (!editingArticle) return;
+        setActionKey(`save:${editingArticle.id}`);
 
-        try {
+        const data = await mutationAction.run(async () => {
             const res = await fetch(`/api/articles/${editingArticle.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editForm)
             });
+            return res.json();
+        });
 
-            const data = await res.json();
-
-            if (data.success) {
-                setMessage({ type: 'success', text: 'Pasal berhasil diupdate!' });
-                setEditingArticle(null);
-                const updatedVersion = await loadVersion();
-                setVersion(updatedVersion);
-            } else {
-                setMessage({ type: 'error', text: 'Gagal update pasal' });
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Terjadi kesalahan' });
+        if (!data) {
+            showMessage({ type: 'error', text: mutationAction.error || 'Terjadi kesalahan jaringan' });
+            setActionKey(null);
+            return;
         }
 
-        setTimeout(() => setMessage(null), 3000);
+        if (data.success) {
+            showMessage({ type: 'success', text: 'Pasal berhasil diupdate!' });
+            setEditingArticle(null);
+            const updatedVersion = await loadVersion();
+            setVersion(updatedVersion);
+        } else {
+            showMessage({ type: 'error', text: data.error || 'Gagal update pasal' });
+        }
+        setActionKey(null);
     };
 
     const handleDelete = async (articleId: string) => {
-        if (!confirm('Yakin hapus pasal ini?')) return;
+        setActionKey(`delete:${articleId}`);
 
-        try {
+        const data = await mutationAction.run(async () => {
             const res = await fetch(`/api/articles/${articleId}`, {
                 method: 'DELETE'
             });
+            return res.json();
+        });
 
-            if (res.ok) {
-                setMessage({ type: 'success', text: 'Pasal dihapus' });
-                const updatedVersion = await loadVersion();
-                setVersion(updatedVersion);
-            }
-        } catch {
-            setMessage({ type: 'error', text: 'Gagal hapus' });
+        if (!data) {
+            showMessage({ type: 'error', text: mutationAction.error || 'Terjadi kesalahan jaringan' });
+            setActionKey(null);
+            return;
         }
+
+        if (data.success) {
+            showMessage({ type: 'success', text: 'Pasal dihapus' });
+            const updatedVersion = await loadVersion();
+            setVersion(updatedVersion);
+        } else {
+            showMessage({ type: 'error', text: data.error || 'Gagal hapus' });
+        }
+        setActionKey(null);
     };
 
-    if (loading) return <div className="py-20 text-center text-muted-foreground">Loading...</div>;
+    if (loading) return <div className="py-20 text-center text-muted-foreground">Memuat data versi...</div>;
+    if (loadError) return <div className="py-20 text-center text-red-400">{loadError}</div>;
     if (!version) return <div className="py-20 text-center text-red-400">Versi tidak ditemukan</div>;
 
     return (
@@ -137,9 +172,8 @@ export default function EditArticlesPage() {
 
             {/* Message Toast */}
             {message && (
-                <div className={`fixed top-4 right-4 z-50 rounded px-4 py-2 shadow-lg ${message.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
-                    }`}>
-                    {message.text}
+                <div className="fixed right-4 top-4 z-50 max-w-sm">
+                    <StatusBanner tone={message.type === 'success' ? 'success' : 'error'} message={message.text} />
                 </div>
             )}
 
@@ -152,8 +186,10 @@ export default function EditArticlesPage() {
                                 <div className="space-y-3">
                                     <div className="flex gap-4">
                                         <div className="w-1/4">
-                                            <label className="mb-1 block text-xs text-muted-foreground">Nomor Pasal</label>
+                                            <label htmlFor={`article-number-${article.id}`} className="mb-1 block text-xs text-muted-foreground">Nomor Pasal</label>
                                             <input
+                                                ref={articleNumberInputRef}
+                                                id={`article-number-${article.id}`}
                                                 value={editForm.articleNumber}
                                                 onChange={(e) => setEditForm({ ...editForm, articleNumber: e.target.value })}
                                                 className="w-full rounded border border-border/70 bg-background p-2 text-foreground"
@@ -161,8 +197,9 @@ export default function EditArticlesPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-xs text-muted-foreground">Isi Pasal</label>
+                                        <label htmlFor={`article-content-${article.id}`} className="mb-1 block text-xs text-muted-foreground">Isi Pasal</label>
                                         <textarea
+                                            id={`article-content-${article.id}`}
                                             value={editForm.content}
                                             onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                                             rows={10}
@@ -170,11 +207,11 @@ export default function EditArticlesPage() {
                                         />
                                     </div>
                                     <div className="flex gap-2 justify-end">
-                                        <Button onClick={() => setEditingArticle(null)} variant="ghost" size="sm">
+                                        <Button onClick={() => setEditingArticle(null)} variant="ghost" size="sm" type="button">
                                             Batal
                                         </Button>
-                                        <Button onClick={handleSave} size="sm">
-                                            Simpan Perubahan
+                                        <Button onClick={handleSave} size="sm" type="button" disabled={actionKey === `save:${article.id}`}>
+                                            {actionKey === `save:${article.id}` ? 'Menyimpan...' : 'Simpan Perubahan'}
                                         </Button>
                                     </div>
                                 </div>
@@ -186,16 +223,19 @@ export default function EditArticlesPage() {
                                         </div>
                                         <div className="flex gap-2">
                                             <button
+                                                type="button"
                                                 onClick={() => handleEditClick(article)}
                                                 className="text-sm text-muted-foreground hover:text-foreground"
                                             >
-                                                ✏️ Edit
+                                                Edit
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(article.id)}
+                                                type="button"
+                                                onClick={() => setDeleteTargetArticleId(article.id)}
+                                                disabled={actionKey === `delete:${article.id}`}
                                                 className="text-sm text-red-300/70 hover:text-red-400"
                                             >
-                                                🗑️
+                                                {actionKey === `delete:${article.id}` ? 'Menghapus...' : 'Hapus'}
                                             </button>
                                         </div>
                                     </div>
@@ -208,6 +248,21 @@ export default function EditArticlesPage() {
                     </Card>
                 ))}
             </div>
+
+            <ConfirmDialog
+                open={!!deleteTargetArticleId}
+                title="Hapus pasal ini?"
+                description="Pasal yang dihapus tidak dapat dipulihkan otomatis."
+                confirmLabel="Hapus Pasal"
+                destructive
+                loading={!!deleteTargetArticleId && actionKey === `delete:${deleteTargetArticleId}`}
+                onConfirm={async () => {
+                    if (!deleteTargetArticleId) return;
+                    await handleDelete(deleteTargetArticleId);
+                    setDeleteTargetArticleId(null);
+                }}
+                onClose={() => setDeleteTargetArticleId(null)}
+            />
         </div>
     );
 }

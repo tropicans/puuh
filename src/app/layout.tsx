@@ -24,7 +24,7 @@ export default async function RootLayout({
   return (
     <html lang="id" className="dark">
       <body className={`${inter.variable} font-sans selection:bg-indigo-500/30`}>
-        <AppShell isAuthenticated={!!session?.user}>{children}</AppShell>
+        <AppShell isAuthenticated={!!session?.user} userRole={session?.user?.role ?? null}>{children}</AppShell>
       </body>
     </html>
   );

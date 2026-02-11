@@ -15,7 +15,7 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
     const handlePageChange = (page: number) => {
         const params = new URLSearchParams(searchParams);
         params.set('page', page.toString());
-        router.push(`/?${params.toString()}`);
+        router.push(`/dashboard?${params.toString()}`);
     };
 
     if (totalPages <= 1) return null;

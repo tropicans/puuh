@@ -12,6 +12,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const q = searchParams.get('q') || undefined;
         const typeId = searchParams.get('type') || undefined;
+        const regulationId = searchParams.get('regulationId') || undefined;
         const yearStr = searchParams.get('year');
         const year = yearStr ? parseInt(yearStr) : undefined;
 
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
             q,
             typeId,
             year,
+            regulationId,
             page: 1,
             pageSize: 100 // Limit to 100 for now to prevent OOM
         });

@@ -8,12 +8,14 @@ import { BookOpen, LogIn, LogOut, Scale } from "lucide-react";
 interface AppShellProps {
   children: React.ReactNode;
   isAuthenticated: boolean;
+  userRole: string | null;
 }
 
 const noShellRoutes = ["/", "/design", "/login"];
 
-export function AppShell({ children, isAuthenticated }: AppShellProps) {
+export function AppShell({ children, isAuthenticated, userRole }: AppShellProps) {
   const pathname = usePathname();
+  const isAdmin = userRole === 'ADMIN';
   const shouldHideShell =
     pathname === "/" ||
     pathname.startsWith("/design") ||
@@ -44,8 +46,8 @@ export function AppShell({ children, isAuthenticated }: AppShellProps) {
             <Link href="/" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Landing</Link>
             <Link href="/dashboard" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
             <Link href="/compare" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Bandingkan</Link>
-            <Link href="/manage" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Kelola</Link>
-            <Link href="/settings" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Pengaturan</Link>
+            {isAdmin && <Link href="/manage" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Kelola</Link>}
+            {isAdmin && <Link href="/settings" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Pengaturan</Link>}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -67,9 +69,11 @@ export function AppShell({ children, isAuthenticated }: AppShellProps) {
                 Login
               </Link>
             )}
-            <Link href="/upload" className="hidden rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:inline-flex">
-              + Upload
-            </Link>
+            {isAdmin && (
+              <Link href="/upload" className="hidden rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 sm:inline-flex">
+                + Upload
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -87,7 +91,7 @@ export function AppShell({ children, isAuthenticated }: AppShellProps) {
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>
             <Link href="/compare" className="hover:text-foreground">Bandingkan</Link>
-            <Link href="/upload" className="hover:text-foreground">Upload</Link>
+            {isAdmin && <Link href="/upload" className="hover:text-foreground">Upload</Link>}
           </div>
         </div>
       </footer>

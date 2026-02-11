@@ -5,12 +5,13 @@ export type RegulationFilters = {
     q?: string;
     typeId?: string;
     year?: number;
+    regulationId?: string;
     page?: number;
     pageSize?: number;
 };
 
 export async function getFilteredRegulations(filters: RegulationFilters) {
-    const { q, typeId, year, page = 1, pageSize = 10 } = filters;
+    const { q, typeId, year, regulationId, page = 1, pageSize = 10 } = filters;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.RegulationWhereInput = {};
@@ -19,7 +20,11 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
         where.typeId = typeId;
     }
 
-    if (q || year) {
+    if (regulationId) {
+        where.id = regulationId;
+    }
+
+    if (year) {
         where.versions = {
             some: {
                 AND: [
@@ -38,8 +43,9 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
     } else if (q) {
         where.OR = [
             { title: { contains: q, mode: 'insensitive' } },
+            { versions: { some: { fullTitle: { contains: q, mode: 'insensitive' } } } },
             { versions: { some: { rawText: { contains: q, mode: 'insensitive' } } } }
-        ]
+        ];
     }
 
     const [regulations, totalCount] = await Promise.all([
@@ -51,7 +57,12 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
                     orderBy: { year: 'asc' },
                     include: {
                         articles: {
-                            orderBy: { orderIndex: 'asc' }
+                            orderBy: { orderIndex: 'asc' },
+                            select: {
+                                id: true,
+                                articleNumber: true,
+                                status: true,
+                            }
                         }
                     }
                 }

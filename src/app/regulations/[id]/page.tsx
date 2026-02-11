@@ -184,8 +184,10 @@ export default function RegulationDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" className="border-border/70">
-                        📤 Export
+                    <Button variant="outline" className="border-border/70" asChild>
+                        <a href={`/api/export?regulationId=${regulation.id}`} target="_blank" rel="noopener noreferrer">
+                            📤 Export
+                        </a>
                     </Button>
                     <Link href={`/upload?amends=${regulation.id}&title=${encodeURIComponent(regulation.title)}`}>
                         <Button>
