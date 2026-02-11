@@ -220,13 +220,6 @@ export async function POST(request: NextRequest) {
                         orderBy: { year: 'desc' }
                     });
 
-                    if (previousVersion) {
-                        await prisma.regulationVersion.update({
-                            where: { id: previousVersion.id },
-                            data: { status: 'AMENDED' }
-                        });
-                    }
-
                     // Upload to MinIO
                     let originalFileUrl = null;
                     try {
@@ -240,21 +233,6 @@ export async function POST(request: NextRequest) {
                         send({ type: 'progress', message: '⚠️ Gagal upload ke MinIO (lanjut parsing text saja).' });
                     }
 
-                    // Create new version
-                    const fullTitle = `${regulationType} Nomor ${number} Tahun ${year} tentang ${title}`;
-                    const version = await prisma.regulationVersion.create({
-                        data: {
-                            regulationId: regulation.id,
-                            number,
-                            year: parseInt(year),
-                            fullTitle,
-                            rawText: rawText.substring(0, 100000),
-                            status: 'ACTIVE',
-                            amendsId: previousVersion?.id,
-                            originalFileUrl: originalFileUrl // Store MinIO URL
-                        }
-                    });
-
                     // Parse articles
                     send({ type: 'progress', message: 'Menggunakan AI/Regex untuk menstrukturkan pasal...' });
                     let parsedArticles: { number: string; content: string }[] = [];
@@ -265,28 +243,57 @@ export async function POST(request: NextRequest) {
                         console.error('Parsing error:', e);
                     }
 
-                    // Save articles
-                    if (parsedArticles.length > 0) {
-                        send({ type: 'progress', message: `Menyimpan ${parsedArticles.length} pasal ke database...` });
+                    // Deduplicate parsed article numbers
+                    const seenNumbers = new Set<string>();
+                    const uniqueArticles = parsedArticles.reduce<Array<{ number: string; content: string }>>((acc, article) => {
+                        const key = article.number.trim();
+                        if (!key || seenNumbers.has(key)) {
+                            return acc;
+                        }
+                        seenNumbers.add(key);
+                        acc.push({ number: key, content: article.content });
+                        return acc;
+                    }, []);
 
-                        // Deduplicate
-                        const seenNumbers = new Set();
-                        const uniqueArticles = parsedArticles.filter(a => {
-                            if (seenNumbers.has(a.number)) return false;
-                            seenNumbers.add(a.number);
-                            return true;
-                        });
+                    // Create new version and replace status atomically
+                    const fullTitle = `${regulationType} Nomor ${number} Tahun ${year} tentang ${title}`;
+                    send({ type: 'progress', message: `Menyimpan ${uniqueArticles.length} pasal ke database...` });
 
-                        await prisma.article.createMany({
-                            data: uniqueArticles.map((article, index) => ({
-                                versionId: version.id,
-                                articleNumber: article.number,
-                                content: article.content,
+                    const version = await prisma.$transaction(async (tx) => {
+                        if (previousVersion) {
+                            await tx.regulationVersion.update({
+                                where: { id: previousVersion.id },
+                                data: { status: 'AMENDED' }
+                            });
+                        }
+
+                        const createdVersion = await tx.regulationVersion.create({
+                            data: {
+                                regulationId: regulation.id,
+                                number,
+                                year: parseInt(year),
+                                fullTitle,
+                                rawText: rawText.substring(0, 100000),
                                 status: 'ACTIVE',
-                                orderIndex: index
-                            }))
+                                amendsId: previousVersion?.id,
+                                originalFileUrl // Store MinIO URL
+                            }
                         });
-                    }
+
+                        if (uniqueArticles.length > 0) {
+                            await tx.article.createMany({
+                                data: uniqueArticles.map((article, index) => ({
+                                    versionId: createdVersion.id,
+                                    articleNumber: article.number,
+                                    content: article.content,
+                                    status: 'ACTIVE',
+                                    orderIndex: index
+                                }))
+                            });
+                        }
+
+                        return createdVersion;
+                    });
 
                     // Success response
                     send({
@@ -296,7 +303,7 @@ export async function POST(request: NextRequest) {
                             message: `${fullTitle} berhasil diupload`,
                             regulationId: regulation.id,
                             versionId: version.id,
-                            parsedArticles: parsedArticles.length,
+                            parsedArticles: uniqueArticles.length,
                             textLength: rawText.length
                         }
                     });

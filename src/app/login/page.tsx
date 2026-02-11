@@ -103,12 +103,6 @@ export default function LoginPage() {
                     <Suspense fallback={<div className="py-4 text-center text-muted-foreground">Loading...</div>}>
                         <LoginForm />
                     </Suspense>
-
-                    <div className="mt-6 rounded-lg border border-border/60 bg-background/60 p-4">
-                        <p className="text-center text-xs text-muted-foreground">
-                            💡 Demo: admin@puu.local / admin123
-                        </p>
-                    </div>
                 </CardContent>
             </Card>
         </div>

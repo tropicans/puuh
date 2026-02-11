@@ -44,14 +44,6 @@ export async function POST(
 
         console.log(`Re-parsing version ${id}, rawText length: ${version.rawText.length}`);
 
-        // Delete existing articles
-        if (version.articles.length > 0) {
-            await prisma.article.deleteMany({
-                where: { versionId: id }
-            });
-            console.log(`Deleted ${version.articles.length} existing articles`);
-        }
-
         // Parse with AI
         let parsedArticles: { number: string; content: string }[] = [];
         try {
@@ -84,9 +76,16 @@ export async function POST(
 
         const uniqueArticles = Array.from(uniqueArticlesMap.values());
 
-        // Save new articles
-        if (uniqueArticles.length > 0) {
-            await prisma.article.createMany({
+        if (uniqueArticles.length === 0) {
+            return NextResponse.json({
+                success: false,
+                error: 'Re-parse tidak menghasilkan pasal. Pasal lama dipertahankan.'
+            }, { status: 422 });
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.article.deleteMany({ where: { versionId: id } });
+            await tx.article.createMany({
                 data: uniqueArticles.map((article, index) => ({
                     versionId: id,
                     articleNumber: article.number,
@@ -95,12 +94,12 @@ export async function POST(
                     orderIndex: index
                 }))
             });
-        }
+        });
 
         return NextResponse.json({
             success: true,
-            message: `Berhasil mengekstrak ${parsedArticles.length} pasal`,
-            articlesCount: parsedArticles.length
+            message: `Berhasil mengekstrak ${uniqueArticles.length} pasal`,
+            articlesCount: uniqueArticles.length
         });
 
     } catch (error) {

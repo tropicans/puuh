@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser, isAdminRole } from '@/lib/authorization';
+import { updateArticleSchema } from '@/lib/validations';
 
 // UPDATE article
 export async function PUT(
@@ -17,9 +18,18 @@ export async function PUT(
         }
 
         const { id } = await params;
-        const body = await request.json();
+        const payload = updateArticleSchema.safeParse(await request.json());
+        if (!payload.success) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: payload.error.issues.map((issue) => issue.message).join(', ')
+                },
+                { status: 400 }
+            );
+        }
 
-        const { content, articleNumber } = body;
+        const { content, articleNumber } = payload.data;
 
         const article = await prisma.article.update({
             where: { id },

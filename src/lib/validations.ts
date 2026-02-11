@@ -19,3 +19,37 @@ export const versionSchema = z.object({
     fullTitle: z.string().min(5),
     status: z.enum(["ACTIVE", "AMENDED", "REVOKED"]),
 });
+
+export const updateVersionSchema = z
+    .object({
+        number: z.string().trim().min(1).optional(),
+        year: z.coerce.number().int().min(1945).max(new Date().getFullYear() + 1).optional(),
+        fullTitle: z.string().trim().min(5).optional(),
+        status: z.enum(["ACTIVE", "AMENDED", "REVOKED"]).optional(),
+        effectiveDate: z.string().trim().min(1).optional(),
+    })
+    .strict()
+    .refine((data) => Object.keys(data).length > 0, {
+        message: "Minimal satu field harus diisi",
+    });
+
+export const updateArticleSchema = z
+    .object({
+        content: z.string().trim().min(1).optional(),
+        articleNumber: z.string().trim().min(1).optional(),
+    })
+    .strict()
+    .refine((data) => Object.keys(data).length > 0, {
+        message: "Minimal satu field harus diisi",
+    });
+
+export const updateRegulationSchema = z
+    .object({
+        title: z.string().trim().min(1).optional(),
+        description: z.string().optional().nullable(),
+        typeId: z.string().trim().min(1).optional(),
+    })
+    .strict()
+    .refine((data) => Object.keys(data).length > 0, {
+        message: "Minimal satu field harus diisi",
+    });

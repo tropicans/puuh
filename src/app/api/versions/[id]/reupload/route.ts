@@ -69,20 +69,6 @@ export async function POST(
             }, { status: 400 });
         }
 
-        // Update rawText in database
-        await prisma.regulationVersion.update({
-            where: { id },
-            data: { rawText: rawText.substring(0, 100000) }
-        });
-
-        // Delete old articles
-        if (version.articles.length > 0) {
-            await prisma.article.deleteMany({
-                where: { versionId: id }
-            });
-            console.log(`Deleted ${version.articles.length} old articles`);
-        }
-
         // Parse with AI
         let parsedArticles: { number: string; content: string }[] = [];
         try {
@@ -91,12 +77,40 @@ export async function POST(
             console.log(`AI parsed ${parsedArticles.length} articles`);
         } catch (e) {
             console.error('AI parsing error:', e);
+            return NextResponse.json({
+                success: false,
+                error: 'AI parsing gagal. Data lama dipertahankan.'
+            }, { status: 500 });
         }
 
-        // Save new articles
-        if (parsedArticles.length > 0) {
-            await prisma.article.createMany({
-                data: parsedArticles.map((article, index) => ({
+        // Deduplicate by article number before replacing existing records
+        const dedupedMap = new Map<string, { number: string; content: string }>();
+        for (const article of parsedArticles) {
+            const key = article.number.trim();
+            if (!key) continue;
+            if (!dedupedMap.has(key)) {
+                dedupedMap.set(key, { number: key, content: article.content });
+            }
+        }
+        const uniqueArticles = Array.from(dedupedMap.values());
+
+        if (uniqueArticles.length === 0) {
+            return NextResponse.json({
+                success: false,
+                error: 'Re-upload tidak menghasilkan pasal. Data lama dipertahankan.'
+            }, { status: 422 });
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.regulationVersion.update({
+                where: { id },
+                data: { rawText: rawText.substring(0, 100000) }
+            });
+
+            await tx.article.deleteMany({ where: { versionId: id } });
+
+            await tx.article.createMany({
+                data: uniqueArticles.map((article, index) => ({
                     versionId: id,
                     articleNumber: article.number,
                     content: article.content,
@@ -104,14 +118,14 @@ export async function POST(
                     orderIndex: index
                 }))
             });
-        }
+        });
 
         return NextResponse.json({
             success: true,
-            message: `PDF berhasil diupload ulang. Ditemukan ${parsedArticles.length} pasal.`,
+            message: `PDF berhasil diupload ulang. Ditemukan ${uniqueArticles.length} pasal.`,
             textLength: rawText.length,
             numPages,
-            articlesCount: parsedArticles.length
+            articlesCount: uniqueArticles.length
         });
 
     } catch (error) {

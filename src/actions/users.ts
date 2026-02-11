@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma';
 import { hash } from 'bcryptjs';
 
+const MIN_BOOTSTRAP_PASSWORD_LENGTH = 12;
+
 interface SeedUserResult {
     success: boolean;
     message?: string;
@@ -10,8 +12,8 @@ interface SeedUserResult {
 }
 
 /**
- * Seeds a default admin user if no users exist in the database.
- * Password: admin123
+ * Seeds a bootstrap admin user if no users exist in the database.
+ * Requires BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD.
  */
 export async function seedAdminUser(): Promise<SeedUserResult> {
     try {
@@ -25,33 +27,39 @@ export async function seedAdminUser(): Promise<SeedUserResult> {
             };
         }
 
+        const bootstrapAdminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL;
+        const bootstrapAdminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+
+        if (!bootstrapAdminEmail || !bootstrapAdminPassword) {
+            return {
+                success: false,
+                error: 'Bootstrap admin credentials not configured (BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD).'
+            };
+        }
+
+        if (bootstrapAdminPassword.length < MIN_BOOTSTRAP_PASSWORD_LENGTH) {
+            return {
+                success: false,
+                error: `BOOTSTRAP_ADMIN_PASSWORD minimal ${MIN_BOOTSTRAP_PASSWORD_LENGTH} karakter.`
+            };
+        }
+
         // Hash the password
-        const hashedPassword = await hash('admin123', 12);
+        const hashedPassword = await hash(bootstrapAdminPassword, 12);
 
         // Create admin user
         await prisma.user.create({
             data: {
-                email: 'admin@puu.local',
+                email: bootstrapAdminEmail,
                 password: hashedPassword,
                 name: 'Administrator',
                 role: 'ADMIN',
             },
         });
 
-        // Also create a viewer user for testing
-        const viewerPassword = await hash('viewer123', 12);
-        await prisma.user.create({
-            data: {
-                email: 'viewer@puu.local',
-                password: viewerPassword,
-                name: 'Viewer',
-                role: 'VIEWER',
-            },
-        });
-
         return {
             success: true,
-            message: 'Created admin and viewer users'
+            message: `Created bootstrap admin user (${bootstrapAdminEmail})`
         };
     } catch (error) {
         console.error('Error seeding users:', error);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getCurrentUser, isAdminRole } from '@/lib/authorization';
+import { updateVersionSchema } from '@/lib/validations';
 
 // UPDATE regulation version
 export async function PUT(
@@ -17,18 +18,36 @@ export async function PUT(
         }
 
         const { id } = await params;
-        const body = await request.json();
+        const payload = updateVersionSchema.safeParse(await request.json());
+        if (!payload.success) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: payload.error.issues.map((issue) => issue.message).join(', ')
+                },
+                { status: 400 }
+            );
+        }
 
-        const { number, year, fullTitle, status, effectiveDate } = body;
+        const { number, year, fullTitle, status, effectiveDate } = payload.data;
+
+        let parsedEffectiveDate: Date | undefined;
+        if (effectiveDate) {
+            const asDate = new Date(effectiveDate);
+            if (Number.isNaN(asDate.getTime())) {
+                return NextResponse.json({ success: false, error: 'effectiveDate tidak valid' }, { status: 400 });
+            }
+            parsedEffectiveDate = asDate;
+        }
 
         const version = await prisma.regulationVersion.update({
             where: { id },
             data: {
                 ...(number && { number }),
-                ...(year && { year: parseInt(year) }),
+                ...(year !== undefined && { year }),
                 ...(fullTitle && { fullTitle }),
                 ...(status && { status }),
-                ...(effectiveDate && { effectiveDate: new Date(effectiveDate) })
+                ...(parsedEffectiveDate && { effectiveDate: parsedEffectiveDate })
             }
         });
 
