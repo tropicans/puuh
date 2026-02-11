@@ -30,7 +30,8 @@ export function UnifiedSearchBar({ types, years }: Props) {
                 params.delete('q');
             }
             startTransition(() => {
-                router.replace(`/?${params.toString()}`);
+                const query = params.toString();
+                router.replace(query ? `/dashboard?${query}` : '/dashboard');
             });
         }, 500);
         return () => clearTimeout(timeoutId);
@@ -43,7 +44,8 @@ export function UnifiedSearchBar({ types, years }: Props) {
         } else {
             params.delete(key);
         }
-        router.replace(`/?${params.toString()}`);
+        const query = params.toString();
+        router.replace(query ? `/dashboard?${query}` : '/dashboard');
     };
 
     const exportUrl = `/api/export${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
@@ -132,7 +134,7 @@ export function UnifiedSearchBar({ types, years }: Props) {
                         </Badge>
                     )}
                     <button
-                        onClick={() => router.replace('/')}
+                        onClick={() => router.replace('/dashboard')}
                         className="text-xs text-rose-400 hover:text-rose-300 hover:underline transition-colors ml-2"
                     >
                         Reset All

@@ -17,44 +17,42 @@ export function RegulationCard({ regulation }: RegulationCardProps) {
 
     return (
         <Link href={`/regulations/${regulation.id}`} className="block h-full">
-            <Card className="bg-white/[0.03] border-white/5 hover:border-indigo-500/40 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 cursor-pointer group h-full flex flex-col backdrop-blur-sm overflow-hidden relative">
-                {/* Hover Glow Effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-0 group-hover:opacity-10 transition duration-1000 group-hover:duration-200"></div>
+            <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden border-border/70 bg-card/70 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
 
                 <CardHeader className="relative pb-2">
                     <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
                                 <BookOpen className="w-5 h-5" />
                             </div>
-                            <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-bold text-indigo-400 border-indigo-400/20 bg-indigo-400/5">
+                            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-[10px] font-bold uppercase tracking-wider text-primary">
                                 {regulation.type}
                             </Badge>
                         </div>
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary">
                             <ArrowRight className="w-5 h-5" />
                         </div>
                     </div>
-                    <CardTitle className="text-xl font-bold text-white leading-tight group-hover:text-indigo-300 transition-colors">
+                    <CardTitle className="text-xl font-bold leading-tight text-foreground transition-colors group-hover:text-primary">
                         {regulation.title}
                     </CardTitle>
                 </CardHeader>
 
                 <CardContent className="relative flex-1 flex flex-col">
-                    <p className="text-gray-400 text-sm line-clamp-2 mb-6">
+                    <p className="mb-6 line-clamp-2 text-sm text-muted-foreground">
                         {regulation.description}
                     </p>
 
                     <div className="mt-auto">
                         <CompactTimeline regulation={regulation} />
 
-                        <div className="flex items-center gap-4 mt-6 pt-4 border-t border-white/5 text-xs">
-                            <div className="flex items-center gap-1.5 text-gray-400">
-                                <FileText className="w-3.5 h-3.5 text-gray-500" />
+                        <div className="mt-6 flex items-center gap-4 border-t border-border/60 pt-4 text-xs">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
                                 <span>{totalArticles} Pasal</span>
                             </div>
                             {latestVersion && (
-                                <div className="flex items-center gap-1.5 text-emerald-400/80">
+                                <div className="flex items-center gap-1.5 text-emerald-400">
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     <span>Aktif ({latestVersion.year})</span>
                                 </div>
@@ -76,10 +74,10 @@ export function RegulationList({ regulations }: RegulationListProps) {
         return (
             <div className="text-center py-12">
                 <div className="text-5xl mb-4">📚</div>
-                <h3 className="text-xl font-semibold text-gray-300 mb-2">
+                <h3 className="mb-2 text-xl font-semibold text-foreground">
                     Belum ada peraturan
                 </h3>
-                <p className="text-gray-500">
+                <p className="text-muted-foreground">
                     Upload peraturan pertama untuk memulai
                 </p>
             </div>

@@ -20,9 +20,10 @@ export function VersionTimeline({
     const versions = regulation.versions;
 
     return (
-        <div className="relative">
+        <div className="overflow-x-auto pb-2">
+            <div className="relative min-w-[680px]">
             {/* Timeline line */}
-            <div className="absolute top-6 left-0 right-0 h-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full" />
+            <div className="absolute left-0 right-0 top-6 h-1 rounded-full bg-primary/30" />
 
             {/* Version nodes */}
             <div className="relative flex justify-between">
@@ -45,20 +46,20 @@ export function VersionTimeline({
                   relative z-10 w-12 h-12 rounded-full flex items-center justify-center 
                   transition-all duration-300 
                   ${isSelected
-                                        ? 'bg-indigo-600 ring-4 ring-indigo-400/50 scale-110'
+                                        ? 'bg-primary ring-4 ring-primary/30 scale-110'
                                         : canSelect
-                                            ? 'bg-gray-800 hover:bg-gray-700 hover:scale-105 cursor-pointer'
-                                            : 'bg-gray-800 opacity-50 cursor-not-allowed'
+                                            ? 'bg-card hover:bg-accent hover:scale-105 cursor-pointer border border-border/70'
+                                            : 'bg-card opacity-50 cursor-not-allowed border border-border/70'
                                     }
                 `}
                             >
-                                <span className="text-white font-bold text-sm">
+                                <span className="text-foreground font-bold text-sm">
                                     {version.year.toString().slice(-2)}
                                 </span>
 
                                 {/* Selection indicator */}
                                 {isSelected && (
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-indigo-600 rounded-full text-xs font-bold flex items-center justify-center">
+                                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                                         {selectionIndex + 1}
                                     </span>
                                 )}
@@ -66,7 +67,7 @@ export function VersionTimeline({
 
                             {/* Version info */}
                             <div className="mt-3 text-center">
-                                <div className="text-white font-semibold text-sm">
+                                <div className="text-foreground font-semibold text-sm">
                                     No. {version.number}/{version.year}
                                 </div>
                                 <Badge
@@ -75,7 +76,7 @@ export function VersionTimeline({
                                     {getStatusLabel(version.status)}
                                 </Badge>
                                 {version.effectiveDate && (
-                                    <div className="text-gray-500 text-xs mt-1">
+                                    <div className="mt-1 text-xs text-muted-foreground">
                                         {formatDate(version.effectiveDate)}
                                     </div>
                                 )}
@@ -84,7 +85,7 @@ export function VersionTimeline({
                             {/* Connection arrow */}
                             {index < versions.length - 1 && (
                                 <div className="absolute top-5 left-1/2 w-full flex items-center justify-center pointer-events-none">
-                                    <span className="text-gray-600 text-lg">→</span>
+                                    <span className="text-muted-foreground text-lg">→</span>
                                 </div>
                             )}
                         </div>
@@ -93,7 +94,7 @@ export function VersionTimeline({
             </div>
 
             {/* Selection hint */}
-            <div className="mt-6 text-center text-sm text-gray-400">
+            <div className="mt-6 text-center text-sm text-muted-foreground">
                 {selectedVersions.length === 0 && (
                     <span>Pilih 2 versi untuk membandingkan</span>
                 )}
@@ -103,6 +104,7 @@ export function VersionTimeline({
                 {selectedVersions.length === 2 && (
                     <span className="text-emerald-400">✓ 2 versi terpilih - siap untuk dibandingkan</span>
                 )}
+            </div>
             </div>
         </div>
     );
@@ -118,20 +120,20 @@ export function CompactTimeline({ regulation }: { regulation: Regulation }) {
 
     return (
         <div className="mt-4">
-            <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+            <div className="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <span>{versions.length} versi</span>
                 <span>•</span>
                 <span>{firstYear} - {lastYear}</span>
             </div>
 
             {/* Mini timeline */}
-            <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600" />
+            <div className="relative h-2 overflow-hidden rounded-full bg-muted/50">
+                <div className="absolute inset-0 bg-primary/50" />
                 <div className="relative flex justify-between h-full">
                     {versions.map((version) => (
                         <div
                             key={version.id}
-                            className="w-3 h-3 -mt-0.5 bg-white rounded-full border-2 border-indigo-600"
+                            className="-mt-0.5 h-3 w-3 rounded-full border-2 border-primary bg-background"
                             title={`Perpres ${version.number}/${version.year}`}
                         />
                     ))}
@@ -141,7 +143,7 @@ export function CompactTimeline({ regulation }: { regulation: Regulation }) {
             {/* Year labels */}
             <div className="flex justify-between mt-1">
                 {versions.map(version => (
-                    <span key={version.id} className="text-xs text-gray-500">
+                    <span key={version.id} className="text-xs text-muted-foreground">
                         {version.year}
                     </span>
                 ))}

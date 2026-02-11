@@ -44,34 +44,34 @@ function LoginForm() {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-                <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm">
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
                     {error}
                 </div>
             )}
 
             <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="mb-2 block text-sm text-muted-foreground">
                     Email
                 </label>
                 <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors"
+                    className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                     placeholder="admin@example.com"
                     required
                 />
             </div>
 
             <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="mb-2 block text-sm text-muted-foreground">
                     Password
                 </label>
                 <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors"
+                    className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                     placeholder="••••••••"
                     required
                 />
@@ -80,7 +80,7 @@ function LoginForm() {
             <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3"
+                className="w-full py-3"
             >
                 {loading ? '⏳ Masuk...' : '🔐 Masuk'}
             </Button>
@@ -90,22 +90,22 @@ function LoginForm() {
 
 export default function LoginPage() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
-            <Card className="w-full max-w-md bg-gray-900/80 border-gray-800 backdrop-blur-sm">
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+            <Card className="w-full max-w-md border-border/70 bg-card/80 backdrop-blur-sm">
                 <CardHeader className="text-center">
                     <div className="text-4xl mb-4">📜</div>
-                    <CardTitle className="text-2xl text-white">PUU Tracker</CardTitle>
-                    <p className="text-gray-400 text-sm mt-2">
+                    <CardTitle className="text-2xl text-foreground">PUU Tracker</CardTitle>
+                    <p className="mt-2 text-sm text-muted-foreground">
                         Masuk untuk mengelola peraturan
                     </p>
                 </CardHeader>
                 <CardContent>
-                    <Suspense fallback={<div className="text-gray-400 text-center py-4">Loading...</div>}>
+                    <Suspense fallback={<div className="py-4 text-center text-muted-foreground">Loading...</div>}>
                         <LoginForm />
                     </Suspense>
 
-                    <div className="mt-6 p-4 rounded-lg bg-gray-800/50 border border-gray-700">
-                        <p className="text-xs text-gray-500 text-center">
+                    <div className="mt-6 rounded-lg border border-border/60 bg-background/60 p-4">
+                        <p className="text-center text-xs text-muted-foreground">
                             💡 Demo: admin@puu.local / admin123
                         </p>
                     </div>
@@ -114,4 +114,3 @@ export default function LoginPage() {
         </div>
     );
 }
-

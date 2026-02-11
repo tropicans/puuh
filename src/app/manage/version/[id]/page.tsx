@@ -109,35 +109,35 @@ export default function EditArticlesPage() {
         }
     };
 
-    if (loading) return <div className="text-center py-20 text-gray-400">Loading...</div>;
-    if (!version) return <div className="text-center py-20 text-red-400">Versi tidak ditemukan</div>;
+    if (loading) return <div className="py-20 text-center text-muted-foreground">Loading...</div>;
+    if (!version) return <div className="py-20 text-center text-red-400">Versi tidak ditemukan</div>;
 
     return (
-        <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-20">
+        <div className="mx-auto max-w-5xl space-y-6 animate-fade-in pb-20">
             {/* Header */}
             <div>
                 <button
                     onClick={() => router.push('/manage')}
-                    className="text-gray-400 hover:text-white text-sm mb-4 inline-block"
+                    className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground"
                 >
                     ← Kembali ke Manage
                 </button>
-                <div className="flex items-center gap-3 mb-2">
-                    <Badge variant="outline" className="text-indigo-400 border-indigo-400/30">
+                <div className="mb-2 flex flex-wrap items-center gap-3">
+                    <Badge variant="outline" className="border-primary/40 text-primary">
                         {version.regulation.type.shortName}
                     </Badge>
-                    <h1 className="text-2xl font-bold text-white">
+                    <h1 className="text-2xl font-bold text-foreground">
                         Edit Pasal: {version.regulation.title}
                     </h1>
                 </div>
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                     Versi: Nomor {version.number} Tahun {version.year} • {version.articles.length} Pasal
                 </p>
             </div>
 
             {/* Message Toast */}
             {message && (
-                <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-lg ${message.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+                <div className={`fixed top-4 right-4 z-50 rounded px-4 py-2 shadow-lg ${message.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
                     }`}>
                     {message.text}
                 </div>
@@ -146,34 +146,34 @@ export default function EditArticlesPage() {
             {/* List */}
             <div className="grid gap-4">
                 {version.articles.map((article) => (
-                    <Card key={article.id} className="bg-gray-900/40 border-gray-800 hover:border-gray-700 transition-colors">
+                    <Card key={article.id} className="border-border/70 bg-card/60 transition-colors hover:border-border">
                         <CardContent className="p-4">
                             {editingArticle?.id === article.id ? (
                                 <div className="space-y-3">
                                     <div className="flex gap-4">
                                         <div className="w-1/4">
-                                            <label className="text-xs text-gray-500 block mb-1">Nomor Pasal</label>
+                                            <label className="mb-1 block text-xs text-muted-foreground">Nomor Pasal</label>
                                             <input
                                                 value={editForm.articleNumber}
                                                 onChange={(e) => setEditForm({ ...editForm, articleNumber: e.target.value })}
-                                                className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
+                                                className="w-full rounded border border-border/70 bg-background p-2 text-foreground"
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 block mb-1">Isi Pasal</label>
+                                        <label className="mb-1 block text-xs text-muted-foreground">Isi Pasal</label>
                                         <textarea
                                             value={editForm.content}
                                             onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                                             rows={10}
-                                            className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white font-mono text-sm leading-relaxed"
+                                            className="w-full rounded border border-border/70 bg-background p-2 font-mono text-sm leading-relaxed text-foreground"
                                         />
                                     </div>
                                     <div className="flex gap-2 justify-end">
                                         <Button onClick={() => setEditingArticle(null)} variant="ghost" size="sm">
                                             Batal
                                         </Button>
-                                        <Button onClick={handleSave} className="bg-indigo-600 hover:bg-indigo-500" size="sm">
+                                        <Button onClick={handleSave} size="sm">
                                             Simpan Perubahan
                                         </Button>
                                     </div>
@@ -181,25 +181,25 @@ export default function EditArticlesPage() {
                             ) : (
                                 <div>
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="font-bold text-indigo-300">
+                                        <div className="font-bold text-primary">
                                             {article.articleNumber}
                                         </div>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => handleEditClick(article)}
-                                                className="text-gray-400 hover:text-white text-sm"
+                                                className="text-sm text-muted-foreground hover:text-foreground"
                                             >
                                                 ✏️ Edit
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(article.id)}
-                                                className="text-red-900/50 hover:text-red-400 text-sm"
+                                                className="text-sm text-red-300/70 hover:text-red-400"
                                             >
                                                 🗑️
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">
+                                    <div className="text-foreground whitespace-pre-wrap leading-relaxed text-sm">
                                         {article.content}
                                     </div>
                                 </div>

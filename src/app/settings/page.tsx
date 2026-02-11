@@ -170,21 +170,21 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="space-y-8 animate-fade-in max-w-3xl mx-auto">
+        <div className="mx-auto max-w-4xl space-y-8 animate-fade-in">
             <div>
-                <Link href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
+                <Link href="/dashboard" className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground">
                     ← Kembali ke Dashboard
                 </Link>
-                <h1 className="text-3xl font-bold text-white mb-2">⚙️ Pengaturan</h1>
-                <p className="text-gray-400">
+                <h1 className="mb-2 text-3xl font-bold text-foreground">Pengaturan</h1>
+                <p className="text-muted-foreground">
                     Konfigurasi database dan integrasi AI
                 </p>
             </div>
 
             {/* AI Connection */}
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="border-border/70 bg-card/70">
                 <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-lg text-foreground">
                         <span>🤖</span>
                         Koneksi LLM / AI
                     </CardTitle>
@@ -192,14 +192,14 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <div className="text-gray-400">Base URL</div>
-                            <div className="text-white font-mono">
+                            <div className="text-muted-foreground">Base URL</div>
+                            <div className="font-mono text-foreground">
                                 {process.env.NEXT_PUBLIC_OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1'}
                             </div>
                         </div>
                         <div>
-                            <div className="text-gray-400">Model</div>
-                            <div className="text-white font-mono">gpt-oss-120b-medium</div>
+                            <div className="text-muted-foreground">Model</div>
+                            <div className="font-mono text-foreground">gpt-oss-120b-medium</div>
                         </div>
                     </div>
 
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                         <Button
                             onClick={testAIConnection}
                             disabled={aiStatus.status === 'loading'}
-                            className="bg-indigo-600 hover:bg-indigo-500"
+                            className=""
                         >
                             {aiStatus.status === 'loading' ? '⏳ Testing...' : '🔌 Test Koneksi AI'}
                         </Button>
@@ -243,15 +243,15 @@ export default function SettingsPage() {
             </Card>
 
             {/* Document AI / Vision API */}
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="border-border/70 bg-card/70">
                 <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-lg text-foreground">
                         <span>👁️</span>
                         Document AI (Google Vision)
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                         OCR untuk mengekstrak teks dari PDF hasil scan/gambar
                     </p>
 
@@ -259,7 +259,7 @@ export default function SettingsPage() {
                         <Button
                             onClick={testVisionAPI}
                             disabled={visionStatus.status === 'loading'}
-                            className="bg-purple-600 hover:bg-purple-500"
+                            className=""
                         >
                             {visionStatus.status === 'loading' ? '⏳ Testing...' : '👁️ Test Vision API'}
                         </Button>
@@ -288,9 +288,9 @@ export default function SettingsPage() {
             </Card>
 
             {/* Database Connection */}
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="border-border/70 bg-card/70">
                 <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-lg text-foreground">
                         <span>🗄️</span>
                         Database PostgreSQL
                     </CardTitle>
@@ -301,7 +301,7 @@ export default function SettingsPage() {
                             onClick={checkDatabase}
                             disabled={dbStatus.status === 'loading'}
                             variant="outline"
-                            className="border-gray-700"
+                            className="border-border/70"
                         >
                             {dbStatus.status === 'loading' ? '⏳ Checking...' : '🔄 Refresh Status'}
                         </Button>
@@ -320,17 +320,17 @@ export default function SettingsPage() {
 
                     {dbStatus.status === 'connected' && dbStatus.stats && (
                         <div className="grid grid-cols-3 gap-4">
-                            <div className="p-4 bg-gray-800/50 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-white">{dbStatus.stats.regulations}</div>
-                                <div className="text-sm text-gray-400">Peraturan</div>
+                            <div className="rounded-lg border border-border/50 bg-background/60 p-4 text-center">
+                                <div className="text-2xl font-bold text-foreground">{dbStatus.stats.regulations}</div>
+                                <div className="text-sm text-muted-foreground">Peraturan</div>
                             </div>
-                            <div className="p-4 bg-gray-800/50 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-white">{dbStatus.stats.versions}</div>
-                                <div className="text-sm text-gray-400">Versi</div>
+                            <div className="rounded-lg border border-border/50 bg-background/60 p-4 text-center">
+                                <div className="text-2xl font-bold text-foreground">{dbStatus.stats.versions}</div>
+                                <div className="text-sm text-muted-foreground">Versi</div>
                             </div>
-                            <div className="p-4 bg-gray-800/50 rounded-lg text-center">
-                                <div className="text-2xl font-bold text-white">{dbStatus.stats.articles}</div>
-                                <div className="text-sm text-gray-400">Pasal</div>
+                            <div className="rounded-lg border border-border/50 bg-background/60 p-4 text-center">
+                                <div className="text-2xl font-bold text-foreground">{dbStatus.stats.articles}</div>
+                                <div className="text-sm text-muted-foreground">Pasal</div>
                             </div>
                         </div>
                     )}
@@ -344,16 +344,16 @@ export default function SettingsPage() {
                     )}
 
                     {/* Seed Data */}
-                    <div className="pt-4 border-t border-gray-800">
-                        <h4 className="text-white font-medium mb-2">🌱 Data Awal</h4>
-                        <p className="text-sm text-gray-400 mb-3">
+                    <div className="border-t border-border/60 pt-4">
+                        <h4 className="mb-2 font-medium text-foreground">🌱 Data Awal</h4>
+                        <p className="mb-3 text-sm text-muted-foreground">
                             Load contoh data peraturan (Perpres Jaminan Kesehatan) untuk testing
                         </p>
                         <Button
                             onClick={seedDatabase}
                             disabled={seeding || dbStatus.status !== 'connected'}
                             variant="outline"
-                            className="border-gray-700"
+                            className="border-border/70"
                         >
                             {seeding ? '⏳ Loading...' : '🌱 Seed Sample Data'}
                         </Button>
@@ -371,26 +371,26 @@ export default function SettingsPage() {
             </Card>
 
             {/* Environment Info */}
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="border-border/70 bg-card/70">
                 <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-lg text-foreground">
                         <span>📋</span>
                         Informasi Environment
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2 text-sm font-mono">
-                        <div className="flex justify-between p-2 bg-gray-800/50 rounded">
-                            <span className="text-gray-400">Node Environment</span>
-                            <span className="text-white">{process.env.NODE_ENV || 'development'}</span>
+                        <div className="flex justify-between rounded border border-border/50 bg-background/60 p-2">
+                            <span className="text-muted-foreground">Node Environment</span>
+                            <span className="text-foreground">{process.env.NODE_ENV || 'development'}</span>
                         </div>
-                        <div className="flex justify-between p-2 bg-gray-800/50 rounded">
-                            <span className="text-gray-400">Database</span>
-                            <span className="text-white">PostgreSQL (port 5433)</span>
+                        <div className="flex justify-between rounded border border-border/50 bg-background/60 p-2">
+                            <span className="text-muted-foreground">Database</span>
+                            <span className="text-foreground">PostgreSQL (port 5433)</span>
                         </div>
-                        <div className="flex justify-between p-2 bg-gray-800/50 rounded">
-                            <span className="text-gray-400">ORM</span>
-                            <span className="text-white">Prisma 7</span>
+                        <div className="flex justify-between rounded border border-border/50 bg-background/60 p-2">
+                            <span className="text-muted-foreground">ORM</span>
+                            <span className="text-foreground">Prisma 7</span>
                         </div>
                     </div>
                 </CardContent>

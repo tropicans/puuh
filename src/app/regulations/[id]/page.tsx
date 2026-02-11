@@ -111,7 +111,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
             <div className="flex items-center justify-center py-20">
                 <div className="text-center">
                     <div className="text-5xl mb-4 animate-pulse">⏳</div>
-                    <p className="text-gray-400">Memuat data peraturan...</p>
+                    <p className="text-muted-foreground">Memuat data peraturan...</p>
                 </div>
             </div>
         );
@@ -121,9 +121,9 @@ export default function RegulationDetailPage({ params }: PageProps) {
         return (
             <div className="text-center py-20">
                 <div className="text-5xl mb-4">😕</div>
-                <h2 className="text-2xl font-bold text-white mb-2">Peraturan tidak ditemukan</h2>
-                <p className="text-gray-400 mb-6">{error || `ID: ${id}`}</p>
-                <Link href="/" className="text-indigo-400 hover:text-indigo-300">
+                <h2 className="text-2xl font-bold text-foreground mb-2">Peraturan tidak ditemukan</h2>
+                <p className="text-muted-foreground mb-6">{error || `ID: ${id}`}</p>
+                <Link href="/dashboard" className="text-primary hover:text-primary/80">
                     ← Kembali ke Dashboard
                 </Link>
             </div>
@@ -159,36 +159,36 @@ export default function RegulationDetailPage({ params }: PageProps) {
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Back button */}
-            <Link href="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <span>←</span>
                 <span>Kembali ke Dashboard</span>
             </Link>
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Badge className="text-indigo-400 border-indigo-400/30" variant="outline">
+                    <div className="mb-2 flex flex-wrap items-center gap-3">
+                        <Badge className="text-primary border-primary/40" variant="outline">
                             {regulation.type}
                         </Badge>
                         <Badge className={`${getStatusColor(latestVersion?.status || 'active')} border`}>
                             {getStatusLabel(latestVersion?.status || 'active')}
                         </Badge>
                     </div>
-                    <h1 className="text-3xl font-bold text-white">
+                    <h1 className="text-3xl font-bold text-foreground">
                         {regulation.title}
                     </h1>
-                    <p className="text-gray-400 mt-2">
+                    <p className="text-muted-foreground mt-2">
                         {regulation.description}
                     </p>
                 </div>
 
-                <div className="flex gap-2">
-                    <Button variant="outline" className="border-gray-700">
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" className="border-border/70">
                         📤 Export
                     </Button>
                     <Link href={`/upload?amends=${regulation.id}&title=${encodeURIComponent(regulation.title)}`}>
-                        <Button className="bg-indigo-600 hover:bg-indigo-500">
+                        <Button>
                             + Tambah Versi
                         </Button>
                     </Link>
@@ -196,9 +196,9 @@ export default function RegulationDetailPage({ params }: PageProps) {
             </div>
 
             {/* Version Timeline */}
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="bg-card/70 border-border/70">
                 <CardHeader>
-                    <CardTitle className="text-lg text-white flex items-center gap-2">
+                    <CardTitle className="text-lg text-foreground flex items-center gap-2">
                         <span>📅</span>
                         Timeline Versi
                     </CardTitle>
@@ -214,14 +214,14 @@ export default function RegulationDetailPage({ params }: PageProps) {
 
             {/* Tabs: Comparison or Version Details */}
             <Tabs defaultValue="compare" className="space-y-6">
-                <TabsList className="bg-gray-900 border border-gray-800">
-                    <TabsTrigger value="compare" className="data-[state=active]:bg-indigo-600">
+                <TabsList className="w-full justify-start overflow-x-auto border border-border/70 bg-card">
+                    <TabsTrigger value="compare" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         ⚖️ Perbandingan
                     </TabsTrigger>
-                    <TabsTrigger value="versions" className="data-[state=active]:bg-indigo-600">
+                    <TabsTrigger value="versions" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         📋 Daftar Versi
                     </TabsTrigger>
-                    <TabsTrigger value="consolidated" className="data-[state=active]:bg-indigo-600">
+                    <TabsTrigger value="consolidated" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         ✅ Konsolidasi
                     </TabsTrigger>
                 </TabsList>
@@ -233,13 +233,13 @@ export default function RegulationDetailPage({ params }: PageProps) {
                             newVersion={selectedVersionObjects[1]!}
                         />
                     ) : (
-                        <Card className="bg-gray-900/50 border-gray-800">
+                        <Card className="bg-card/70 border-border/70">
                             <CardContent className="py-12 text-center">
                                 <div className="text-5xl mb-4">⚖️</div>
-                                <h3 className="text-xl font-semibold text-white mb-2">
+                                <h3 className="text-xl font-semibold text-foreground mb-2">
                                     Pilih 2 Versi untuk Dibandingkan
                                 </h3>
-                                <p className="text-gray-400">
+                                <p className="text-muted-foreground">
                                     Klik pada timeline di atas untuk memilih versi yang akan dibandingkan secara verbatim
                                 </p>
                             </CardContent>
@@ -249,10 +249,10 @@ export default function RegulationDetailPage({ params }: PageProps) {
 
                 <TabsContent value="versions" className="space-y-4">
                     {regulation.versions.map(version => (
-                        <Card key={version.id} className="bg-gray-900/50 border-gray-800">
+                        <Card key={version.id} className="bg-card/70 border-border/70">
                             <CardHeader className="pb-2">
                                 <div className="flex items-center justify-between">
-                                    <CardTitle className="text-base text-white">
+                                    <CardTitle className="text-base text-foreground">
                                         {version.fullTitle}
                                     </CardTitle>
                                     <Badge className={`${getStatusColor(version.status)} border`}>
@@ -261,7 +261,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                         <span>📝</span>
                                         <span>{version.articles.length} pasal</span>
@@ -273,7 +273,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
                                         </div>
                                     )}
                                     {version.pdfPath && (
-                                        <div className="flex items-center gap-1 text-indigo-400">
+                                        <div className="flex items-center gap-1 text-primary">
                                             <span>📄</span>
                                             <span>PDF tersedia</span>
                                         </div>
@@ -285,13 +285,13 @@ export default function RegulationDetailPage({ params }: PageProps) {
                 </TabsContent>
 
                 <TabsContent value="consolidated" className="space-y-4">
-                    <Card className="bg-gray-900/50 border-gray-800">
+                    <Card className="bg-card/70 border-border/70">
                         <CardHeader>
-                            <CardTitle className="text-lg text-white flex items-center gap-2">
+                            <CardTitle className="text-lg text-foreground flex items-center gap-2">
                                 <span>✅</span>
                                 Pasal yang Masih Berlaku
                             </CardTitle>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-muted-foreground">
                                 Berdasarkan versi terbaru: {latestVersion?.fullTitle}
                             </p>
                         </CardHeader>
@@ -299,22 +299,22 @@ export default function RegulationDetailPage({ params }: PageProps) {
                             {latestVersion?.articles.map(article => (
                                 <div
                                     key={article.id}
-                                    className="p-4 bg-gray-800/50 rounded-lg border border-gray-700"
+                                    className="p-4 bg-background/60 rounded-lg border border-border/70"
                                 >
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold text-white">{article.number}</span>
+                                        <span className="font-semibold text-foreground">{article.number}</span>
                                         <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 border text-xs">
                                             ✓ Berlaku
                                         </Badge>
                                     </div>
-                                    <div className="font-mono text-sm text-gray-300 whitespace-pre-wrap">
+                                    <div className="font-mono text-sm text-foreground whitespace-pre-wrap">
                                         {article.content}
                                     </div>
                                 </div>
                             ))}
 
                             {(!latestVersion || latestVersion.articles.length === 0) && (
-                                <div className="text-center py-8 text-gray-500">
+                                <div className="text-center py-8 text-muted-foreground">
                                     Tidak ada pasal yang tersedia
                                 </div>
                             )}

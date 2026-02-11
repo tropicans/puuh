@@ -19,7 +19,11 @@ async function getSessionRole(req: NextRequest): Promise<string | null> {
             user?: {
                 role?: string;
             };
-        };
+        } | null;
+
+        if (!session || typeof session !== 'object') {
+            return null;
+        }
 
         return session.user?.role ?? null;
     } catch (error) {
@@ -31,6 +35,13 @@ async function getSessionRole(req: NextRequest): Promise<string | null> {
 // Auth middleware with route protection and role checks
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", pathname);
+    const nextWithPathname = () => NextResponse.next({
+        request: {
+            headers: requestHeaders,
+        },
+    });
 
     // Check for NextAuth session token in cookies
     const sessionToken = req.cookies.get("authjs.session-token") ||
@@ -42,10 +53,10 @@ export async function middleware(req: NextRequest) {
 
     // Public routes - no auth required
     // Note: /api/seed is public for initial setup - in production, consider protecting or removing
-    const publicRoutes = ["/login", "/api/auth", "/api/seed"];
-    const isPublicRoute = publicRoutes.some(route =>
-        pathname.startsWith(route)
-    );
+    const publicRoutes = ["/design", "/login", "/api/auth", "/api/seed"];
+    const isPublicRoute =
+        pathname === "/" ||
+        publicRoutes.some(route => pathname.startsWith(route));
 
     // Static files that should be public
     if (
@@ -53,16 +64,16 @@ export async function middleware(req: NextRequest) {
         pathname.startsWith("/favicon") ||
         pathname.includes(".")
     ) {
-        return NextResponse.next();
+        return nextWithPathname();
     }
 
     // Allow public routes
     if (isPublicRoute) {
-        return NextResponse.next();
+        return nextWithPathname();
     }
 
     // Protected routes - need authentication
-    const protectedRoutes = ["/", "/compare", "/regulations", "/upload", "/manage", "/settings"];
+    const protectedRoutes = ["/dashboard", "/compare", "/regulations", "/upload", "/manage", "/settings"];
     const isProtectedRoute = protectedRoutes.some(route =>
         pathname === route ||
         pathname.startsWith(route + "/")
@@ -112,6 +123,20 @@ export async function middleware(req: NextRequest) {
 
     if (isLoggedIn && (isAdminRoute || isAdminApiRoute)) {
         const role = await getSessionRole(req);
+
+        if (!role) {
+            if (isAdminApiRoute) {
+                return NextResponse.json(
+                    { error: 'Unauthorized' },
+                    { status: 401 }
+                );
+            }
+
+            const loginUrl = new URL('/login', req.url);
+            loginUrl.searchParams.set('callbackUrl', pathname);
+            return NextResponse.redirect(loginUrl);
+        }
+
         const isAdmin = role === "ADMIN";
 
         if (!isAdmin && isAdminApiRoute) {
@@ -126,7 +151,7 @@ export async function middleware(req: NextRequest) {
         }
     }
 
-    return NextResponse.next();
+    return nextWithPathname();
 }
 
 export const config = {

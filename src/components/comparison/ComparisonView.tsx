@@ -96,14 +96,14 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
     return (
         <div className="space-y-6">
             {/* Summary Header */}
-            <Card className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-indigo-500/30">
+            <Card className="border-border/70 bg-card/70">
                 <CardContent className="py-5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                                 📊 Ringkasan Perubahan
                             </h2>
-                            <p className="text-indigo-200 mt-1">
+                            <p className="mt-1 text-muted-foreground">
                                 <span className="font-medium">{oldVersion.number}/{oldVersion.year}</span>
                                 <span className="mx-2">→</span>
                                 <span className="font-medium">{newVersion.number}/{newVersion.year}</span>
@@ -111,13 +111,13 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                         </div>
                         <div className="flex items-center gap-6 text-center">
                             <div>
-                                <div className="text-3xl font-bold text-white">{stats.all}</div>
-                                <div className="text-xs text-indigo-300">Total Pasal</div>
+                                <div className="text-3xl font-bold text-foreground">{stats.all}</div>
+                                <div className="text-xs text-muted-foreground">Total Pasal</div>
                             </div>
-                            <div className="h-10 w-px bg-indigo-500/30"></div>
+                            <div className="h-10 w-px bg-border/70"></div>
                             <div>
                                 <div className="text-3xl font-bold text-amber-400">{changesCount}</div>
-                                <div className="text-xs text-indigo-300">Perubahan</div>
+                                <div className="text-xs text-muted-foreground">Perubahan</div>
                             </div>
                         </div>
                     </div>
@@ -129,7 +129,7 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                 {/* Filter Stats */}
                 <div className="flex flex-wrap gap-2">
                     {[
-                        { key: 'all', label: 'Semua', count: stats.all, color: 'bg-gray-600', activeColor: 'bg-gray-500' },
+                        { key: 'all', label: 'Semua', count: stats.all, color: 'bg-muted text-foreground border-border/70', activeColor: 'bg-primary' },
                         { key: 'modified', label: 'Diubah', count: stats.modified, color: 'bg-amber-600/20 text-amber-400 border-amber-500/50', activeColor: 'bg-amber-600' },
                         { key: 'new', label: 'Baru', count: stats.new, color: 'bg-blue-600/20 text-blue-400 border-blue-500/50', activeColor: 'bg-blue-600' },
                         { key: 'deleted', label: 'Dihapus', count: stats.deleted, color: 'bg-red-600/20 text-red-400 border-red-500/50', activeColor: 'bg-red-600' },
@@ -139,7 +139,7 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                             key={key}
                             onClick={() => setFilter(key as FilterType)}
                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${filter === key
-                                    ? `${activeColor} text-white border-transparent ring-2 ring-white/20`
+                                    ? `${activeColor} text-primary-foreground border-transparent ring-2 ring-primary/20`
                                     : `${color} border hover:opacity-80`
                                 }`}
                         >
@@ -152,16 +152,16 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setExpandAll(!expandAll)}
-                        className="px-3 py-1.5 rounded-lg text-sm bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+                        className="rounded-lg border border-border/70 bg-card px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
                     >
                         {expandAll ? '⬆️ Tutup Semua' : '⬇️ Buka Semua'}
                     </button>
-                    <div className="flex rounded-lg overflow-hidden border border-gray-700">
+                    <div className="flex overflow-hidden rounded-lg border border-border/70">
                         <button
                             onClick={() => setViewMode('inline')}
                             className={`px-3 py-1.5 text-sm transition-colors ${viewMode === 'inline'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                         >
                             Inline
@@ -169,8 +169,8 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                         <button
                             onClick={() => setViewMode('side-by-side')}
                             className={`px-3 py-1.5 text-sm transition-colors ${viewMode === 'side-by-side'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                         >
                             Berdampingan
@@ -183,11 +183,11 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
             <div className="flex flex-wrap gap-6 text-sm px-1">
                 <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded bg-emerald-500/40 border-2 border-emerald-500"></span>
-                    <span className="text-gray-300">Teks Ditambahkan</span>
+                    <span className="text-muted-foreground">Teks Ditambahkan</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded bg-red-500/40 border-2 border-red-500"></span>
-                    <span className="text-gray-300">Teks Dihapus</span>
+                    <span className="text-muted-foreground">Teks Dihapus</span>
                 </div>
             </div>
 
@@ -209,7 +209,7 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                     ))}
 
                     {filteredArticles.length === 0 && (
-                        <div className="text-center py-16 text-gray-500">
+                        <div className="text-center py-16 text-muted-foreground">
                             <div className="text-4xl mb-3">🔍</div>
                             <p>Tidak ada pasal dengan filter &quot;{filter}&quot;</p>
                         </div>
@@ -245,14 +245,14 @@ function ArticleComparisonCard({
 
     // Color schemes per status
     const statusStyles = {
-        active: 'border-gray-700 bg-gray-900/30',
+        active: 'border-border/70 bg-card/40',
         modified: 'border-amber-500/40 bg-amber-900/10',
         deleted: 'border-red-500/40 bg-red-900/10',
         new: 'border-blue-500/40 bg-blue-900/10'
     };
 
     const headerStyles = {
-        active: 'hover:bg-gray-800/50',
+        active: 'hover:bg-accent/40',
         modified: 'hover:bg-amber-900/20',
         deleted: 'hover:bg-red-900/20',
         new: 'hover:bg-blue-900/20'
@@ -266,7 +266,7 @@ function ArticleComparisonCard({
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <CardTitle className="text-lg font-bold text-white">
+                        <CardTitle className="text-lg font-bold text-foreground">
                             {articleNumber}
                         </CardTitle>
                         <Badge className={`${getStatusColor(status)} border text-xs px-2 py-0.5`}>
@@ -284,11 +284,11 @@ function ArticleComparisonCard({
                 <CardContent className="pt-0 pb-5 px-5">
                     {status === 'new' && newArticle && (
                         <div>
-                            <div className="text-sm text-blue-400 mb-3 font-medium flex items-center gap-2">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-400">
                                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                 Pasal baru ditambahkan di versi {newVersionLabel}
                             </div>
-                            <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-500/20">
+                                <div className="rounded-lg border border-blue-500/20 bg-blue-900/20 p-4">
                                 <NewArticleText content={newArticle.content} />
                             </div>
                         </div>
@@ -296,11 +296,11 @@ function ArticleComparisonCard({
 
                     {status === 'deleted' && oldArticle && (
                         <div>
-                            <div className="text-sm text-red-400 mb-3 font-medium flex items-center gap-2">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-red-400">
                                 <span className="w-2 h-2 rounded-full bg-red-500"></span>
                                 Pasal dihapus di versi {newVersionLabel}
                             </div>
-                            <div className="bg-red-900/20 rounded-lg p-4 border border-red-500/20">
+                                <div className="rounded-lg border border-red-500/20 bg-red-900/20 p-4">
                                 <DeletedArticleText content={oldArticle.content} />
                             </div>
                         </div>
@@ -308,12 +308,12 @@ function ArticleComparisonCard({
 
                     {status === 'modified' && oldArticle && newArticle && (
                         <div>
-                            <div className="text-sm text-amber-400 mb-3 font-medium flex items-center gap-2">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-amber-400">
                                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                                 Perubahan dari versi {oldVersionLabel} ke {newVersionLabel}
                             </div>
                             {viewMode === 'inline' ? (
-                                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                                <div className="rounded-lg border border-border/70 bg-card/50 p-4">
                                     <ArticleDiff
                                         oldContent={oldArticle.content}
                                         newContent={newArticle.content}
@@ -323,18 +323,18 @@ function ArticleComparisonCard({
                             ) : (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <div className="text-xs text-gray-400 mb-2 font-medium">
+                                        <div className="mb-2 text-xs font-medium text-muted-foreground">
                                             📄 Versi {oldVersionLabel} (Lama)
                                         </div>
-                                        <div className="p-4 bg-red-900/10 rounded-lg border border-red-500/20 text-base leading-relaxed whitespace-pre-wrap text-gray-300">
+                                        <div className="rounded-lg border border-red-500/20 bg-red-900/10 p-4 text-base leading-relaxed whitespace-pre-wrap text-foreground">
                                             {oldArticle.content}
                                         </div>
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-400 mb-2 font-medium">
+                                        <div className="mb-2 text-xs font-medium text-muted-foreground">
                                             📄 Versi {newVersionLabel} (Baru)
                                         </div>
-                                        <div className="p-4 bg-emerald-900/10 rounded-lg border border-emerald-500/20 text-base leading-relaxed whitespace-pre-wrap text-gray-200">
+                                        <div className="rounded-lg border border-emerald-500/20 bg-emerald-900/10 p-4 text-base leading-relaxed whitespace-pre-wrap text-foreground">
                                             {newArticle.content}
                                         </div>
                                     </div>
@@ -344,7 +344,7 @@ function ArticleComparisonCard({
                     )}
 
                     {status === 'active' && newArticle && (
-                        <div className="p-4 bg-gray-800/30 rounded-lg border border-gray-700 text-base leading-relaxed whitespace-pre-wrap text-gray-400">
+                        <div className="rounded-lg border border-border/70 bg-card/40 p-4 text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
                             {newArticle.content}
                         </div>
                     )}

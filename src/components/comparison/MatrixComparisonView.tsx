@@ -102,7 +102,7 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
     };
 
     const statusColors: Record<ArticleStatus, string> = {
-        same: 'bg-gray-700 text-gray-300',
+        same: 'bg-muted text-foreground',
         modified: 'bg-amber-600 text-white',
         new: 'bg-blue-600 text-white',
         inherited: 'bg-emerald-600 text-white'
@@ -116,7 +116,7 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
     };
 
     const rowBgColors: Record<ArticleStatus, string> = {
-        same: 'hover:bg-gray-800/50',
+        same: 'hover:bg-accent/40',
         modified: 'bg-amber-900/10 hover:bg-amber-900/20',
         new: 'bg-blue-900/10 hover:bg-blue-900/20',
         inherited: 'bg-emerald-900/10 hover:bg-emerald-900/20'
@@ -125,27 +125,27 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
     return (
         <div className="space-y-6">
             {/* Header */}
-            <Card className="bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-indigo-500/30">
+            <Card className="border-border/70 bg-card/70">
                 <CardContent className="py-5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h2 className="text-xl font-bold text-white">📊 Matriks Perbandingan</h2>
-                            <p className="text-indigo-200 mt-1">{regulationTitle}</p>
+                            <h2 className="text-xl font-bold text-foreground">📊 Matriks Perbandingan</h2>
+                            <p className="mt-1 text-muted-foreground">{regulationTitle}</p>
                         </div>
                         <div className="flex items-center gap-6">
                             <div className="text-center">
-                                <div className="text-2xl font-bold text-white">{sortedVersions.length}</div>
-                                <div className="text-xs text-indigo-300">Versi</div>
+                                <div className="text-2xl font-bold text-foreground">{sortedVersions.length}</div>
+                                <div className="text-xs text-muted-foreground">Versi</div>
                             </div>
-                            <div className="h-8 w-px bg-indigo-500/30"></div>
+                            <div className="h-8 w-px bg-border/70"></div>
                             <div className="text-center">
-                                <div className="text-2xl font-bold text-white">{stats.total}</div>
-                                <div className="text-xs text-indigo-300">Pasal</div>
+                                <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                                <div className="text-xs text-muted-foreground">Pasal</div>
                             </div>
-                            <div className="h-8 w-px bg-indigo-500/30"></div>
+                            <div className="h-8 w-px bg-border/70"></div>
                             <div className="text-center">
                                 <div className="text-2xl font-bold text-amber-400">{stats.modified + stats.new}</div>
-                                <div className="text-xs text-indigo-300">Perubahan</div>
+                                <div className="text-xs text-muted-foreground">Perubahan</div>
                             </div>
                         </div>
                     </div>
@@ -155,12 +155,12 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
             {/* Stats Row */}
             <div className="flex flex-wrap gap-3">
                 {[
-                    { key: 'same', label: 'Sama', count: stats.same, color: 'bg-gray-600' },
+                    { key: 'same', label: 'Sama', count: stats.same, color: 'bg-muted text-foreground' },
                     { key: 'modified', label: 'Diubah', count: stats.modified, color: 'bg-amber-600' },
                     { key: 'new', label: 'Baru', count: stats.new, color: 'bg-blue-600' },
                     { key: 'inherited', label: 'Berlaku (Lama)', count: stats.inherited, color: 'bg-emerald-600' },
                 ].map(({ key, label, count, color }) => (
-                    <div key={key} className={`${color} px-3 py-1.5 rounded-full text-white text-sm font-medium`}>
+                    <div key={key} className={`${color} rounded-full px-3 py-1.5 text-sm font-medium`}>
                         {label}: {count}
                     </div>
                 ))}
@@ -169,21 +169,21 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
             {/* Version selector for diff */}
             {sortedVersions.length > 2 && (
                 <div className="flex items-center gap-4 text-sm">
-                    <span className="text-gray-400">Bandingkan:</span>
+                    <span className="text-muted-foreground">Bandingkan:</span>
                     <select
                         value={selectedVersions[0]}
                         onChange={(e) => setSelectedVersions([parseInt(e.target.value), selectedVersions[1]])}
-                        className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white"
+                        className="rounded border border-border/70 bg-card px-3 py-1.5 text-foreground"
                     >
                         {sortedVersions.map((v, i) => (
                             <option key={v.id} value={i}>{v.number}/{v.year}</option>
                         ))}
                     </select>
-                    <span className="text-gray-500">dengan</span>
+                    <span className="text-muted-foreground">dengan</span>
                     <select
                         value={selectedVersions[1]}
                         onChange={(e) => setSelectedVersions([selectedVersions[0], parseInt(e.target.value)])}
-                        className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-white"
+                        className="rounded border border-border/70 bg-card px-3 py-1.5 text-foreground"
                     >
                         {sortedVersions.map((v, i) => (
                             <option key={v.id} value={i}>{v.number}/{v.year}</option>
@@ -193,26 +193,26 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
             )}
 
             {/* Matrix Table */}
-            <div className="overflow-x-auto rounded-lg border border-gray-700">
+            <div className="overflow-x-auto rounded-lg border border-border/70">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="bg-gray-800/80">
-                            <th className="px-4 py-3 text-left text-gray-300 font-semibold sticky left-0 bg-gray-800/80 z-10 min-w-[100px]">
+                        <tr className="bg-card/80">
+                            <th className="sticky left-0 z-10 min-w-[100px] bg-card/90 px-4 py-3 text-left font-semibold text-foreground">
                                 Pasal
                             </th>
                             {sortedVersions.map((v, i) => (
                                 <th
                                     key={v.id}
                                     className={`px-4 py-3 text-left font-semibold min-w-[200px] ${i === selectedVersions[0] || i === selectedVersions[1]
-                                        ? 'text-indigo-300 bg-indigo-900/20'
-                                        : 'text-gray-400'
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-muted-foreground'
                                         }`}
                                 >
                                     <div>{v.number}/{v.year}</div>
                                     <div className="text-xs font-normal opacity-60">{v.articles.length} pasal</div>
                                 </th>
                             ))}
-                            <th className="px-4 py-3 text-center text-gray-300 font-semibold min-w-[100px]">
+                            <th className="min-w-[100px] px-4 py-3 text-center font-semibold text-foreground">
                                 Status
                             </th>
                         </tr>
@@ -221,14 +221,14 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                         {articleRows.map((row) => (
                             <Fragment key={row.articleNumber}>
                                 <tr
-                                    className={`border-t border-gray-700/50 cursor-pointer transition-colors ${rowBgColors[row.status]}`}
+                                    className={`cursor-pointer border-t border-border/50 transition-colors ${rowBgColors[row.status]}`}
                                     onClick={() => setExpandedRow(expandedRow === row.articleNumber ? null : row.articleNumber)}
                                 >
-                                    <td className="px-4 py-3 font-semibold text-white sticky left-0 bg-gray-900/90 z-10">
+                                    <td className="sticky left-0 z-10 bg-card/90 px-4 py-3 font-semibold text-foreground">
                                         <div className="flex items-center gap-2">
-                                            <span className={`transition-transform ${expandedRow === row.articleNumber ? 'rotate-90' : ''}`}>
-                                                ▶
-                                            </span>
+                                                <span className={`text-muted-foreground transition-transform ${expandedRow === row.articleNumber ? 'rotate-90' : ''}`}>
+                                                    ▶
+                                                </span>
                                             {row.articleNumber}
                                         </div>
                                     </td>
@@ -236,17 +236,17 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                                         <td
                                             key={vIdx}
                                             className={`px-4 py-3 ${vIdx === selectedVersions[0] || vIdx === selectedVersions[1]
-                                                ? 'bg-indigo-900/10'
+                                                ? 'bg-primary/5'
                                                 : ''
                                                 }`}
                                         >
                                             {article ? (
-                                                <div className="text-gray-300 line-clamp-2 text-xs leading-relaxed">
+                                                <div className="line-clamp-2 text-xs leading-relaxed text-foreground">
                                                     {article.content.substring(0, 150)}
                                                     {article.content.length > 150 ? '...' : ''}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-600 italic">—</span>
+                                                <span className="italic text-muted-foreground">—</span>
                                             )}
                                         </td>
                                     ))}
@@ -259,10 +259,10 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
 
                                 {/* Expanded Detail Row */}
                                 {expandedRow === row.articleNumber && (
-                                    <tr className="border-t border-gray-700/30">
+                                    <tr className="border-t border-border/40">
                                         <td colSpan={sortedVersions.length + 2} className="p-0">
-                                            <div className="p-5 bg-gray-800/50">
-                                                <div className="text-sm text-gray-400 mb-3 font-medium">
+                                            <div className="bg-card/60 p-5">
+                                                <div className="mb-3 text-sm font-medium text-muted-foreground">
                                                     📝 Detail {row.articleNumber} - Perbandingan versi {sortedVersions[selectedVersions[0]]?.number}/{sortedVersions[selectedVersions[0]]?.year} vs {sortedVersions[selectedVersions[1]]?.number}/{sortedVersions[selectedVersions[1]]?.year}
                                                 </div>
 
@@ -276,13 +276,13 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                                                         // Both versions have the article
                                                         if (oldContent.content === newContent.content) {
                                                             return (
-                                                                <div className="bg-gray-900/50 rounded-lg p-4 text-gray-300 text-base leading-relaxed whitespace-pre-wrap">
+                                                                <div className="rounded-lg bg-background/70 p-4 text-base leading-relaxed whitespace-pre-wrap text-foreground">
                                                                     {newContent.content}
                                                                 </div>
                                                             );
                                                         } else {
                                                             return (
-                                                                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                                                                <div className="rounded-lg border border-border/70 bg-background/70 p-4">
                                                                     <ArticleDiff
                                                                         oldContent={oldContent.content}
                                                                         newContent={newContent.content}
@@ -296,7 +296,7 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                                                         return (
                                                             <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-500/30">
                                                                 <div className="text-blue-400 text-sm mb-2">✨ Pasal baru di versi {sortedVersions[selectedVersions[1]]?.year}</div>
-                                                                <div className="text-emerald-200 text-base leading-relaxed whitespace-pre-wrap">
+                                                                <div className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
                                                                     {newContent.content}
                                                                 </div>
                                                             </div>
@@ -306,7 +306,7 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                                                         return (
                                                             <div className="bg-emerald-900/20 rounded-lg p-4 border border-emerald-500/30">
                                                                 <div className="text-emerald-400 text-sm mb-2">✅ Tetap berlaku dari versi {sortedVersions[selectedVersions[0]]?.year} (tidak diubah di versi baru)</div>
-                                                                <div className="text-emerald-200 text-base leading-relaxed whitespace-pre-wrap">
+                                                                <div className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
                                                                     {oldContent.content}
                                                                 </div>
                                                             </div>
@@ -315,15 +315,15 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
                                                         // Fallback: show content from any available version
                                                         const versionIndex = row.versions.findIndex(v => v === lastAvailable);
                                                         return (
-                                                            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
-                                                                <div className="text-gray-400 text-sm mb-2">📄 Konten dari versi {sortedVersions[versionIndex]?.year}</div>
-                                                                <div className="text-gray-200 text-base leading-relaxed whitespace-pre-wrap">
+                                                            <div className="rounded-lg border border-border/70 bg-background/70 p-4">
+                                                                <div className="mb-2 text-sm text-muted-foreground">📄 Konten dari versi {sortedVersions[versionIndex]?.year}</div>
+                                                                <div className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
                                                                     {lastAvailable.content}
                                                                 </div>
                                                             </div>
                                                         );
                                                     } else {
-                                                        return <div className="text-gray-500 italic">Tidak ada konten</div>;
+                                                        return <div className="italic text-muted-foreground">Tidak ada konten</div>;
                                                     }
                                                 })()}
                                             </div>
@@ -337,9 +337,9 @@ export function MatrixComparisonView({ versions, regulationTitle }: MatrixCompar
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                    <span className="text-gray-500">💡 Klik baris untuk melihat detail perbandingan</span>
+                    <span>💡 Klik baris untuk melihat detail perbandingan</span>
                 </div>
             </div>
         </div>

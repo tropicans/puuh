@@ -171,28 +171,28 @@ export default function ManagePage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="text-gray-400">Loading...</div>
+                <div className="text-muted-foreground">Loading...</div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
+        <div className="mx-auto max-w-5xl space-y-8 animate-fade-in">
             <div>
-                <Link href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">
+                <Link href="/dashboard" className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground">
                     ← Kembali ke Dashboard
                 </Link>
-                <h1 className="text-3xl font-bold text-white mb-2">🔧 Kelola Peraturan</h1>
-                <p className="text-gray-400">
+                <h1 className="mb-2 text-3xl font-bold text-foreground">Kelola Peraturan</h1>
+                <p className="text-muted-foreground">
                     Edit, hapus, atau kelola peraturan dan versi
                 </p>
             </div>
 
             {/* Message toast */}
             {message && (
-                <div className={`p-4 rounded-lg ${message.type === 'success'
-                    ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
-                    : 'bg-red-500/20 border border-red-500/30 text-red-400'
+                <div className={`rounded-lg p-4 ${message.type === 'success'
+                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                    : 'border border-red-500/30 bg-red-500/10 text-red-400'
                     }`}>
                     {message.text}
                 </div>
@@ -200,50 +200,50 @@ export default function ManagePage() {
 
             {/* Edit Modal */}
             {editingVersion && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                    <Card className="bg-gray-900 border-gray-700 w-full max-w-lg">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                    <Card className="w-full max-w-lg border-border/70 bg-card">
                         <CardHeader>
-                            <CardTitle className="text-white">Edit Versi</CardTitle>
+                            <CardTitle className="text-foreground">Edit Versi</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <label className="block text-sm text-gray-400 mb-1">Nomor</label>
+                                <label className="mb-1 block text-sm text-muted-foreground">Nomor</label>
                                 <input
                                     type="text"
                                     value={editForm.number}
                                     onChange={(e) => setEditForm({ ...editForm, number: e.target.value })}
-                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
+                                    className="w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-foreground"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm text-gray-400 mb-1">Tahun</label>
+                                <label className="mb-1 block text-sm text-muted-foreground">Tahun</label>
                                 <input
                                     type="number"
                                     value={editForm.year}
                                     onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
-                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
+                                    className="w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-foreground"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm text-gray-400 mb-1">Judul Lengkap</label>
+                                <label className="mb-1 block text-sm text-muted-foreground">Judul Lengkap</label>
                                 <input
                                     type="text"
                                     value={editForm.fullTitle}
                                     onChange={(e) => setEditForm({ ...editForm, fullTitle: e.target.value })}
-                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white"
+                                    className="w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-foreground"
                                 />
                             </div>
                             <div className="flex gap-3 pt-4">
                                 <Button
                                     onClick={handleSaveVersion}
-                                    className="flex-1 bg-indigo-600 hover:bg-indigo-500"
+                                    className="flex-1"
                                 >
                                     💾 Simpan
                                 </Button>
                                 <Button
                                     onClick={() => setEditingVersion(null)}
                                     variant="outline"
-                                    className="flex-1 border-gray-700"
+                                    className="flex-1 border-border/70"
                                 >
                                     Batal
                                 </Button>
@@ -255,24 +255,24 @@ export default function ManagePage() {
 
             {/* Regulations List */}
             {regulations.length === 0 ? (
-                <Card className="bg-gray-900/50 border-gray-800">
+                <Card className="border-border/70 bg-card/70">
                     <CardContent className="py-12 text-center">
                         <div className="text-5xl mb-4">📭</div>
-                        <p className="text-gray-400">Belum ada peraturan</p>
+                        <p className="text-muted-foreground">Belum ada peraturan</p>
                     </CardContent>
                 </Card>
             ) : (
                 <div className="space-y-6">
                     {regulations.map(reg => (
-                        <Card key={reg.id} className="bg-gray-900/50 border-gray-800">
+                        <Card key={reg.id} className="border-border/70 bg-card/70">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div>
-                                    <Badge variant="outline" className="text-indigo-400 border-indigo-400/30 mb-2">
+                                    <Badge variant="outline" className="mb-2 border-primary/40 text-primary">
                                         {reg.type.shortName}
                                     </Badge>
-                                    <CardTitle className="text-lg text-white">{reg.title}</CardTitle>
+                                    <CardTitle className="text-lg text-foreground">{reg.title}</CardTitle>
                                     {reg.description && (
-                                        <p className="text-sm text-gray-400 mt-1">{reg.description}</p>
+                                        <p className="mt-1 text-sm text-muted-foreground">{reg.description}</p>
                                     )}
                                 </div>
                                 <Button
@@ -285,12 +285,12 @@ export default function ManagePage() {
                                 </Button>
                             </CardHeader>
                             <CardContent>
-                                <h4 className="text-sm font-medium text-gray-300 mb-3">Versi:</h4>
+                                <h4 className="mb-3 text-sm font-medium text-foreground">Versi:</h4>
                                 <div className="space-y-2">
                                     {reg.versions.map(version => (
                                         <div
                                             key={version.id}
-                                            className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
+                                            className="flex items-center justify-between rounded-lg border border-border/50 bg-background/60 p-3"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Badge className={`${getStatusColor(version.status)} border text-xs`}>
@@ -300,7 +300,7 @@ export default function ManagePage() {
                                                     No. {version.number} Tahun {version.year}
                                                 </span>
                                                 {version._count?.articles !== undefined && (
-                                                    <span className="text-xs text-gray-500">
+                                                    <span className="text-xs text-muted-foreground">
                                                         ({version._count.articles} pasal)
                                                     </span>
                                                 )}
@@ -310,7 +310,7 @@ export default function ManagePage() {
                                                     onClick={() => handleReparse(version.id)}
                                                     size="sm"
                                                     variant="outline"
-                                                    className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20"
+                                                    className="border-primary/40 text-primary hover:bg-primary/10"
                                                 >
                                                     🔄 Parse
                                                 </Button>
@@ -318,7 +318,7 @@ export default function ManagePage() {
                                                     onClick={() => window.location.href = `/manage/version/${version.id}`}
                                                     size="sm"
                                                     variant="outline"
-                                                    className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20"
+                                                    className="border-primary/40 text-primary hover:bg-primary/10"
                                                 >
                                                     📝 Edit Pasal
                                                 </Button>
@@ -326,7 +326,7 @@ export default function ManagePage() {
                                                     onClick={() => handleEditVersion(version)}
                                                     size="sm"
                                                     variant="outline"
-                                                    className="border-gray-700 text-gray-300"
+                                                    className="border-border/70 text-foreground"
                                                 >
                                                     ⚙️ Meta
                                                 </Button>

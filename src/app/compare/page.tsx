@@ -134,24 +134,22 @@ export default function ComparePage() {
     return (
         <div className="space-y-8 animate-fade-in">
             <div>
-                <Link href="/" className="text-gray-400 hover:text-white text-sm mb-4 inline-block">← Kembali ke Beranda</Link>
+                <Link href="/dashboard" className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground">← Kembali ke Dashboard</Link>
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">
-                            ⚖️ Perbandingan Peraturan
-                        </h1>
-                        <p className="text-gray-400">
+                        <h1 className="mb-2 text-3xl font-bold text-foreground">Perbandingan Peraturan</h1>
+                        <p className="text-muted-foreground">
                             Bandingkan versi peraturan untuk melihat perubahan
                         </p>
                     </div>
 
                     {/* View Mode Toggle */}
-                    <div className="flex rounded-lg overflow-hidden border border-gray-700">
+                    <div className="flex overflow-hidden rounded-lg border border-border/70 bg-card">
                         <button
                             onClick={() => setViewMode('matrix')}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${viewMode === 'matrix'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                         >
                             📊 Matriks
@@ -159,8 +157,8 @@ export default function ComparePage() {
                         <button
                             onClick={() => setViewMode('cards')}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${viewMode === 'cards'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                         >
                             🃏 Kartu
@@ -173,14 +171,14 @@ export default function ComparePage() {
             {loading && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[1, 2].map(i => (
-                        <Card key={i} className="bg-gray-900/50 border-gray-800 animate-pulse">
+                        <Card key={i} className="animate-pulse border-border/70 bg-card/70">
                             <CardHeader className="pb-2">
-                                <div className="h-5 bg-gray-700 rounded w-3/4"></div>
+                                <div className="h-5 w-3/4 rounded bg-muted" />
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                                <div className="h-4 w-1/2 rounded bg-muted" />
                                 <div className="flex gap-2">
-                                    <div className="h-8 bg-gray-700 rounded w-24"></div>
+                                    <div className="h-8 w-24 rounded bg-muted" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -190,17 +188,17 @@ export default function ComparePage() {
 
             {/* No data state */}
             {!loading && regulationsWithMultipleVersions.length === 0 && (
-                <Card className="bg-gray-900/50 border-gray-800">
+                <Card className="border-border/70 bg-card/70">
                     <CardContent className="py-12 text-center">
                         <div className="text-5xl mb-4">📭</div>
-                        <h3 className="text-lg font-semibold text-white mb-2">
+                        <h3 className="mb-2 text-lg font-semibold text-foreground">
                             Belum Ada Peraturan untuk Dibandingkan
                         </h3>
-                        <p className="text-gray-400 max-w-md mx-auto mb-4">
+                        <p className="mx-auto mb-4 max-w-md text-muted-foreground">
                             Untuk membandingkan, upload minimal 2 versi dari regulasi yang sama.
                         </p>
                         <Link href="/upload">
-                            <Button className="bg-indigo-600 hover:bg-indigo-500">
+                            <Button>
                                 + Upload Peraturan
                             </Button>
                         </Link>
@@ -216,22 +214,22 @@ export default function ComparePage() {
                         return (
                             <Card
                                 key={reg.id}
-                                className={`bg-gray-900/50 border-gray-800 transition-all cursor-pointer hover:border-indigo-500/50 ${selectedRegulation === reg.id ? 'ring-2 ring-indigo-500' : ''
+                                className={`cursor-pointer border-border/70 bg-card/70 transition-all hover:border-primary/50 ${selectedRegulation === reg.id ? 'ring-2 ring-primary/50' : ''
                                     }`}
                                 onClick={() => viewMode === 'matrix' ? handleSelectForMatrix(reg.id) : undefined}
                             >
                                 <CardHeader className="pb-2">
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="border-indigo-500/50 text-indigo-400">
+                                        <Badge variant="outline" className="border-primary/40 text-primary">
                                             {reg.type.shortName}
                                         </Badge>
-                                        <CardTitle className="text-base text-white truncate">
+                                        <CardTitle className="truncate text-base text-foreground">
                                             {reg.title}
                                         </CardTitle>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    <p className="text-sm text-gray-400">
+                                    <p className="text-sm text-muted-foreground">
                                         📄 {versions.length} versi tersedia ({versions.map(v => v.year).join(', ')})
                                     </p>
 
@@ -244,7 +242,7 @@ export default function ComparePage() {
                                                         key={v.id}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="border-gray-700 text-xs hover:bg-gray-800"
+                                                        className="border-border/70 text-xs hover:bg-accent"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             handleQuickCompare(reg.id, v.id, nextV.id);
@@ -261,7 +259,7 @@ export default function ComparePage() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="border-indigo-500/50 text-indigo-400 w-full hover:bg-indigo-900/30"
+                                            className="w-full border-primary/40 text-primary hover:bg-primary/10"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleSelectForMatrix(reg.id);
@@ -279,10 +277,10 @@ export default function ComparePage() {
 
             {/* Comparison Loading */}
             {comparisonLoading && (
-                <Card className="bg-gray-900/50 border-gray-800">
+                <Card className="border-border/70 bg-card/70">
                     <CardContent className="py-12 text-center">
                         <div className="animate-spin text-4xl mb-3">⏳</div>
-                        <p className="text-gray-400">Memuat data perbandingan...</p>
+                        <p className="text-muted-foreground">Memuat data perbandingan...</p>
                     </CardContent>
                 </Card>
             )}
@@ -291,13 +289,13 @@ export default function ComparePage() {
             {!comparisonLoading && comparisonData && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-medium text-gray-300">
+                        <h2 className="text-lg font-medium text-foreground">
                             {comparisonData.type.shortName} {comparisonData.title}
                         </h2>
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-gray-400 hover:text-white"
+                            className="text-muted-foreground hover:text-foreground"
                             onClick={() => {
                                 setSelectedRegulation('');
                                 setSelectedVersions(null);
@@ -319,13 +317,13 @@ export default function ComparePage() {
                             newVersion={transformVersion(selectedV2)!}
                         />
                     ) : (
-                        <Card className="bg-gray-900/30 border-gray-800 border-dashed">
+                        <Card className="border-dashed border-border/70 bg-card/40">
                             <CardContent className="py-10 text-center">
                                 <div className="text-4xl mb-3">👆</div>
-                                <h3 className="text-lg font-medium text-white mb-1">
+                                <h3 className="mb-1 text-lg font-medium text-foreground">
                                     Pilih Versi untuk Dibandingkan
                                 </h3>
-                                <p className="text-gray-500 text-sm">
+                                <p className="text-sm text-muted-foreground">
                                     Klik tombol perbandingan di atas
                                 </p>
                             </CardContent>

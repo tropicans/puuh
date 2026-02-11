@@ -149,43 +149,43 @@ function UploadContent() {
     };
 
     return (
-        <div className="space-y-8 animate-fade-in max-w-2xl mx-auto">
+        <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
             <div>
-                <a href={amendsId ? `/regulations/${amendsId}` : "/"} className="text-gray-400 hover:text-white text-sm mb-4 inline-block">← Kembali</a>
-                <h1 className="text-3xl font-bold text-white mb-2">
+                <a href={amendsId ? `/regulations/${amendsId}` : "/dashboard"} className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground">← Kembali</a>
+                <h1 className="mb-2 text-3xl font-bold text-foreground">
                     {amendsId ? '➕ Tambah Versi Baru' : '➕ Tambah Peraturan'}
                 </h1>
 
                 {amendsId && existingTitle && (
-                    <div className="bg-indigo-900/40 border border-indigo-500/30 p-4 rounded-lg mt-4 mb-6">
-                        <div className="text-indigo-300 text-sm font-medium mb-1">Menambahkan versi untuk:</div>
-                        <div className="text-white text-lg font-semibold">{decodeURIComponent(existingTitle)}</div>
-                        <div className="text-indigo-400/80 text-xs mt-1">Versi baru ini akan ditambahkan ke timeline regulasi tersebut.</div>
+                    <div className="mb-6 mt-4 rounded-lg border border-primary/30 bg-primary/10 p-4">
+                        <div className="mb-1 text-sm font-medium text-primary">Menambahkan versi untuk:</div>
+                        <div className="text-lg font-semibold text-foreground">{decodeURIComponent(existingTitle)}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">Versi baru ini akan ditambahkan ke timeline regulasi tersebut.</div>
                     </div>
                 )}
 
                 {!amendsId && (
-                    <p className="text-gray-400">Pilih metode untuk menambahkan peraturan</p>
+                    <p className="text-muted-foreground">Pilih metode untuk menambahkan peraturan</p>
                 )}
             </div>
 
             {/* Mode Selector */}
-            <div className="flex gap-2 p-1 bg-gray-900/50 rounded-lg">
+            <div className="flex gap-2 rounded-lg border border-border/60 bg-card/70 p-1">
                 <button
                     onClick={() => setMode('auto')}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${mode === 'auto' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
+                    className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${mode === 'auto' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >🔍 Auto Cari</button>
                 <button
                     onClick={() => setMode('manual')}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
+                    className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >📄 Upload PDF</button>
             </div>
 
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="border-border/70 bg-card/70">
                 <CardHeader>
-                    <CardTitle className="text-lg text-white">
+                    <CardTitle className="text-lg text-foreground">
                         {mode === 'auto' && '🔍 Cari Otomatis dari JDIH'}
                         {mode === 'manual' && '📄 Upload File PDF'}
                     </CardTitle>
@@ -194,11 +194,11 @@ function UploadContent() {
                     <form onSubmit={mode === 'auto' ? handleAutoFetch : handleManualUpload} className="space-y-4">
                         {/* Type Selector */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Jenis Peraturan</label>
+                            <label className="mb-2 block text-sm font-medium text-muted-foreground">Jenis Peraturan</label>
                             <select
                                 value={formData.type}
                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-indigo-500"
+                                className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground focus:ring-2 focus:ring-primary"
                             >
                                 <option value="Perpres">Peraturan Presiden (Perpres)</option>
                                 <option value="PP">Peraturan Pemerintah (PP)</option>
@@ -211,25 +211,25 @@ function UploadContent() {
                         {/* Number and Year */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Nomor *</label>
+                                <label className="mb-2 block text-sm font-medium text-muted-foreground">Nomor *</label>
                                 <input
                                     type="text"
                                     value={formData.number}
                                     onChange={(e) => setFormData({ ...formData, number: e.target.value })}
                                     placeholder="82"
-                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500"
+                                    className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground placeholder:text-muted-foreground"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Tahun *</label>
+                                <label className="mb-2 block text-sm font-medium text-muted-foreground">Tahun *</label>
                                 <input
                                     type="number"
                                     value={formData.year}
                                     onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                                     placeholder="2018"
                                     min="1945" max="2030"
-                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500"
+                                    className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground placeholder:text-muted-foreground"
                                     required
                                 />
                             </div>
@@ -237,25 +237,25 @@ function UploadContent() {
 
                         {/* Title (optional) */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Judul (opsional)</label>
+                            <label className="mb-2 block text-sm font-medium text-muted-foreground">Judul (opsional)</label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 placeholder="Jaminan Kesehatan"
-                                className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500"
+                                className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground placeholder:text-muted-foreground"
                             />
                         </div>
 
                         {/* Manual upload: File input */}
                         {mode === 'manual' && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">File PDF *</label>
+                                <label className="mb-2 block text-sm font-medium text-muted-foreground">File PDF *</label>
                                 <input
                                     type="file"
                                     accept=".pdf"
                                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white"
+                                    className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground"
                                     required
                                 />
                             </div>
@@ -264,7 +264,7 @@ function UploadContent() {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className={`w-full py-6 text-lg ${amendsId ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500'}`}
+                            className="w-full py-6 text-lg"
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -284,20 +284,20 @@ function UploadContent() {
 
                     {/* Result */}
                     {result && (
-                        <div className={`mt-6 p-4 rounded-lg ${result.success ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                            <div className={`mt-6 rounded-lg p-4 ${result.success ? 'border border-emerald-500/30 bg-emerald-500/10' : 'border border-red-500/30 bg-red-500/10'}`}>
                             <div className={`font-medium ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {result.success ? '✅ Berhasil!' : '❌ Gagal'}
                             </div>
                             <div className={`text-sm mt-1 ${result.success ? 'text-emerald-300' : 'text-red-300'}`}>{result.message}</div>
                             {result.success && result.articlesCount !== undefined && (
-                                <div className="mt-2 text-sm text-gray-400">📄 Pasal diekstrak: <span className="text-white">{result.articlesCount}</span></div>
+                                <div className="mt-2 text-sm text-muted-foreground">📄 Pasal diekstrak: <span className="text-foreground">{result.articlesCount}</span></div>
                             )}
                             {result.success && result.sourceUrl && (
-                                <div className="mt-1 text-sm text-gray-400">🔗 <a href={result.sourceUrl} target="_blank" className="text-indigo-400 hover:underline break-all">{result.sourceUrl}</a></div>
+                                <div className="mt-1 text-sm text-muted-foreground">🔗 <a href={result.sourceUrl} target="_blank" className="break-all text-primary hover:underline">{result.sourceUrl}</a></div>
                             )}
                             {result.success && amendsId && (
                                 <div className="mt-3">
-                                    <a href={`/regulations/${amendsId}`} className="text-sm text-indigo-400 hover:text-indigo-300 underline">
+                                    <a href={`/regulations/${amendsId}`} className="text-sm text-primary underline hover:text-primary/80">
                                         → Kembali ke Regulasi
                                     </a>
                                 </div>
@@ -306,7 +306,7 @@ function UploadContent() {
                                 <div className="mt-3">
                                     <button
                                         onClick={() => setMode('manual')}
-                                        className="text-sm text-indigo-400 hover:text-indigo-300 underline"
+                                        className="text-sm text-primary underline hover:text-primary/80"
                                     >
                                         → Coba upload PDF secara manual
                                     </button>
@@ -318,10 +318,10 @@ function UploadContent() {
             </Card>
 
             {/* Info */}
-            <Card className="bg-gray-900/30 border-gray-800">
+            <Card className="border-border/70 bg-card/50">
                 <CardContent className="py-4">
-                    <div className="text-sm text-gray-400 space-y-2">
-                        <div className="font-medium text-white">ℹ️ {mode === 'auto' ? 'Auto Cari:' : 'Upload Manual:'}</div>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="font-medium text-foreground">ℹ️ {mode === 'auto' ? 'Auto Cari:' : 'Upload Manual:'}</div>
                         {mode === 'auto' ? (
                             <ol className="list-decimal list-inside space-y-1">
                                 <li>Masukkan jenis, nomor, dan tahun</li>

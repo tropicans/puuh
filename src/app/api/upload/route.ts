@@ -31,7 +31,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const formData = await request.formData();
+        let formData: FormData;
+        try {
+            formData = await request.formData();
+        } catch (formDataError) {
+            const message = formDataError instanceof Error ? formDataError.message : 'Gagal membaca form data upload.';
+            const normalizedMessage = message.toLowerCase();
+            const isBodyTooLarge =
+                normalizedMessage.includes('too large') ||
+                normalizedMessage.includes('payload too large') ||
+                normalizedMessage.includes('request entity too large') ||
+                normalizedMessage.includes('content length') ||
+                normalizedMessage.includes('size limit') ||
+                normalizedMessage.includes('file too large');
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: isBodyTooLarge
+                        ? 'Ukuran request terlalu besar. Maksimum upload 20MB per file.'
+                        : 'Format upload tidak valid. Coba upload ulang file PDF.'
+                },
+                { status: isBodyTooLarge ? 413 : 400 }
+            );
+        }
 
         const file = formData.get('file') as File | null;
 
