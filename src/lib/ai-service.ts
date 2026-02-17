@@ -72,7 +72,8 @@ Aturan Keras:
 2. Jangan merangkum. Salin verbatim (kata per kata).
 3. Tangkap juga pasal sisipan (contoh: Pasal 6A, Pasal 103A).
 4. Jika teks adalah "Perubahan", hanya ekstrak pasal yang disebutkan berubah/ditambah.
-5. Abaikan header/footer halaman.`
+5. Abaikan header/footer halaman.
+6. Pastikan nomor pasal lengkap (misal: "Pasal 1", bukan hanya "1").`
             },
             {
                 role: 'user',
@@ -113,8 +114,8 @@ function parseArticlesWithRegex(rawText: string): ParsedArticle[] {
     const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     // Split by "Pasal" keyword followed by number/alphanumeric
-    // Improved regex to catch "Pasal 1", "Pasal 2", "Pasal 6A", "Pasal 103A"
-    const parts = normalizedText.split(/\n(?=Pasal\s+\d+[A-Z]*)/i);
+    // Improved regex to catch "Pasal 1" even if not preceded by a newline (handles OCR artifacts)
+    const parts = normalizedText.split(/(?=\nPasal\s+\d+|Pasal\s+\d+)/i);
 
     for (const part of parts) {
         // Check if this part starts with "Pasal"

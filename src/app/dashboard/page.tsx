@@ -89,7 +89,7 @@ export default async function DashboardPage(props: {
       <div className="rounded-2xl border border-border/70 bg-card/60 p-6 md:p-8">
         <div className="space-y-5 text-center">
           <div className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            Regulatory Workspace
+            Area Kerja Regulasi
           </div>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl">Dashboard Perbandingan Regulasi</h1>
           <p className="mx-auto max-w-2xl text-muted-foreground md:text-lg">

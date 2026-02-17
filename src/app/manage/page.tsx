@@ -184,7 +184,7 @@ export default function ManagePage() {
                 </Link>
                 <h1 className="mb-2 text-3xl font-bold text-foreground">Kelola Peraturan</h1>
                 <p className="text-muted-foreground">
-                    Edit, hapus, atau kelola peraturan dan versi
+                    Edit metadata, hapus, atau parse ulang peraturan dan versi dokumen
                 </p>
             </div>
 
@@ -258,7 +258,13 @@ export default function ManagePage() {
                 <Card className="border-border/70 bg-card/70">
                     <CardContent className="py-12 text-center">
                         <div className="text-5xl mb-4">📭</div>
-                        <p className="text-muted-foreground">Belum ada peraturan</p>
+                        <h3 className="mb-2 text-lg font-semibold text-foreground">Belum Ada Peraturan</h3>
+                        <p className="mx-auto mb-6 max-w-md text-muted-foreground">
+                            Mulai dengan mengunggah peraturan pertama. Setelah diunggah, Anda bisa mengedit metadata, menghapus, atau parse ulang pasal di sini.
+                        </p>
+                        <Link href="/upload">
+                            <Button>+ Unggah Peraturan Pertama</Button>
+                        </Link>
                     </CardContent>
                 </Card>
             ) : (

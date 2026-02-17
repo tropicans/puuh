@@ -1,11 +1,79 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 type UploadMode = 'auto' | 'url' | 'manual';
+
+function DropZone({ file, onFileSelect }: { file: File | null; onFileSelect: (f: File | null) => void }) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const droppedFile = e.dataTransfer.files[0];
+        if (droppedFile?.type === 'application/pdf') {
+            onFileSelect(droppedFile);
+        }
+    }, [onFileSelect]);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    return (
+        <div>
+            <label className="mb-2 block text-sm font-medium text-muted-foreground">File PDF *</label>
+            <div
+                onClick={() => inputRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${isDragging
+                    ? 'border-primary bg-primary/10'
+                    : file
+                        ? 'border-emerald-500/50 bg-emerald-500/5'
+                        : 'border-border/70 bg-background hover:border-primary/50 hover:bg-primary/5'
+                    }`}
+            >
+                <input
+                    ref={inputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => onFileSelect(e.target.files?.[0] || null)}
+                    className="hidden"
+                />
+                {file ? (
+                    <>
+                        <div className="mb-2 text-3xl">📄</div>
+                        <p className="text-sm font-medium text-foreground">{file.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB — Klik untuk mengganti
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <div className="mb-2 text-3xl">📤</div>
+                        <p className="text-sm font-medium text-foreground">
+                            {isDragging ? 'Lepaskan file di sini' : 'Seret file PDF ke sini'}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            atau klik untuk memilih file
+                        </p>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function UploadContent() {
     const searchParams = useSearchParams();
@@ -44,6 +112,7 @@ function UploadContent() {
         }
 
         setLoading(true);
+        setStatusMessage('Memulai pencarian...');
         setResult(null);
 
         try {
@@ -53,20 +122,48 @@ function UploadContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
-            const data = await res.json();
-            setResult({
-                success: data.success,
-                message: data.message,
-                articlesCount: data.articlesCount,
-                sourceUrl: data.sourceUrl
-            });
-            if (data.success) {
-                setFormData({ ...formData, number: '', year: '', title: '' });
+
+            if (!res.body) throw new Error('No response stream');
+
+            // Handle Streaming Response
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+
+                        if (data.type === 'progress') {
+                            setStatusMessage(data.message);
+                        } else if (data.type === 'success') {
+                            setResult({
+                                success: true,
+                                message: data.data.message,
+                                articlesCount: data.data.parsedArticles,
+                                sourceUrl: data.data.sourceUrl
+                            });
+                            setFormData({ ...formData, number: '', year: '', title: '' });
+                        } else if (data.type === 'error') {
+                            setResult({ success: false, message: data.message });
+                        }
+                    } catch {
+                        // Ignore parsing errors for partial chunks
+                    }
+                }
             }
         } catch (error) {
             setResult({ success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan' });
         }
         setLoading(false);
+        setStatusMessage('');
     };
 
     const [statusMessage, setStatusMessage] = useState('');
@@ -204,6 +301,10 @@ function UploadContent() {
                                 <option value="PP">Peraturan Pemerintah (PP)</option>
                                 <option value="UU">Undang-Undang (UU)</option>
                                 <option value="Permen">Peraturan Menteri</option>
+                                <option value="Permendagri">Peraturan Menteri Dalam Negeri</option>
+                                <option value="Permenkes">Peraturan Menteri Kesehatan</option>
+                                <option value="Kepres">Keputusan Presiden (Kepres)</option>
+                                <option value="Inpres">Instruksi Presiden (Inpres)</option>
                                 <option value="Perda">Peraturan Daerah</option>
                             </select>
                         </div>
@@ -247,18 +348,8 @@ function UploadContent() {
                             />
                         </div>
 
-                        {/* Manual upload: File input */}
                         {mode === 'manual' && (
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-muted-foreground">File PDF *</label>
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground"
-                                    required
-                                />
-                            </div>
+                            <DropZone file={file} onFileSelect={setFile} />
                         )}
 
                         <Button
@@ -284,7 +375,7 @@ function UploadContent() {
 
                     {/* Result */}
                     {result && (
-                            <div className={`mt-6 rounded-lg p-4 ${result.success ? 'border border-emerald-500/30 bg-emerald-500/10' : 'border border-red-500/30 bg-red-500/10'}`}>
+                        <div className={`mt-6 rounded-lg p-4 ${result.success ? 'border border-emerald-500/30 bg-emerald-500/10' : 'border border-red-500/30 bg-red-500/10'}`}>
                             <div className={`font-medium ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {result.success ? '✅ Berhasil!' : '❌ Gagal'}
                             </div>

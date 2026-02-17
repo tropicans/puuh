@@ -175,9 +175,15 @@ export default function SettingsPage() {
                 <Link href="/dashboard" className="mb-4 inline-block text-sm text-muted-foreground hover:text-foreground">
                     ← Kembali ke Dashboard
                 </Link>
-                <h1 className="mb-2 text-3xl font-bold text-foreground">Pengaturan</h1>
+                <h1 className="mb-2 text-3xl font-bold text-foreground">Panel Admin</h1>
                 <p className="text-muted-foreground">
-                    Konfigurasi database dan integrasi AI
+                    Diagnostik sistem, tes koneksi layanan, dan konfigurasi data awal
+                </p>
+            </div>
+
+            <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+                <p className="text-sm text-blue-300">
+                    🔧 Halaman ini menampilkan status teknis dan konfigurasi sistem. Ditujukan untuk administrator.
                 </p>
             </div>
 
@@ -278,8 +284,8 @@ export default function SettingsPage() {
 
                     {visionStatus.message && visionStatus.status !== 'idle' && (
                         <div className={`p-3 rounded-lg text-sm ${visionStatus.status === 'connected'
-                                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-red-500/10 border border-red-500/30 text-red-400'
                             }`}>
                             {visionStatus.message}
                         </div>
