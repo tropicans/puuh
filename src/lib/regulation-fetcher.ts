@@ -1,6 +1,11 @@
 /**
  * Regulation Fetcher Service
  * Automatically finds and downloads regulations from JDIH websites
+ * 
+ * 3-Strategy Pipeline:
+ *  1. BPK Search Scraping (primary) — scrapes peraturan.bpk.go.id/Search
+ *  2. Direct URL Patterns (fallback) — tries known URL structures
+ *  3. LLM Search (last resort) — asks AI to help find the URL
  */
 
 import { extractTextWithVision } from './ocr-service';
@@ -9,25 +14,267 @@ const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/
 const LLM_API_KEY = process.env.OPENAI_API_KEY || '';
 const LLM_MODEL = process.env.OPENAI_MODEL || 'gpt-oss-120b-medium';
 
-interface FetchResult {
+const BPK_BASE = 'https://peraturan.bpk.go.id';
+
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface FetchResult {
     success: boolean;
     rawText?: string;
     sourceUrl?: string;
     numPages?: number;
     error?: string;
     ocrUsed?: boolean;
+    title?: string;
 }
 
-interface RegulationInfo {
-    type: string;      // Perpres, PP, UU, etc.
+export interface RegulationInfo {
+    type: string;      // Perpres, PP, UU, Permen, etc.
     number: string;    // 82
     year: number;      // 2018
     title?: string;    // tentang Jaminan Kesehatan (optional)
 }
 
+/** Callback for streaming progress updates */
+export type ProgressCallback = (message: string) => void;
+
+// ─── Type Mapping ────────────────────────────────────────────────────────────
+
+/** Map short type names to BPK jenis parameter and full names */
+const TYPE_MAP: Record<string, { bpkJenis: string; fullName: string; bpkSlugPrefix: string }> = {
+    'perpres': { bpkJenis: 'Perpres', fullName: 'Peraturan Presiden', bpkSlugPrefix: 'perpres' },
+    'peraturan presiden': { bpkJenis: 'Perpres', fullName: 'Peraturan Presiden', bpkSlugPrefix: 'perpres' },
+    'pp': { bpkJenis: 'PP', fullName: 'Peraturan Pemerintah', bpkSlugPrefix: 'pp' },
+    'peraturan pemerintah': { bpkJenis: 'PP', fullName: 'Peraturan Pemerintah', bpkSlugPrefix: 'pp' },
+    'uu': { bpkJenis: 'UU', fullName: 'Undang-Undang', bpkSlugPrefix: 'uu' },
+    'undang-undang': { bpkJenis: 'UU', fullName: 'Undang-Undang', bpkSlugPrefix: 'uu' },
+    'permen': { bpkJenis: 'Permen', fullName: 'Peraturan Menteri', bpkSlugPrefix: 'permen' },
+    'peraturan menteri': { bpkJenis: 'Permen', fullName: 'Peraturan Menteri', bpkSlugPrefix: 'permen' },
+    'perda': { bpkJenis: 'Perda', fullName: 'Peraturan Daerah', bpkSlugPrefix: 'perda' },
+    'peraturan daerah': { bpkJenis: 'Perda', fullName: 'Peraturan Daerah', bpkSlugPrefix: 'perda' },
+    'permendagri': { bpkJenis: 'Permendagri', fullName: 'Peraturan Menteri Dalam Negeri', bpkSlugPrefix: 'permendagri' },
+    'permenkes': { bpkJenis: 'Permenkes', fullName: 'Peraturan Menteri Kesehatan', bpkSlugPrefix: 'permenkes' },
+    'kepres': { bpkJenis: 'Kepres', fullName: 'Keputusan Presiden', bpkSlugPrefix: 'kepres' },
+    'keputusan presiden': { bpkJenis: 'Kepres', fullName: 'Keputusan Presiden', bpkSlugPrefix: 'kepres' },
+    'inpres': { bpkJenis: 'Inpres', fullName: 'Instruksi Presiden', bpkSlugPrefix: 'inpres' },
+};
+
+function resolveType(type: string): { bpkJenis: string; fullName: string; bpkSlugPrefix: string } {
+    const lower = type.toLowerCase().trim();
+    return TYPE_MAP[lower] || { bpkJenis: type, fullName: type, bpkSlugPrefix: type.toLowerCase() };
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 2): Promise<Response | null> {
+    for (let i = 0; i <= retries; i++) {
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers: {
+                    'User-Agent': USER_AGENT,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'id-ID,id;q=0.9,en;q=0.8',
+                    ...(options?.headers || {}),
+                },
+                redirect: 'follow',
+            });
+            if (response.ok) return response;
+            if (response.status === 429 && i < retries) {
+                console.log(`Rate limited, retrying in ${(i + 1) * 2}s...`);
+                await sleep((i + 1) * 2000);
+                continue;
+            }
+            console.log(`HTTP ${response.status} for ${url}`);
+            return null;
+        } catch (error) {
+            if (i < retries) {
+                await sleep(1000);
+                continue;
+            }
+            console.log(`Fetch error for ${url}:`, error);
+            return null;
+        }
+    }
+    return null;
+}
+
+// ─── Strategy 1: BPK Search Scraping ─────────────────────────────────────────
+
+interface BPKSearchResult {
+    detailUrl: string;
+    downloadUrl: string | null;
+    title: string;
+    slug: string;
+}
+
 /**
- * Call LLM to get help finding regulation
+ * Search peraturan.bpk.go.id and extract matching regulation PDF download links.
+ * The search HTML contains both detail links (/Details/ID/slug) and 
+ * download links (/Download/ID/filename.pdf) inline.
  */
+async function searchBPK(info: RegulationInfo, onProgress?: ProgressCallback): Promise<BPKSearchResult[]> {
+    const typeInfo = resolveType(info.type);
+    const searchUrl = `${BPK_BASE}/Search?nomor=${encodeURIComponent(info.number)}&tahun=${info.year}`;
+
+    onProgress?.(`Mencari di JDIH BPK: ${typeInfo.bpkJenis} No. ${info.number} Tahun ${info.year}...`);
+    console.log(`BPK Search: ${searchUrl}`);
+
+    const response = await fetchWithRetry(searchUrl);
+    if (!response) {
+        console.log('BPK search failed: no response');
+        return [];
+    }
+
+    const html = await response.text();
+    const results: BPKSearchResult[] = [];
+
+    // Extract all Download links: /Download/{id}/{filename}.pdf
+    const downloadRegex = /href="(\/Download\/(\d+)\/([^"]+\.pdf))"/gi;
+    const detailRegex = /href="(\/Details\/(\d+)\/([^"]+))"/gi;
+
+    // Build a map of detail page IDs to their slugs
+    const detailPages = new Map<string, { url: string; slug: string; title: string }>();
+    let detailMatch;
+    while ((detailMatch = detailRegex.exec(html)) !== null) {
+        const [, path, id, slug] = detailMatch;
+        // Try to find the title text near this link
+        const titleRegex = new RegExp(`<a[^>]*href="${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>([^<]+)</a>`, 'i');
+        const titleMatch = html.match(titleRegex);
+        detailPages.set(id, {
+            url: `${BPK_BASE}${path}`,
+            slug,
+            title: titleMatch?.[1]?.trim() || slug,
+        });
+    }
+
+    // Extract all download links and match them
+    let dlMatch;
+    while ((dlMatch = downloadRegex.exec(html)) !== null) {
+        const [, path, id, filename] = dlMatch;
+        const detail = detailPages.get(id) || { url: `${BPK_BASE}/Details/${id}`, slug: filename, title: filename };
+        results.push({
+            detailUrl: detail.url,
+            downloadUrl: `${BPK_BASE}${path}`,
+            title: detail.title,
+            slug: detail.slug,
+        });
+    }
+
+    // If no direct download links found in search results, try to get them from detail pages
+    if (results.length === 0 && detailPages.size > 0) {
+        onProgress?.('Memeriksa halaman detail untuk link download...');
+        // Check first few detail pages that match our regulation type
+        const prefix = typeInfo.bpkSlugPrefix.toLowerCase();
+        const matchingDetails = [...detailPages.values()]
+            .filter(d => d.slug.toLowerCase().includes(prefix))
+            .slice(0, 3);
+
+        for (const detail of matchingDetails) {
+            const dlUrl = await extractDownloadFromDetailPage(detail.url);
+            if (dlUrl) {
+                results.push({
+                    detailUrl: detail.url,
+                    downloadUrl: dlUrl,
+                    title: detail.title,
+                    slug: detail.slug,
+                });
+            }
+            await sleep(500); // Be polite to the server
+        }
+    }
+
+    // Filter results to match our regulation type and number
+    const prefix = typeInfo.bpkSlugPrefix.toLowerCase();
+    const numberStr = info.number;
+    const yearStr = String(info.year);
+
+    const filtered = results.filter(r => {
+        const slug = r.slug.toLowerCase();
+        const title = r.title.toLowerCase();
+        const combined = `${slug} ${title}`;
+
+        // Must match type prefix
+        const typeMatch = combined.includes(prefix);
+        // Must match number  
+        const numMatch = combined.includes(`no-${numberStr}`) ||
+            combined.includes(`no.${numberStr}`) ||
+            combined.includes(`no ${numberStr}`) ||
+            combined.includes(`nomor-${numberStr}`) ||
+            combined.includes(`nomor ${numberStr}`) ||
+            combined.includes(`${numberStr}-tahun`) ||
+            combined.includes(`${numberStr} tahun`);
+        // Must match year
+        const yearMatch = combined.includes(yearStr);
+
+        return typeMatch && (numMatch || yearMatch);
+    });
+
+    // If strict filtering removed everything, return all results (search was already filtered by number+year)
+    const finalResults = filtered.length > 0 ? filtered : results.slice(0, 5);
+
+    console.log(`BPK Search: found ${results.length} total, ${filtered.length} filtered, returning ${finalResults.length}`);
+    return finalResults;
+}
+
+/**
+ * Fetch a BPK detail page and extract the PDF download URL from it
+ */
+async function extractDownloadFromDetailPage(detailUrl: string): Promise<string | null> {
+    const response = await fetchWithRetry(detailUrl);
+    if (!response) return null;
+
+    const html = await response.text();
+
+    // Look for download links in the detail page
+    const downloadRegex = /href="(\/Download\/\d+\/[^"]+\.pdf)"/gi;
+    const match = downloadRegex.exec(html);
+    return match ? `${BPK_BASE}${match[1]}` : null;
+}
+
+// ─── Strategy 2: Direct URL Patterns ─────────────────────────────────────────
+
+function generatePossibleUrls(info: RegulationInfo): string[] {
+    const { type, number, year } = info;
+    const typeLower = type.toLowerCase();
+    const paddedNumber = number.padStart(2, '0');
+
+    const urls: string[] = [];
+
+    if (typeLower === 'perpres' || typeLower === 'peraturan presiden') {
+        urls.push(
+            `https://jdih.setneg.go.id/viewpdfperaturan/Perpres%20Nomor%20${number}%20Tahun%20${year}.pdf`,
+            `https://jdih.setneg.go.id/viewpdfperaturan/Perpres%20Nomor%20${number}%20Tahun%20${year}%20Produk%20setkab.pdf`,
+            `https://jdih.setkab.go.id/PUUdoc/${year}${paddedNumber}_PERPRES%20${number}%20TAHUN%20${year}.pdf`,
+            `https://jdih.setkab.go.id/PUUdoc/${year}0${number}_Perpres%20${number}%20Tahun%20${year}.pdf`,
+            `https://peraturan.go.id/common/dokumen/ln/${year}/perpres${number}-${year}bt.pdf`,
+            `https://peraturan.go.id/common/dokumen/ln/${year}/perpres${number}-${year}.pdf`,
+        );
+    } else if (typeLower === 'pp' || typeLower === 'peraturan pemerintah') {
+        urls.push(
+            `https://jdih.setneg.go.id/viewpdfperaturan/PP%20Nomor%20${number}%20Tahun%20${year}.pdf`,
+            `https://peraturan.go.id/common/dokumen/ln/${year}/pp${number}-${year}bt.pdf`,
+            `https://peraturan.go.id/common/dokumen/ln/${year}/pp${number}-${year}.pdf`,
+        );
+    } else if (typeLower === 'uu' || typeLower === 'undang-undang') {
+        urls.push(
+            `https://jdih.setneg.go.id/viewpdfperaturan/UU%20Nomor%20${number}%20Tahun%20${year}.pdf`,
+            `https://peraturan.go.id/common/dokumen/ln/${year}/uu${number}-${year}bt.pdf`,
+            `https://peraturan.go.id/common/dokumen/ln/${year}/uu${number}-${year}.pdf`,
+        );
+    }
+
+    return urls;
+}
+
+// ─── Strategy 3: LLM Fallback ────────────────────────────────────────────────
+
 async function callLLM(messages: { role: string; content: string }[]): Promise<string> {
     const response = await fetch(`${LLM_BASE_URL}/chat/completions`, {
         method: 'POST',
@@ -51,80 +298,6 @@ async function callLLM(messages: { role: string; content: string }[]): Promise<s
     return data.choices?.[0]?.message?.content || '';
 }
 
-/**
- * Known URL patterns for JDIH sites
- * BPK JDIH uses dynamic IDs so direct URL guessing is unreliable
- * Setkab has more predictable patterns for Perpres
- */
-function generatePossibleUrls(info: RegulationInfo): string[] {
-    const { type, number, year } = info;
-    const typeLower = type.toLowerCase();
-    const paddedNumber = number.padStart(2, '0');
-
-    const urls: string[] = [];
-
-    if (typeLower === 'perpres' || typeLower === 'peraturan presiden') {
-        // Setkab patterns (more reliable for Perpres)
-        urls.push(
-            // Common setkab pattern
-            `https://jdih.setkab.go.id/PUUdoc/${year}${paddedNumber}_PERPRES%20${number}%20TAHUN%20${year}.pdf`,
-            `https://jdih.setkab.go.id/PUUdoc/${year}0${number}_Perpres%20${number}%20Tahun%20${year}.pdf`,
-            // Alternative patterns
-            `https://peraturan.go.id/common/dokumen/ln/${year}/perpres${number}-${year}bt.pdf`,
-            `https://peraturan.go.id/common/dokumen/ln/${year}/perpres${number}-${year}.pdf`,
-        );
-    } else if (typeLower === 'pp' || typeLower === 'peraturan pemerintah') {
-        urls.push(
-            `https://peraturan.go.id/common/dokumen/ln/${year}/pp${number}-${year}bt.pdf`,
-            `https://peraturan.go.id/common/dokumen/ln/${year}/pp${number}-${year}.pdf`,
-        );
-    } else if (typeLower === 'uu' || typeLower === 'undang-undang') {
-        urls.push(
-            `https://peraturan.go.id/common/dokumen/ln/${year}/uu${number}-${year}bt.pdf`,
-            `https://peraturan.go.id/common/dokumen/ln/${year}/uu${number}-${year}.pdf`,
-        );
-    }
-
-    return urls;
-}
-
-/**
- * Try to download PDF from a URL
- */
-async function downloadPDF(url: string): Promise<Buffer | null> {
-    try {
-        console.log(`Trying to download from: ${url}`);
-
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/pdf,*/*'
-            },
-            redirect: 'follow'
-        });
-
-        if (!response.ok) {
-            console.log(`Failed: ${response.status}`);
-            return null;
-        }
-
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
-            console.log(`Not a PDF: ${contentType}`);
-            return null;
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        return Buffer.from(arrayBuffer);
-    } catch (error) {
-        console.log(`Download error: ${error}`);
-        return null;
-    }
-}
-
-/**
- * Use AI to search for regulation URL
- */
 async function searchWithAI(info: RegulationInfo): Promise<string | null> {
     const { type, number, year } = info;
 
@@ -150,17 +323,11 @@ Jika tidak tahu URL pasti, output: TIDAK_DITEMUKAN`
             }
         ]);
 
-        // Extract URL from response
         const urlMatch = response.match(/https?:\/\/[^\s<>"]+\.pdf/i);
-        if (urlMatch) {
-            return urlMatch[0];
-        }
+        if (urlMatch) return urlMatch[0];
 
-        // Try to find any URL
         const anyUrlMatch = response.match(/https?:\/\/[^\s<>"]+/i);
-        if (anyUrlMatch && !response.includes('TIDAK_DITEMUKAN')) {
-            return anyUrlMatch[0];
-        }
+        if (anyUrlMatch && !response.includes('TIDAK_DITEMUKAN')) return anyUrlMatch[0];
 
         return null;
     } catch (error) {
@@ -169,18 +336,51 @@ Jika tidak tahu URL pasti, output: TIDAK_DITEMUKAN`
     }
 }
 
-/**
- * Try to extract text from PDF, with Vision OCR fallback
- */
-async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string): Promise<FetchResult> {
+// ─── PDF Download & Text Extraction ──────────────────────────────────────────
+
+async function downloadPDF(url: string, onProgress?: ProgressCallback): Promise<Buffer | null> {
+    try {
+        onProgress?.(`Mengunduh PDF dari ${new URL(url).hostname}...`);
+        console.log(`Downloading PDF: ${url}`);
+
+        const response = await fetchWithRetry(url, {
+            headers: {
+                'Accept': 'application/pdf,application/octet-stream,*/*',
+            },
+        });
+
+        if (!response) return null;
+
+        const contentType = response.headers.get('content-type') || '';
+        // Accept PDF, octet-stream, or if the URL ends in .pdf
+        if (!contentType.includes('pdf') && !contentType.includes('octet-stream') && !url.toLowerCase().endsWith('.pdf')) {
+            console.log(`Not a PDF: ${contentType}`);
+            return null;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const sizeMB = (buffer.length / 1024 / 1024).toFixed(2);
+        onProgress?.(`PDF diunduh: ${sizeMB} MB`);
+        console.log(`Downloaded: ${buffer.length} bytes`);
+        return buffer;
+    } catch (error) {
+        console.log(`Download error: ${error}`);
+        return null;
+    }
+}
+
+async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string, onProgress?: ProgressCallback): Promise<FetchResult> {
+    onProgress?.('Mengekstrak teks dari PDF...');
+
     // First try pdf-parse for text-based PDFs
     try {
-        // Dynamic require to avoid ESM issues
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const pdfParse = require('pdf-parse');
         const pdfData = await pdfParse(pdfBuffer);
         if (pdfData.text && pdfData.text.length > 500) {
             console.log(`PDF text extraction successful: ${pdfData.text.length} chars`);
+            onProgress?.(`Teks berhasil diekstrak: ${pdfData.text.length.toLocaleString()} karakter, ${pdfData.numpages} halaman`);
             return {
                 success: true,
                 rawText: pdfData.text,
@@ -190,15 +390,19 @@ async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string): Promise<Fet
             };
         }
         console.log(`PDF text too short (${pdfData.text?.length || 0} chars), trying Vision OCR...`);
+        onProgress?.('Teks PDF terlalu pendek, mencoba OCR...');
     } catch (e) {
         console.log('PDF text extraction failed, trying Vision OCR...', e);
+        onProgress?.('Ekstraksi teks gagal, mencoba OCR...');
     }
 
     // Fallback to Vision OCR for scanned PDFs
     try {
+        onProgress?.('Menjalankan Vision OCR (bisa memakan beberapa menit)...');
         const ocrText = await extractTextWithVision(pdfBuffer);
         if (ocrText && ocrText.length > 200) {
             console.log(`Vision OCR successful: ${ocrText.length} chars`);
+            onProgress?.(`OCR berhasil: ${ocrText.length.toLocaleString()} karakter`);
             return {
                 success: true,
                 rawText: ocrText,
@@ -210,47 +414,107 @@ async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string): Promise<Fet
         console.error('Vision OCR failed:', e);
     }
 
-    return { success: false, error: 'Failed to extract text from PDF' };
+    return { success: false, error: 'Gagal mengekstrak teks dari PDF' };
 }
 
-/**
- * Main function to fetch regulation
- */
-export async function fetchRegulation(info: RegulationInfo): Promise<FetchResult> {
-    console.log(`Fetching: ${info.type} No. ${info.number} Tahun ${info.year}`);
+// ─── Main Pipeline ───────────────────────────────────────────────────────────
 
-    // Strategy 1: Try known URL patterns
+/**
+ * Main function to fetch regulation using 3-strategy pipeline.
+ * Accepts an optional progress callback for streaming status updates.
+ */
+export async function fetchRegulation(info: RegulationInfo, onProgress?: ProgressCallback): Promise<FetchResult> {
+    const typeInfo = resolveType(info.type);
+    console.log(`\n=== Fetching: ${typeInfo.fullName} No. ${info.number} Tahun ${info.year} ===`);
+    onProgress?.(`Memulai pencarian ${typeInfo.fullName} No. ${info.number} Tahun ${info.year}...`);
+
+    // ── Strategy 1: BPK Search Scraping ──
+    onProgress?.('Strategi 1: Mencari di database JDIH BPK...');
+    try {
+        const searchResults = await searchBPK(info, onProgress);
+
+        if (searchResults.length > 0) {
+            onProgress?.(`Ditemukan ${searchResults.length} hasil di JDIH BPK`);
+
+            for (const result of searchResults) {
+                if (!result.downloadUrl) continue;
+
+                onProgress?.(`Mencoba: ${result.title}`);
+                const pdfBuffer = await downloadPDF(result.downloadUrl, onProgress);
+                if (pdfBuffer) {
+                    const extractResult = await extractPDFText(pdfBuffer, result.downloadUrl, onProgress);
+                    if (extractResult.success) {
+                        extractResult.title = result.title;
+                        return extractResult;
+                    }
+                }
+                await sleep(500);
+            }
+
+            // If downloads failed, try detail pages for alternate download links
+            for (const result of searchResults.slice(0, 3)) {
+                onProgress?.(`Memeriksa halaman detail: ${result.title}...`);
+                const dlUrl = await extractDownloadFromDetailPage(result.detailUrl);
+                if (dlUrl && dlUrl !== result.downloadUrl) {
+                    const pdfBuffer = await downloadPDF(dlUrl, onProgress);
+                    if (pdfBuffer) {
+                        const extractResult = await extractPDFText(pdfBuffer, dlUrl, onProgress);
+                        if (extractResult.success) {
+                            extractResult.title = result.title;
+                            return extractResult;
+                        }
+                    }
+                }
+                await sleep(500);
+            }
+        } else {
+            onProgress?.('Tidak ditemukan di JDIH BPK');
+        }
+    } catch (error) {
+        console.error('BPK search strategy failed:', error);
+        onProgress?.('Pencarian JDIH BPK gagal, mencoba strategi lain...');
+    }
+
+    // ── Strategy 2: Direct URL Patterns ──
+    onProgress?.('Strategi 2: Mencoba URL pattern langsung...');
     const possibleUrls = generatePossibleUrls(info);
 
     for (const url of possibleUrls) {
-        const pdfBuffer = await downloadPDF(url);
+        onProgress?.(`Mencoba: ${new URL(url).hostname}...`);
+        const pdfBuffer = await downloadPDF(url, onProgress);
         if (pdfBuffer) {
-            const result = await extractPDFText(pdfBuffer, url);
-            if (result.success) {
-                return result;
-            }
+            const result = await extractPDFText(pdfBuffer, url, onProgress);
+            if (result.success) return result;
         }
     }
 
-    // Strategy 2: Use AI to find URL
-    console.log('Pattern URLs failed, trying AI search...');
-    const aiUrl = await searchWithAI(info);
-
-    if (aiUrl) {
-        const pdfBuffer = await downloadPDF(aiUrl);
-        if (pdfBuffer) {
-            const result = await extractPDFText(pdfBuffer, aiUrl);
-            if (result.success) {
-                return result;
+    // ── Strategy 3: LLM Search ──
+    onProgress?.('Strategi 3: Meminta bantuan AI untuk mencari URL...');
+    try {
+        const aiUrl = await searchWithAI(info);
+        if (aiUrl) {
+            onProgress?.(`AI menyarankan: ${aiUrl}`);
+            const pdfBuffer = await downloadPDF(aiUrl, onProgress);
+            if (pdfBuffer) {
+                const result = await extractPDFText(pdfBuffer, aiUrl, onProgress);
+                if (result.success) return result;
             }
+        } else {
+            onProgress?.('AI tidak menemukan URL yang valid');
         }
+    } catch (error) {
+        console.error('AI search strategy failed:', error);
     }
 
+    // All strategies failed
+    onProgress?.('Semua strategi pencarian gagal');
     return {
         success: false,
-        error: `Tidak dapat menemukan ${info.type} No. ${info.number} Tahun ${info.year} secara otomatis. Silakan upload manual.`
+        error: `Tidak dapat menemukan ${typeInfo.fullName} No. ${info.number} Tahun ${info.year} secara otomatis. Silakan upload manual.`
     };
 }
+
+// ─── Input Parsing ───────────────────────────────────────────────────────────
 
 /**
  * Get regulation info from AI based on partial input

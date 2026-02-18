@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# scripts
+scripts/check-users.ts
+# logs
+.smoke-dev.log

@@ -17,10 +17,10 @@ async function getSessionRole(req: NextRequest): Promise<string | null> {
 
     const session = (await response.json()) as
       | {
-          user?: {
-            role?: string;
-          };
-        }
+        user?: {
+          role?: string;
+        };
+      }
       | null;
 
     if (!session || typeof session !== 'object') {
@@ -73,15 +73,8 @@ export async function proxy(req: NextRequest) {
   const adminRoutes = ['/upload', '/manage', '/settings'];
   const isAdminRoute = adminRoutes.some((route) => pathname === route || pathname.startsWith(route + '/'));
 
-  const adminApiRoutes = ['/api/upload', '/api/seed', '/api/versions'];
+  const adminApiRoutes = ['/api/upload', '/api/seed', '/api/versions', '/api/test-ai', '/api/test-vision', '/api/db-status'];
   const isAdminApiRoute = adminApiRoutes.some((route) => pathname.startsWith(route));
-
-  const devRoutes = ['/api/test-ai', '/api/test-vision', '/api/db-status'];
-  const isDevRoute = devRoutes.some((route) => pathname.startsWith(route));
-
-  if (isDevRoute && process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Endpoint not available in production' }, { status: 404 });
-  }
 
   if (!isLoggedIn && (isProtectedRoute || isProtectedApi)) {
     const loginUrl = new URL('/login', req.url);

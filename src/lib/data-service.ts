@@ -20,32 +20,42 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
         where.typeId = typeId;
     }
 
-    if (regulationId) {
-        where.id = regulationId;
-    }
-
-    if (year) {
+    if (q && year) {
         where.versions = {
             some: {
                 AND: [
-                    year ? { year } : {},
-                    q
-                        ? {
-                            OR: [
-                                { fullTitle: { contains: q, mode: 'insensitive' } },
-                                { rawText: { contains: q, mode: 'insensitive' } },
-                            ],
-                        }
-                        : {},
+                    { year },
+                    {
+                        OR: [
+                            { fullTitle: { contains: q, mode: 'insensitive' } },
+                            { rawText: { contains: q, mode: 'insensitive' } },
+                        ],
+                    },
                 ],
             },
+        };
+    } else if (year) {
+        where.versions = {
+            some: { year },
         };
     } else if (q) {
         where.OR = [
             { title: { contains: q, mode: 'insensitive' } },
-            { versions: { some: { fullTitle: { contains: q, mode: 'insensitive' } } } },
-            { versions: { some: { rawText: { contains: q, mode: 'insensitive' } } } }
+            {
+                versions: {
+                    some: {
+                        OR: [
+                            { fullTitle: { contains: q, mode: 'insensitive' } },
+                            { rawText: { contains: q, mode: 'insensitive' } },
+                        ],
+                    },
+                },
+            },
         ];
+    }
+
+    if (regulationId) {
+        where.id = regulationId;
     }
 
     const [regulations, totalCount] = await Promise.all([
@@ -54,7 +64,10 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
             include: {
                 type: true,
                 versions: {
-                    orderBy: { year: 'asc' },
+                    orderBy: [
+                        { year: 'asc' },
+                        { createdAt: 'asc' }
+                    ],
                     include: {
                         articles: {
                             orderBy: { orderIndex: 'asc' },

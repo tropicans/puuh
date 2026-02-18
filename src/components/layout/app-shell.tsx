@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { BookOpen, LogIn, LogOut, Scale } from "lucide-react";
+import { BookOpen, LayoutDashboard, GitCompare, Settings, FolderCog, LogIn, LogOut, Scale } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -38,19 +39,37 @@ export function AppShell({ children, isAuthenticated, userRole }: AppShellProps)
             </span>
             <div>
               <p className="text-sm font-semibold">PUU Tracker</p>
-              <p className="text-[11px] text-muted-foreground">Regulatory Workspace</p>
+              <p className="text-[11px] text-muted-foreground">Area Kerja Regulasi</p>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link href="/" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Landing</Link>
-            <Link href="/dashboard" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
-            <Link href="/compare" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Bandingkan</Link>
-            {isAdmin && <Link href="/manage" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Kelola</Link>}
-            {isAdmin && <Link href="/settings" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Pengaturan</Link>}
+          <nav className="hidden items-center gap-1 md:flex">
+            {[
+              { href: "/dashboard", label: "Beranda", icon: LayoutDashboard },
+              { href: "/compare", label: "Bandingkan", icon: GitCompare },
+              { href: "/manage", label: "Kelola", icon: FolderCog, adminOnly: true },
+              { href: "/settings", label: "Pengaturan", icon: Settings, adminOnly: true },
+            ].map(({ href, label, icon: Icon, adminOnly }) => {
+              if (adminOnly && !isAdmin) return null;
+              const isActive = pathname === href || pathname.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {isAuthenticated ? (
               <button
                 type="button"
@@ -58,7 +77,7 @@ export function AppShell({ children, isAuthenticated, userRole }: AppShellProps)
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                Logout
+                Keluar
               </button>
             ) : (
               <Link
@@ -66,7 +85,7 @@ export function AppShell({ children, isAuthenticated, userRole }: AppShellProps)
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
               >
                 <LogIn className="h-3.5 w-3.5" />
-                Login
+                Masuk
               </Link>
             )}
             {isAdmin && (
@@ -89,7 +108,7 @@ export function AppShell({ children, isAuthenticated, userRole }: AppShellProps)
             <p>© {new Date().getFullYear()} PUU Tracker. Hak cipta dilindungi.</p>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>
+            <Link href="/dashboard" className="hover:text-foreground">Beranda</Link>
             <Link href="/compare" className="hover:text-foreground">Bandingkan</Link>
             {isAdmin && <Link href="/upload" className="hover:text-foreground">Upload</Link>}
           </div>

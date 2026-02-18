@@ -148,8 +148,8 @@ export default function ComparePage() {
                         <button
                             onClick={() => setViewMode('matrix')}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${viewMode === 'matrix'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                         >
                             📊 Matriks
@@ -157,8 +157,8 @@ export default function ComparePage() {
                         <button
                             onClick={() => setViewMode('cards')}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${viewMode === 'cards'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                         >
                             🃏 Kartu
@@ -194,12 +194,29 @@ export default function ComparePage() {
                         <h3 className="mb-2 text-lg font-semibold text-foreground">
                             Belum Ada Peraturan untuk Dibandingkan
                         </h3>
-                        <p className="mx-auto mb-4 max-w-md text-muted-foreground">
-                            Untuk membandingkan, upload minimal 2 versi dari regulasi yang sama.
+                        <p className="mx-auto mb-6 max-w-lg text-muted-foreground">
+                            Untuk mulai membandingkan, Anda perlu mengunggah minimal <strong className="text-foreground">2 versi</strong> dari regulasi yang sama.
                         </p>
+                        <div className="mx-auto mb-6 grid max-w-md grid-cols-3 gap-3 text-sm">
+                            <div className="rounded-lg border border-border/50 bg-background/60 p-3 text-center">
+                                <div className="mb-1 text-2xl">📤</div>
+                                <div className="font-medium text-foreground">1. Unggah</div>
+                                <div className="text-xs text-muted-foreground">Versi lama</div>
+                            </div>
+                            <div className="rounded-lg border border-border/50 bg-background/60 p-3 text-center">
+                                <div className="mb-1 text-2xl">📤</div>
+                                <div className="font-medium text-foreground">2. Unggah</div>
+                                <div className="text-xs text-muted-foreground">Versi baru</div>
+                            </div>
+                            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center">
+                                <div className="mb-1 text-2xl">⚖️</div>
+                                <div className="font-medium text-primary">3. Bandingkan</div>
+                                <div className="text-xs text-muted-foreground">Di sini</div>
+                            </div>
+                        </div>
                         <Link href="/upload">
                             <Button>
-                                + Upload Peraturan
+                                + Unggah Peraturan
                             </Button>
                         </Link>
                     </CardContent>
