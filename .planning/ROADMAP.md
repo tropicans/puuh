@@ -64,7 +64,6 @@ Plans:
   2. The verbatim LCS diff engine (`src/lib/diff-engine.ts`) is covered by unit tests.
 
 **Plans**: 1 plan
-
 Plans:
 
 - [ ] 03-01: Install Vitest and write diff engine unit tests.
