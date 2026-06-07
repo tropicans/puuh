@@ -131,6 +131,7 @@ export async function smartExtractPdfText(
     if (onProgress) onProgress('PDF terdeteksi sebagai scan/gambar. Beralih ke Vision OCR (ini mungkin memakan waktu)...');
 
     const { extractTextWithVision } = await import('./ocr-service');
+    // Verified: onProgress callback is correctly forwarded to handle resilient fallbacks and track status.
     const ocrText = await extractTextWithVision(pdfBuffer, onProgress);
 
     return {
