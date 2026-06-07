@@ -8,6 +8,14 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
+## Current Milestone: v1.1 Intelligent Search & Resilient Processing
+
+**Goal:** Enable semantic natural language search for legal articles and implement robust page-by-page PDF processing fallback recovery.
+
+**Target features:**
+- Semantic indexing of legal articles to support natural language AI search queries.
+- Robust PDF page-splitting error recovery to process pages one-by-one defensively if chunk-compilation fails.
+
 ## Requirements
 
 ### Validated
@@ -18,18 +26,14 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **LLM-assisted Article Parser** — Parsing raw text into JSON arrays of verbatim articles (`src/lib/ai-service.ts`).
 - ✓ **Verbatim LCS Diff Engine** — Longest Common Subsequence word-level text comparison (`src/lib/diff-engine.ts`).
 - ✓ **Credentials Authentication** — Credentials-based sign-in using NextAuth and PostgreSQL database persistence (`src/lib/auth.ts`).
+- ✓ **Environment & Auth Security Stabilization (v1.0)** — Aligned database ports, Prisma migrations schema, role guards, and environment credentials.
+- ✓ **Parser & OCR Optimizations (v1.0)** — Parallelized Vision OCR chunks, regex fallback parser hardening, and MinIO proxy hostname mapping.
+- ✓ **Diff Engine Verification (v1.0)** — Vitest environment config and automated unit tests for diff-engine compare logic.
 
 ### Active
 
-- [ ] **SEC-01**: Resolve host-container database port mismatch in config files.
-- [ ] **SEC-02**: Setup standard Prisma database migrations flow.
-- [ ] **SEC-03**: Implement page-level role-based guards for `/upload` and `/manage` views.
-- [ ] **SEC-04**: Eliminate plaintext hardcoded credentials from the seed script.
-- [ ] **PERF-01**: Optimize scanned PDF vision OCR via parallel chunk processing.
-- [ ] **PERF-02**: Harden Regex article-splitting fallback parser robustness.
-- [ ] **PERF-03**: Fix MinIO host URL resolution for client download requests.
-- [ ] **TEST-01**: Configure Vitest framework and scripts.
-- [ ] **TEST-02**: Implement automated unit tests verifying the verbatim LCS diff engine.
+- [ ] **AI-01**: Implement PDF page-splitting error recovery to process pages one-by-one defensively if chunk-compilation fails.
+- [ ] **AI-02**: Add semantic indexing of legal articles to support AI search queries.
 
 ### Out of Scope
 
@@ -38,7 +42,7 @@ Enable users to trace and visualize verbatim changes in articles across differen
 
 ## Context
 
-The codebase is a Next.js App Router project leveraging React 19, Prisma, PostgreSQL, MinIO, and a custom LLM proxy. It was mapped successfully on 2026-06-07. A forensic review identified minor technical debts (port alignment, missing migrations, and hardcoded credentials) and performance opportunities (sequential OCR speed) that this project cycle will address.
+The codebase is a Next.js App Router project leveraging React 19, Prisma, PostgreSQL, MinIO, and a custom LLM proxy. It was stabilized in Milestone v1.0, resolving environment configuration, auth guards, OCR performance, and setting up Vitest unit testing. Milestone v1.1 adds robust PDF splitting error recovery and semantic legal search.
 
 ## Constraints
 
@@ -71,4 +75,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-07 after initialization*
+*Last updated: 2026-06-08 for Milestone v1.1*
