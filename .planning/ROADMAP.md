@@ -7,7 +7,7 @@ Stabilize and enhance the PUU Indonesian legislation tracking application. This 
 ## Phases
 
 - [x] **Phase 1: Environment & Authentication Security Stabilization** - Align database ports, set up migrations, and implement role guards.
-- [ ] **Phase 2: PDF Parsing & OCR Processing Optimizations** - Parallelize vision OCR chunking and improve parser fallback logic.
+- [x] **Phase 2: PDF Parsing & OCR Processing Optimizations** - Parallelize vision OCR chunking and improve parser fallback logic. (completed 2026-06-07)
 - [ ] **Phase 3: Diff Engine Verification & Testing Pipeline** - Add Vitest framework and write diff engine unit tests.
 
 ---
@@ -49,8 +49,8 @@ Plans:
 **Plans**: 2 plans
 Plans:
 
-- [ ] 02-01: Parallelize chunk processing in `ocr-service.ts`.
-- [ ] 02-02: Enhance Regex parser robustness and resolve MinIO download hostname differences.
+- [x] 02-01: Parallelize chunk processing in `ocr-service.ts`.
+- [x] 02-02: Enhance Regex parser robustness and resolve MinIO download hostname differences.
 
 ### Phase 3: Diff Engine Verification & Testing Pipeline
 
@@ -76,5 +76,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Environment & Auth Security | 2/2 | Complete | 2026-06-07 |
-| 2. Parser & OCR Optimization | 0/2 | Not started | - |
+| 2. Parser & OCR Optimization | 2/2 | Complete    | 2026-06-07 |
 | 3. Testing Pipeline | 0/1 | Not started | - |

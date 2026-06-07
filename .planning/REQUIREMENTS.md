@@ -16,9 +16,9 @@ Requirements for this project cycle. Each maps to one of the roadmap phases.
 
 ### Performance & OCR Robustness
 
-- [ ] **PERF-01**: Optimize scanned PDF Vision OCR chunk processing in `ocr-service.ts` using concurrent worker requests (`Promise.all`) with rate-limit friendly throttling (e.g., max 3 concurrent calls).
-- [ ] **PERF-02**: Harden the Regex article-splitting parser in `ai-service.ts` (`parseArticlesWithRegex`) to handle typical OCR typos (such as `Pasa1`, `Pas al`) and line break variations safely.
-- [ ] **PERF-03**: Adjust the MinIO file upload storage service (`src/lib/storage.ts`) so that generated download URLs resolve correctly for both browser clients (using host port `9002` or `9000`) and server containers.
+- [x] **PERF-01**: Optimize scanned PDF Vision OCR chunk processing in `ocr-service.ts` using concurrent worker requests (`Promise.all`) with rate-limit friendly throttling (e.g., max 3 concurrent calls).
+- [x] **PERF-02**: Harden the Regex article-splitting parser in `ai-service.ts` (`parseArticlesWithRegex`) to handle typical OCR typos (such as `Pasa1`, `Pas al`) and line break variations safely.
+- [x] **PERF-03**: Adjust the MinIO file upload storage service (`src/lib/storage.ts`) so that generated download URLs resolve correctly for both browser clients (using host port `9002` or `9000`) and server containers.
 
 ### Testing & Verification
 
@@ -30,6 +30,7 @@ Requirements for this project cycle. Each maps to one of the roadmap phases.
 Deferred features (not in scope for this milestone cycle).
 
 ### Advanced Processing
+
 - **AI-01**: Implement PDF page-splitting error recovery. If `pdf-lib` fails to compile a subset of pages, process them one by one.
 - **AI-02**: Add semantic indexing of legal articles to support AI search queries.
 
@@ -45,13 +46,14 @@ Which phases cover which requirements.
 | SEC-02 | Phase 1 | Pending |
 | SEC-03 | Phase 1 | Pending |
 | SEC-04 | Phase 1 | Pending |
-| PERF-01 | Phase 2 | Pending |
-| PERF-02 | Phase 2 | Pending |
-| PERF-03 | Phase 2 | Pending |
+| PERF-01 | Phase 2 | Complete |
+| PERF-02 | Phase 2 | Complete |
+| PERF-03 | Phase 2 | Complete |
 | TEST-01 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 9 total
 - Mapped to phases: 9
 - Unmapped: 0 ✓
