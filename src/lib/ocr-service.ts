@@ -3,6 +3,8 @@
  * Uses proxy.kelazz.my.id vision-capable models for OCR
  */
 
+import type { PDFDocument } from 'pdf-lib';
+
 const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
 const LLM_API_KEY = process.env.OPENAI_API_KEY || '';
 const VISION_MODEL = 'gemini-2.5-flash'; // Vision-capable model
@@ -194,9 +196,13 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
     console.log(`PDF is large (${fileSizeMB.toFixed(2)} MB), splitting...`);
     if (onProgress) onProgress('File besar, memecah PDF agar aman...');
 
+    let PDFDocumentClass: typeof PDFDocument;
+    let pdfDoc: PDFDocument | undefined = undefined;
+
     try {
-        const { PDFDocument } = await import('pdf-lib');
-        const pdfDoc = await PDFDocument.load(pdfBuffer);
+        const { PDFDocument: loadedClass } = await import('pdf-lib');
+        PDFDocumentClass = loadedClass;
+        pdfDoc = await PDFDocumentClass.load(pdfBuffer);
         const pageCount = pdfDoc.getPageCount();
 
         console.log(`PDF has ${pageCount} pages. Splitting into chunks...`);
@@ -208,7 +214,7 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
         // 1. Prepare all chunk buffers upfront
         for (let i = 0; i < pageCount; i += PAGES_PER_CHUNK) {
             const end = Math.min(i + PAGES_PER_CHUNK, pageCount);
-            const subPdf = await PDFDocument.create();
+            const subPdf = await PDFDocumentClass.create();
             const copiedPages = await subPdf.copyPages(pdfDoc, Array.from({ length: end - i }, (_, k) => i + k));
             copiedPages.forEach(page => subPdf.addPage(page));
 
@@ -222,26 +228,70 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
         // 2. Define chunk execution tasks
         const tasks = chunks.map(chunk => async () => {
             const currentChunk = chunk.index + 1;
-            let retries = 0;
-            let success = false;
+            let chunkAttempts = 0;
+            let chunkSuccess = false;
             let chunkText = '';
 
-            while (!success && retries < 2) {
+            while (!chunkSuccess && chunkAttempts < 2) {
                 try {
                     if (onProgress) onProgress(`Memproses Chunk OCR ${currentChunk} dari ${totalChunks}...`);
                     chunkText = await extractChunkWithVision(chunk.buffer, chunk.index);
-                    success = true;
+                    chunkSuccess = true;
                 } catch (e) {
-                    console.error(`Chunk error (retry ${retries}):`, e);
-                    if (onProgress) onProgress(`Chunk ${currentChunk} gagal, retry ${retries + 1}...`);
-                    retries++;
-                    if (retries < 2) {
+                    console.error(`Chunk error (attempt ${chunkAttempts + 1}):`, e);
+                    chunkAttempts++;
+                    if (chunkAttempts < 2) {
+                        if (onProgress) onProgress(`Chunk ${currentChunk} gagal, retry ${chunkAttempts} dari 1...`);
                         await new Promise(r => setTimeout(r, 2000)); // Wait 2s
                     }
                 }
             }
-            if (!success) {
-                throw new Error(`Failed to extract text from chunk ${currentChunk} after retries.`);
+            if (!chunkSuccess) {
+                if (onProgress) onProgress(`Mendeteksi kendala, beralih ke OCR per halaman untuk Chunk ${currentChunk}...`);
+                if (!pdfDoc) {
+                    throw new Error('PDF document not loaded');
+                }
+                
+                // Pages in this chunk
+                const startPage = chunk.index * PAGES_PER_CHUNK;
+                const endPage = Math.min(startPage + PAGES_PER_CHUNK, pageCount);
+                
+                const pageTasks: (() => Promise<string>)[] = [];
+                
+                for (let pageIndex = startPage; pageIndex < endPage; pageIndex++) {
+                    pageTasks.push(async () => {
+                        const subPdf = await PDFDocumentClass.create();
+                        const [copiedPage] = await subPdf.copyPages(pdfDoc!, [pageIndex]);
+                        subPdf.addPage(copiedPage);
+                        const pageBytes = await subPdf.save();
+                        const pageBuffer = Buffer.from(pageBytes);
+                        
+                        let pageRetries = 0;
+                        let pageSuccess = false;
+                        let pageText = '';
+                        while (!pageSuccess && pageRetries <= 2) {
+                            try {
+                                pageText = await extractChunkWithVision(pageBuffer, pageIndex);
+                                pageSuccess = true;
+                            } catch (pageErr) {
+                                console.error(`Page ${pageIndex + 1} error (retry ${pageRetries}):`, pageErr);
+                                pageRetries++;
+                                if (pageRetries <= 2) {
+                                    const delay = pageRetries === 1 ? 2000 : 4000;
+                                    if (onProgress) onProgress(`Mendeteksi kendala, Halaman ${pageIndex + 1} gagal, retry ${pageRetries} setelah ${delay / 1000}s...`);
+                                    await new Promise(r => setTimeout(r, delay));
+                                }
+                            }
+                        }
+                        if (!pageSuccess) {
+                            throw new Error(`Failed to extract text from page ${pageIndex + 1} after retries.`);
+                        }
+                        return pageText;
+                    });
+                }
+                
+                const pageResults = await runWithConcurrencyLimit(pageTasks, 2);
+                chunkText = pageResults.join('\n\n');
             }
             return chunkText;
         });
@@ -256,15 +306,16 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
         return results.join('\n\n');
 
     } catch (error) {
-        console.error('Split & OCR failed:', error);
-        throw error;
+        console.warn('PDF loading/splitting failed, falling back to whole document OCR:', error);
+        if (onProgress) onProgress('Mendeteksi kendala pemecahan dokumen, beralih ke OCR seluruh dokumen...');
+        return await extractChunkWithVision(pdfBuffer, 0);
     }
 }
 
 /**
  * Helper to run async tasks with a limit on concurrency
  */
-async function runWithConcurrencyLimit<T>(
+export async function runWithConcurrencyLimit<T>(
     tasks: (() => Promise<T>)[],
     limit: number
 ): Promise<T[]> {
