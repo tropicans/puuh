@@ -1,65 +1,64 @@
-# Requirements: PUU Tracker Stabilization
+# Requirements: PUU Tracker Stabilization & Enhancement
 
-**Defined:** 2026-06-07
-**Core Value:** Enable users to trace and visualize verbatim changes in articles across Indonesian legislation versions.
+**Defined:** 2026-06-08
+**Core Value:** Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation, and find them quickly.
 
 ## v1 Requirements
 
-Requirements for this project cycle. Each maps to one of the roadmap phases.
+Requirements for this milestone cycle (v1.1). Each maps to roadmap phases.
+
+### PDF Processing Resilience
+
+- [ ] **RESIL-01**: Implement page-by-page fallback recovery in `pdf-service.ts`. If page-splitting via `pdf-lib` fails on a PDF file, catch the error and process pages one by one defensively.
+
+### Semantic Search & Indexing
+
+- [ ] **SEARCH-01**: Implement legal article embeddings generation using the OpenAI/Gemini API and store the embedding vectors in PostgreSQL.
+- [ ] **SEARCH-02**: Implement a natural language query interface in the dashboard allowing users to execute semantic searches across indexed legal articles.
+
+## Completed Requirements (v1.0)
+
+Successfully completed in Milestone v1.0.
 
 ### Security & Environment Config
-
-- [x] **SEC-01**: Align database URL port mapping in `.env` (`5433`) with `docker-compose.yml` (`5434`) to ensure seamless local host development execution.
-- [x] **SEC-02**: Setup standard database migrations flow using Prisma (`npx prisma migrate dev`), creating the initial schema migration and removing reliance on direct push commands.
-- [x] **SEC-03**: Secure `/upload` and `/manage` pages using role-based checks (blocking non-ADMIN users on layout/page rendering level).
-- [x] **SEC-04**: Extract user seed passwords from hardcoded strings in `src/actions/users.ts` to environment variables.
+- ✓ **SEC-01**: Align database URL port mapping in `.env` (`5433`) with `docker-compose.yml` (`5434`).
+- ✓ **SEC-02**: Setup standard database migrations flow using Prisma.
+- ✓ **SEC-03**: Secure `/upload` and `/manage` pages using role-based checks.
+- ✓ **SEC-04**: Extract user seed passwords from hardcoded strings.
 
 ### Performance & OCR Robustness
-
-- [x] **PERF-01**: Optimize scanned PDF Vision OCR chunk processing in `ocr-service.ts` using concurrent worker requests (`Promise.all`) with rate-limit friendly throttling (e.g., max 3 concurrent calls).
-- [x] **PERF-02**: Harden the Regex article-splitting parser in `ai-service.ts` (`parseArticlesWithRegex`) to handle typical OCR typos (such as `Pasa1`, `Pas al`) and line break variations safely.
-- [x] **PERF-03**: Adjust the MinIO file upload storage service (`src/lib/storage.ts`) so that generated download URLs resolve correctly for both browser clients (using host port `9002` or `9000`) and server containers.
+- ✓ **PERF-01**: Optimize scanned PDF Vision OCR chunk processing using concurrent Promise pooling.
+- ✓ **PERF-02**: Harden the Regex article-splitting parser in `ai-service.ts` to handle typical OCR typos.
+- ✓ **PERF-03**: Adjust the MinIO file upload storage service generated URLs to resolve correctly in browser and server contexts.
 
 ### Testing & Verification
+- ✓ **TEST-01**: Install and configure Vitest framework.
+- ✓ **TEST-02**: Implement automated unit tests for the verbatim LCS diff engine.
 
-- [x] **TEST-01**: Install and configure Vitest framework as the project's test runner, adding standard npm test scripts (`npm test`, `npm run test:run`).
-- [x] **TEST-02**: Implement automated unit tests for the verbatim LCS diff engine (`src/lib/diff-engine.ts`) validating word addition, deletion, and whitespace matching scenarios.
+## Future Requirements
 
-## v2 Requirements
+Deferred to future releases.
 
-Standard features (not in scope for this milestone cycle).
+- **AI-03**: Add automatic summarization of legislation changes using LLMs.
 
-### Advanced Processing
+## Out of Scope
 
-- **AI-01**: Implement PDF page-splitting error recovery. If `pdf-lib` fails to compile a subset of pages, process them one by one.
-- **AI-02**: Add semantic indexing of legal articles to support AI search queries.
-
----
+| Feature | Reason |
+|---------|--------|
+| Public registration | Only seeded admin/viewer accounts are allowed to access protected features. |
+| Support for non-PDF files | System is built exclusively for Indonesian legal files in PDF format. |
 
 ## Traceability
 
-Which phases cover which requirements.
+Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase 1 | Complete |
-| SEC-02 | Phase 1 | Complete |
-| SEC-03 | Phase 1 | Complete |
-| SEC-04 | Phase 1 | Complete |
-| PERF-01 | Phase 2 | Complete |
-| PERF-02 | Phase 2 | Complete |
-| PERF-03 | Phase 2 | Complete |
-| TEST-01 | Phase 3 | Complete |
-| TEST-02 | Phase 3 | Complete |
-| AI-01 | Deferred | Pending |
-| AI-02 | Deferred | Pending |
+| RESIL-01 | Phase 4 | Pending |
+| SEARCH-01 | Phase 5 | Pending |
+| SEARCH-02 | Phase 5 | Pending |
 
 **Coverage:**
-
-- v1 requirements: 9 total
-- Mapped to phases: 9
-- Unmapped: 0 ✓
-
----
-*Requirements defined: 2026-06-07*
-*Last updated: 2026-06-07 after initial definition*
+- v1 requirements: 3 total
+- Mapped to phases: 0
+- Unmapped: 3 ⚠️
