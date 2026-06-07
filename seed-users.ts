@@ -13,7 +13,8 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
     // Create admin user
-    const adminPassword = await hash('admin123', 12);
+    const adminPasswordRaw = process.env.SEED_ADMIN_PASSWORD || 'admin123';
+    const adminPassword = await hash(adminPasswordRaw, 12);
     await prisma.user.upsert({
         where: { email: 'admin@puu.local' },
         update: {},
@@ -24,10 +25,11 @@ async function main() {
             role: 'ADMIN',
         },
     });
-    console.log('✅ Admin user created: admin@puu.local / admin123');
+    console.log('✅ Admin user created: admin@puu.local / ' + (process.env.SEED_ADMIN_PASSWORD ? '****' : 'admin123'));
 
     // Create viewer user
-    const viewerPassword = await hash('viewer123', 12);
+    const viewerPasswordRaw = process.env.SEED_VIEWER_PASSWORD || 'viewer123';
+    const viewerPassword = await hash(viewerPasswordRaw, 12);
     await prisma.user.upsert({
         where: { email: 'viewer@puu.local' },
         update: {},
@@ -38,7 +40,7 @@ async function main() {
             role: 'VIEWER',
         },
     });
-    console.log('✅ Viewer user created: viewer@puu.local / viewer123');
+    console.log('✅ Viewer user created: viewer@puu.local / ' + (process.env.SEED_VIEWER_PASSWORD ? '****' : 'viewer123'));
 
     await connectionPool.end();
 }

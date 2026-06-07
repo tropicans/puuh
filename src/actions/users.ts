@@ -26,7 +26,8 @@ export async function seedAdminUser(): Promise<SeedUserResult> {
         }
 
         // Hash the password
-        const hashedPassword = await hash('admin123', 12);
+        const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'admin123';
+        const hashedPassword = await hash(adminPassword, 12);
 
         // Create admin user
         await prisma.user.create({
@@ -39,7 +40,8 @@ export async function seedAdminUser(): Promise<SeedUserResult> {
         });
 
         // Also create a viewer user for testing
-        const viewerPassword = await hash('viewer123', 12);
+        const viewerPasswordRaw = process.env.SEED_VIEWER_PASSWORD || 'viewer123';
+        const viewerPassword = await hash(viewerPasswordRaw, 12);
         await prisma.user.create({
             data: {
                 email: 'viewer@puu.local',
