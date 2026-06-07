@@ -1,5 +1,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { extractTextWithVision, runWithConcurrencyLimit } from './ocr-service';
+import type { PDFDocument } from 'pdf-lib';
 
 // Mock pdf-lib
 vi.mock('pdf-lib', () => {
@@ -39,16 +41,16 @@ describe('OCR Service - Concurrency Helper', () => {
 });
 
 describe('OCR Service - Vision Text Extraction Resilience', () => {
-    let timeoutSpy: any;
+    let timeoutSpy: MockInstance;
     const largeBuffer = Buffer.alloc(1024 * 1024 + 10); // 1.1 MB to force splitting
 
     beforeEach(() => {
         vi.clearAllMocks();
         // Setup a mock implementation of setTimeout to bypass delays during tests
-        timeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+        timeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation((fn: unknown) => {
             if (typeof fn === 'function') fn();
-            return 0 as any;
-        });
+            return 0 as unknown as NodeJS.Timeout;
+        }) as unknown as MockInstance;
     });
 
     afterEach(() => {
@@ -75,8 +77,8 @@ describe('OCR Service - Vision Text Extraction Resilience', () => {
             addPage: vi.fn(),
             save: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
         };
-        vi.mocked(PDFDocument.load).mockResolvedValue(mockPDFDoc as any);
-        vi.mocked(PDFDocument.create).mockReturnValue(mockPDFDoc as any);
+        vi.mocked(PDFDocument.load).mockResolvedValue(mockPDFDoc as unknown as PDFDocument);
+        vi.mocked(PDFDocument.create).mockReturnValue(mockPDFDoc as unknown as PDFDocument);
 
         mockFetch.mockResolvedValue({
             ok: true,
@@ -122,8 +124,8 @@ describe('OCR Service - Vision Text Extraction Resilience', () => {
             addPage: vi.fn(),
             save: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
         };
-        vi.mocked(PDFDocument.load).mockResolvedValue(mockPDFDoc as any);
-        vi.mocked(PDFDocument.create).mockReturnValue(mockPDFDoc as any);
+        vi.mocked(PDFDocument.load).mockResolvedValue(mockPDFDoc as unknown as PDFDocument);
+        vi.mocked(PDFDocument.create).mockReturnValue(mockPDFDoc as unknown as PDFDocument);
 
         let callCount = 0;
         mockFetch.mockImplementation(async () => {
@@ -163,8 +165,8 @@ describe('OCR Service - Vision Text Extraction Resilience', () => {
             addPage: vi.fn(),
             save: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
         };
-        vi.mocked(PDFDocument.load).mockResolvedValue(mockPDFDoc as any);
-        vi.mocked(PDFDocument.create).mockReturnValue(mockPDFDoc as any);
+        vi.mocked(PDFDocument.load).mockResolvedValue(mockPDFDoc as unknown as PDFDocument);
+        vi.mocked(PDFDocument.create).mockReturnValue(mockPDFDoc as unknown as PDFDocument);
 
         let callCount = 0;
         mockFetch.mockImplementation(async () => {
@@ -199,7 +201,7 @@ describe('OCR Service - Vision Text Extraction Resilience', () => {
         expect(result).toBe('Page Recovered Content');
 
         // Verify exponential backoff delays (2000ms then 4000ms)
-        const delays = timeoutSpy.mock.calls.map((call: any) => call[1]);
+        const delays = timeoutSpy.mock.calls.map((call: unknown[]) => call[1] as number);
         expect(delays).toContain(2000);
         expect(delays).toContain(4000);
     });
