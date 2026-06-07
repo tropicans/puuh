@@ -6,7 +6,7 @@ Stabilize and enhance the PUU Indonesian legislation tracking application. This 
 
 ## Phases
 
-- [ ] **Phase 1: Environment & Authentication Security Stabilization** - Align database ports, set up migrations, and implement role guards.
+- [x] **Phase 1: Environment & Authentication Security Stabilization** - Align database ports, set up migrations, and implement role guards.
 - [ ] **Phase 2: PDF Parsing & OCR Processing Optimizations** - Parallelize vision OCR chunking and improve parser fallback logic.
 - [ ] **Phase 3: Diff Engine Verification & Testing Pipeline** - Add Vitest framework and write diff engine unit tests.
 
@@ -27,8 +27,8 @@ Stabilize and enhance the PUU Indonesian legislation tracking application. This 
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Align database ports and generate the initial Prisma migration.
-- [ ] 01-02: Guard layout page components and load seed credentials from environment variables.
+- [x] 01-01: Align database ports and generate the initial Prisma migration.
+- [x] 01-02: Guard layout page components and load seed credentials from environment variables.
 
 ### Phase 2: PDF Parsing & OCR Processing Optimizations
 **Goal**: Speed up scanned PDF uploads by parallelizing vision OCR and improving parser robustness.
@@ -64,6 +64,6 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Environment & Auth Security | 0/2 | Not started | - |
+| 1. Environment & Auth Security | 2/2 | Complete | 2026-06-07 |
 | 2. Parser & OCR Optimization | 0/2 | Not started | - |
 | 3. Testing Pipeline | 0/1 | Not started | - |
