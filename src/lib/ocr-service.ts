@@ -201,47 +201,88 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
 
         console.log(`PDF has ${pageCount} pages. Splitting into chunks...`);
 
-        let fullText = '';
         const PAGES_PER_CHUNK = 5; // Safe limit
         const totalChunks = Math.ceil(pageCount / PAGES_PER_CHUNK);
+        const chunks: { index: number; buffer: Buffer }[] = [];
 
+        // 1. Prepare all chunk buffers upfront
         for (let i = 0; i < pageCount; i += PAGES_PER_CHUNK) {
-            const currentChunk = Math.floor(i / PAGES_PER_CHUNK) + 1;
-            if (onProgress) onProgress(`Memproses Chunk OCR ${currentChunk} dari ${totalChunks}...`);
-
             const end = Math.min(i + PAGES_PER_CHUNK, pageCount);
-            // Create new PDF with subset of pages
             const subPdf = await PDFDocument.create();
             const copiedPages = await subPdf.copyPages(pdfDoc, Array.from({ length: end - i }, (_, k) => i + k));
             copiedPages.forEach(page => subPdf.addPage(page));
 
             const pdfBytes = await subPdf.save();
-            const chunkBuffer = Buffer.from(pdfBytes);
+            chunks.push({
+                index: Math.floor(i / PAGES_PER_CHUNK),
+                buffer: Buffer.from(pdfBytes)
+            });
+        }
 
-            // Retry logic for chunk
+        // 2. Define chunk execution tasks
+        const tasks = chunks.map(chunk => async () => {
+            const currentChunk = chunk.index + 1;
             let retries = 0;
             let success = false;
+            let chunkText = '';
 
             while (!success && retries < 2) {
                 try {
-                    const chunkText = await extractChunkWithVision(chunkBuffer, i / PAGES_PER_CHUNK);
-                    fullText += chunkText + '\n\n';
+                    if (onProgress) onProgress(`Memproses Chunk OCR ${currentChunk} dari ${totalChunks}...`);
+                    chunkText = await extractChunkWithVision(chunk.buffer, chunk.index);
                     success = true;
                 } catch (e) {
                     console.error(`Chunk error (retry ${retries}):`, e);
                     if (onProgress) onProgress(`Chunk ${currentChunk} gagal, retry ${retries + 1}...`);
-                    // If chunk too large, maybe needed single page? (complex)
-                    // For now just retry
                     retries++;
-                    await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+                    if (retries < 2) {
+                        await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+                    }
                 }
             }
-        }
+            if (!success) {
+                throw new Error(`Failed to extract text from chunk ${currentChunk} after retries.`);
+            }
+            return chunkText;
+        });
 
-        return fullText;
+        // 3. Load concurrency limit from env or default to 3
+        const concurrencyLimitEnv = process.env.OCR_CONCURRENCY_LIMIT;
+        const concurrencyLimit = concurrencyLimitEnv ? parseInt(concurrencyLimitEnv, 10) : 3;
+        const finalLimit = isNaN(concurrencyLimit) ? 3 : concurrencyLimit;
+
+        // 4. Run tasks concurrently using the pool helper
+        const results = await runWithConcurrencyLimit(tasks, finalLimit);
+        return results.join('\n\n');
 
     } catch (error) {
         console.error('Split & OCR failed:', error);
         throw error;
     }
+}
+
+/**
+ * Helper to run async tasks with a limit on concurrency
+ */
+async function runWithConcurrencyLimit<T>(
+    tasks: (() => Promise<T>)[],
+    limit: number
+): Promise<T[]> {
+    const results: T[] = new Array(tasks.length);
+    let nextIndex = 0;
+
+    async function worker() {
+        while (nextIndex < tasks.length) {
+            const currentIndex = nextIndex++;
+            results[currentIndex] = await tasks[currentIndex]();
+        }
+    }
+
+    // Spawn up to `limit` workers
+    const workers = Array.from(
+        { length: Math.min(limit, tasks.length) },
+        () => worker()
+    );
+    await Promise.all(workers);
+    return results;
 }

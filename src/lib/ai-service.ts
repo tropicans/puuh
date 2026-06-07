@@ -113,17 +113,22 @@ function parseArticlesWithRegex(rawText: string): ParsedArticle[] {
     // Normalize line endings and clean up text
     const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Split by "Pasal" keyword followed by number/alphanumeric
-    // Improved regex to catch "Pasal 1" even if not preceded by a newline (handles OCR artifacts)
-    const parts = normalizedText.split(/(?=\nPasal\s+\d+|Pasal\s+\d+)/i);
+    // Split by "Pasal" keyword variations followed by alphanumeric numbers
+    // e.g., matches "Pasal 1", "Pasa1 103A", "Pas al 6"
+    const parts = normalizedText.split(/(?=Pas\s*a\s*[l1]\s+\d+[A-Za-z]*)/i);
 
     for (const part of parts) {
-        // Check if this part starts with "Pasal"
-        const headerMatch = part.match(/^(Pasal\s+\d+[A-Z]*)/i);
+        // Check if this part starts with our hardened "Pasal" pattern
+        const headerMatch = part.match(/^(Pas\s*a\s*[l1]\s+\d+[A-Za-z]*)/i);
         if (headerMatch) {
-            const number = headerMatch[1].trim();
+            const rawNumber = headerMatch[1].trim();
             // Get content after the "Pasal X" header
             let content = part.substring(headerMatch[0].length).trim();
+
+            // Normalize article number to standard format (e.g., "Pasa1 103A" -> "Pasal 103A")
+            const number = rawNumber
+                .replace(/^Pas\s*a\s*[l1]/i, 'Pasal') // Fix spelling/spaces in "Pasal"
+                .replace(/\s+/g, ' '); // Clean up double spaces to a single space
 
             // Remove trailing BAB/Bagian/Paragraf sections that might have been captured
             const nextSectionMatch = content.match(/\n\s*(BAB|Bagian|Paragraf)\s+/i);

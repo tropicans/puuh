@@ -41,7 +41,7 @@ export const storage = {
             await minioClient.putObject(BUCKET_NAME, filename, buffer, buffer.length, {
                 'Content-Type': contentType
             });
-            return `http://${MINIO_ENDPOINT}:${MINIO_PORT}/${BUCKET_NAME}/${filename}`;
+            return `/api/documents/${filename}`;
         } catch (error) {
             console.error('MinIO upload error:', error);
             throw new Error('Failed to upload file to storage');
