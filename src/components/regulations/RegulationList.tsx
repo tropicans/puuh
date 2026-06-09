@@ -1,6 +1,6 @@
 'use client';
 
-import { Regulation } from '@/lib/dummy-data';
+import type { RegulationListItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ArrowRight, BookOpen, CheckCircle2 } from 'lucide-react';
@@ -8,7 +8,7 @@ import { CompactTimeline } from './VersionTimeline';
 import Link from 'next/link';
 
 interface RegulationCardProps {
-    regulation: Regulation;
+    regulation: RegulationListItem;
 }
 
 export function RegulationCard({ regulation }: RegulationCardProps) {
@@ -26,7 +26,7 @@ export function RegulationCard({ regulation }: RegulationCardProps) {
                                 <BookOpen className="w-5 h-5" />
                             </div>
                             <Badge variant="outline" className="border-primary/30 bg-primary/5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                                {regulation.type}
+                                {regulation.type.shortName}
                             </Badge>
                         </div>
                         <div className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary">
@@ -66,7 +66,7 @@ export function RegulationCard({ regulation }: RegulationCardProps) {
 }
 
 interface RegulationListProps {
-    regulations: Regulation[];
+    regulations: RegulationListItem[];
 }
 
 export function RegulationList({ regulations }: RegulationListProps) {

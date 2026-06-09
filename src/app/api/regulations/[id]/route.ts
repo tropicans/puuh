@@ -25,6 +25,14 @@ export async function GET(
                             orderBy: { orderIndex: 'asc' }
                         }
                     }
+                },
+                judicialReviews: {
+                    include: {
+                        impacts: {
+                            orderBy: { articleNumber: 'asc' }
+                        }
+                    },
+                    orderBy: [{ decisionDate: 'desc' }, { createdAt: 'desc' }]
                 }
             }
         });

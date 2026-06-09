@@ -16,8 +16,9 @@ export interface ChangeAnalysis {
 
 // Helper function untuk memanggil LLM
 async function callLLM(messages: { role: string; content: string }[], maxTokens: number = 4000, temperature: number = 0.1): Promise<string> {
-    const baseUrl = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
-    const apiKey = process.env.OPENAI_API_KEY || '';
+    const baseUrl = process.env.OPENAI_BASE_URL;
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!baseUrl || !apiKey) throw new Error('OPENAI_BASE_URL and OPENAI_API_KEY must be configured');
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
@@ -242,8 +243,9 @@ Buat ringkasan dalam 2-3 paragraf.`
  * Test koneksi ke LLM
  */
 export async function testLLMConnection(): Promise<{ success: boolean; model: string; error?: string }> {
-    const baseUrl = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
-    const apiKey = process.env.OPENAI_API_KEY || '';
+    const baseUrl = process.env.OPENAI_BASE_URL;
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!baseUrl || !apiKey) return { success: false, model: '', error: 'OPENAI_BASE_URL and OPENAI_API_KEY must be configured' };
 
     try {
         const response = await fetch(`${baseUrl}/chat/completions`, {

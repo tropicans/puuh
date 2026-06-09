@@ -164,19 +164,33 @@ export async function POST(request: NextRequest) {
                 try {
                     sendProgress('AI sedang mengekstrak pasal-pasal...');
                     const articles = await parseArticlesFromText(fetchResult.rawText);
-                    sendProgress(`AI menemukan ${articles.length} pasal, menyimpan...`);
+                    sendProgress(`AI menemukan ${articles.length} pasal, menyiapkan penyimpanan...`);
 
-                    if (articles.length > 0) {
+                    const seenNumbers = new Set<string>();
+                    const uniqueArticles = articles.reduce<Array<{ number: string; content: string }>>((acc, article) => {
+                        const key = article.number.trim();
+                        if (!key || seenNumbers.has(key)) {
+                            return acc;
+                        }
+                        seenNumbers.add(key);
+                        acc.push({ number: key, content: article.content });
+                        return acc;
+                    }, []);
+
+                    sendProgress(`Pasal unik terdeteksi: ${uniqueArticles.length}, menyimpan...`);
+
+                    if (uniqueArticles.length > 0) {
                         await prisma.article.createMany({
-                            data: articles.map((article, index) => ({
+                            data: uniqueArticles.map((article, index) => ({
                                 versionId: version.id,
                                 articleNumber: article.number,
                                 content: article.content,
                                 status: 'ACTIVE' as const,
                                 orderIndex: index
-                            }))
+                            })),
+                            skipDuplicates: true
                         });
-                        articlesCount = articles.length;
+                        articlesCount = uniqueArticles.length;
                     }
                 } catch (e) {
                     console.error('AI parsing error:', e);

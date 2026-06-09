@@ -27,11 +27,17 @@ interface RegulationVersion {
 interface ComparisonViewProps {
     oldVersion: RegulationVersion;
     newVersion: RegulationVersion;
+    judicialImpacts?: Record<string, {
+        forum: 'MK' | 'MA';
+        decisionNumber: string;
+        disposition: 'INVALIDATED' | 'UPHELD' | 'CONDITIONALLY_VALID' | 'CONDITIONALLY_INVALID' | 'NO_DIRECT_EFFECT';
+        amarExcerpt?: string;
+    }>;
 }
 
 type FilterType = 'all' | 'modified' | 'deleted' | 'new' | 'active';
 
-export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) {
+export function ComparisonView({ oldVersion, newVersion, judicialImpacts }: ComparisonViewProps) {
     const [filter, setFilter] = useState<FilterType>('modified'); // Default to show changes
     const [viewMode, setViewMode] = useState<'inline' | 'side-by-side'>('inline');
     const [expandAll, setExpandAll] = useState(true);
@@ -205,6 +211,7 @@ export function ComparisonView({ oldVersion, newVersion }: ComparisonViewProps) 
                             oldVersionLabel={`${oldVersion.number}/${oldVersion.year}`}
                             newVersionLabel={`${newVersion.number}/${newVersion.year}`}
                             defaultExpanded={expandAll}
+                            judicialImpact={judicialImpacts?.[item.number.toLowerCase().replace(/\s+/g, ' ').trim()]}
                         />
                     ))}
 
@@ -229,6 +236,12 @@ interface ArticleComparisonCardProps {
     oldVersionLabel: string;
     newVersionLabel: string;
     defaultExpanded: boolean;
+    judicialImpact?: {
+        forum: 'MK' | 'MA';
+        decisionNumber: string;
+        disposition: 'INVALIDATED' | 'UPHELD' | 'CONDITIONALLY_VALID' | 'CONDITIONALLY_INVALID' | 'NO_DIRECT_EFFECT';
+        amarExcerpt?: string;
+    };
 }
 
 function ArticleComparisonCard({
@@ -239,7 +252,8 @@ function ArticleComparisonCard({
     viewMode,
     oldVersionLabel,
     newVersionLabel,
-    defaultExpanded
+    defaultExpanded,
+    judicialImpact
 }: ArticleComparisonCardProps) {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded && status !== 'active');
 
@@ -273,6 +287,11 @@ function ArticleComparisonCard({
                             {status === 'active' ? '✓' : status === 'new' ? '✨' : status === 'deleted' ? '🗑️' : '✏️'}{' '}
                             {getStatusLabel(status)}
                         </Badge>
+                        {judicialImpact && (
+                            <Badge className="border border-red-500/40 bg-red-500/20 px-2 py-0.5 text-xs text-red-300">
+                                ⚖️ JR {judicialImpact.forum} {judicialImpact.decisionNumber}
+                            </Badge>
+                        )}
                     </div>
                     <span className={`text-lg transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
                         ▼
@@ -344,8 +363,16 @@ function ArticleComparisonCard({
                     )}
 
                     {status === 'active' && newArticle && (
-                        <div className="rounded-lg border border-border/70 bg-card/40 p-4 text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
-                            {newArticle.content}
+                        <div className="space-y-3">
+                            <div className="rounded-lg border border-border/70 bg-card/40 p-4 text-base leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                                {newArticle.content}
+                            </div>
+                            {judicialImpact?.amarExcerpt && (
+                                <div className="rounded-lg border border-red-500/20 bg-red-900/10 p-3 text-sm text-red-200">
+                                    <div className="mb-1 text-xs font-medium text-red-300">Konteks Amar Putusan</div>
+                                    <div className="line-clamp-4">{judicialImpact.amarExcerpt}</div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>

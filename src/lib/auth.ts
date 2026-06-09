@@ -3,12 +3,21 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { LRUCache } from "lru-cache";
 
 // Validation schema for login
 const loginSchema = z.object({
     email: z.string().email("Email tidak valid"),
     password: z.string().min(6, "Password minimal 6 karakter"),
 });
+
+// Failed login rate limiter: per email+IP, 5 attempts in 15 minutes
+const loginRateLimit = new LRUCache<string, number[]>({
+    max: 1000,
+    ttl: 15 * 60 * 1000,
+});
+
+const MAX_LOGIN_ATTEMPTS = 5;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -18,7 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" },
             },
-            async authorize(credentials) {
+            async authorize(credentials, request) {
                 // Validate input
                 const result = loginSchema.safeParse(credentials);
                 if (!result.success) {
@@ -27,20 +36,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 const { email, password } = result.data;
 
+                // Rate limit check per email
+                const ip = (request as Request)?.headers?.get('x-forwarded-for') ?? 'anonymous';
+                const rateLimitKey = `login:${email}:${ip}`;
+                const attempts = loginRateLimit.get(rateLimitKey) || [0];
+                if (attempts[0] >= MAX_LOGIN_ATTEMPTS) {
+                    return null;
+                }
+
                 // Find user
                 const user = await prisma.user.findUnique({
                     where: { email },
                 });
 
                 if (!user) {
+                    attempts[0] += 1;
+                    loginRateLimit.set(rateLimitKey, attempts);
                     return null;
                 }
 
                 // Verify password
                 const isValid = await compare(password, user.password);
                 if (!isValid) {
+                    attempts[0] += 1;
+                    loginRateLimit.set(rateLimitKey, attempts);
                     return null;
                 }
+
+                // Successful login — clear rate limit
+                loginRateLimit.delete(rateLimitKey);
 
                 return {
                     id: user.id,

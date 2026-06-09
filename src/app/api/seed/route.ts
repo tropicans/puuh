@@ -70,10 +70,16 @@ export async function POST(request: NextRequest) {
 
     // Seed regulation data
     const regResult = await seedInitialData();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const regAny = regResult as any;
+    const regMsg = regAny.success ? 'OK' : String(regAny.error || 'unknown error');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userAny = userResult as any;
+    const userMsg = String(userAny.message || userAny.error || 'OK');
 
     return NextResponse.json({
         success: regResult.success && userResult.success,
-        message: `Regulations: ${regResult.message || regResult.error}. Users: ${userResult.message || userResult.error}`,
+        message: `Regulations: ${regMsg}. Users: ${userMsg}`,
         regulations: regResult,
         users: userResult
     });

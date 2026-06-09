@@ -1,0 +1,35 @@
+# Environment files (prevent secret leaks into Docker images)
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+
+# Git
+.git
+.gitignore
+
+# Next.js build artifacts
+.next
+out
+
+# Agent/IDE configuration
+.agent
+.commandcode
+.planning
+
+# Scripts (not needed in production image)
+scripts/
+
+# Prisma migrations (not needed in runtime)
+prisma/migrations
+
+# Markdown/docs (keep README for health check reference)
+*.md
+!README.md
+
+# Cache & temp
+*.cache
+*.tmp
+*.log

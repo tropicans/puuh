@@ -1,11 +1,10 @@
 /**
  * OCR Service using LLM Vision Models
- * Uses proxy.kelazz.my.id vision-capable models for OCR
  */
 
-const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
-const LLM_API_KEY = process.env.OPENAI_API_KEY || '';
-const VISION_MODEL = 'gemini-2.5-flash'; // Vision-capable model
+const LLM_BASE_URL = process.env.OPENAI_BASE_URL;
+const LLM_API_KEY = process.env.OPENAI_API_KEY;
+const VISION_MODEL = 'gemini-2.5-flash';
 
 /**
  * Perform OCR on an image using LLM Vision

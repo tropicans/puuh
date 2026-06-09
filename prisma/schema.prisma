@@ -27,10 +27,12 @@ model Regulation {
   typeId      String
   type        RegulationType      @relation(fields: [typeId], references: [id])
   versions    RegulationVersion[]
+  judicialReviews JudicialReviewCase[]
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
   @@index([typeId])
+  @@index([typeId, createdAt(sort: Desc)])
 }
 
 // Versi spesifik (misal: Perpres No. 82 Tahun 2018)
@@ -47,6 +49,7 @@ model RegulationVersion {
   rawText       String?       @db.Text // Teks hasil parsing
   articles      Article[]
   status        VersionStatus @default(ACTIVE)
+  deletedAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -58,6 +61,8 @@ model RegulationVersion {
   @@unique([regulationId, number, year])
   @@index([regulationId])
   @@index([year])
+  @@index([regulationId, status])
+  @@index([status])
 }
 
 enum VersionStatus {
@@ -76,11 +81,14 @@ model Article {
   status        ArticleStatus     @default(ACTIVE)
   orderIndex    Int               @default(0)
   changes       ArticleChange[]
+  judicialImpacts JudicialReviewImpact[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
   @@unique([versionId, articleNumber])
   @@index([versionId])
+  @@index([versionId, status])
+  @@index([versionId, orderIndex])
 }
 
 enum ArticleStatus {
@@ -112,6 +120,69 @@ enum ChangeType {
   DELETED
 }
 
+model JudicialReviewCase {
+  id              String                 @id @default(cuid())
+  regulationId    String
+  regulation      Regulation             @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  forum           JudicialForum
+  decisionNumber  String
+  decisionDate    DateTime?
+  petitionSummary String?
+  amarText        String                 @db.Text
+  sourceUrl       String?
+  rawText         String?                @db.Text
+  outcome         JudicialOutcome        @default(OTHER)
+  impacts         JudicialReviewImpact[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@unique([forum, decisionNumber])
+  @@index([regulationId])
+  @@index([decisionDate])
+}
+
+model JudicialReviewImpact {
+  id            String              @id @default(cuid())
+  caseId        String
+  reviewCase    JudicialReviewCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  articleNumber String
+  articleId     String?
+  article       Article?            @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  disposition   JudicialDisposition
+  effectiveDate DateTime?
+  notes         String?
+  amarExcerpt   String?             @db.Text
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([caseId])
+  @@index([articleNumber])
+  @@index([articleId])
+  @@index([caseId, disposition])
+}
+
+enum JudicialForum {
+  MK
+  MA
+}
+
+enum JudicialOutcome {
+  GRANTED
+  PARTIALLY_GRANTED
+  REJECTED
+  INADMISSIBLE
+  WITHDRAWN
+  OTHER
+}
+
+enum JudicialDisposition {
+  INVALIDATED
+  UPHELD
+  CONDITIONALLY_VALID
+  CONDITIONALLY_INVALID
+  NO_DIRECT_EFFECT
+}
+
 // User untuk authentication
 model User {
   id        String   @id @default(cuid())
@@ -119,6 +190,7 @@ model User {
   password  String   // hashed with bcrypt
   name      String?
   role      Role     @default(VIEWER)
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

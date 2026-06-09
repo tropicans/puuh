@@ -1,11 +1,34 @@
 'use client';
 
-import { Regulation } from '@/lib/dummy-data';
 import { Badge } from '@/components/ui/badge';
 import { getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
 
+interface VersionItem {
+    id: string;
+    number: string;
+    year: number;
+    fullTitle: string;
+    effectiveDate: Date | string | null;
+    status: string;
+    articles?: unknown[];
+}
+
+function toDateString(d: Date | string | null): string | undefined {
+    if (!d) return undefined;
+    if (d instanceof Date) return d.toISOString();
+    return d;
+}
+
+interface RegulationShape {
+    id: string;
+    title: string;
+    description: string | null;
+    type: string | { shortName: string; name: string; id: string };
+    versions: VersionItem[];
+}
+
 interface VersionTimelineProps {
-    regulation: Regulation;
+    regulation: RegulationShape;
     selectedVersions: string[];
     onVersionSelect: (versionId: string) => void;
     maxSelections?: number;
@@ -77,7 +100,7 @@ export function VersionTimeline({
                                 </Badge>
                                 {version.effectiveDate && (
                                     <div className="mt-1 text-xs text-muted-foreground">
-                                        {formatDate(version.effectiveDate)}
+                                        {formatDate(toDateString(version.effectiveDate) || '')}
                                     </div>
                                 )}
                             </div>
@@ -113,7 +136,7 @@ export function VersionTimeline({
 /**
  * Compact timeline untuk display di card
  */
-export function CompactTimeline({ regulation }: { regulation: Regulation }) {
+export function CompactTimeline({ regulation }: { regulation: RegulationShape }) {
     const versions = regulation.versions;
     const firstYear = versions[0]?.year;
     const lastYear = versions[versions.length - 1]?.year;

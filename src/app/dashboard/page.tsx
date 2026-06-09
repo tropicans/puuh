@@ -4,8 +4,6 @@ import { seedInitialData } from '@/actions/regulations';
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar';
 import { Pagination } from '@/components/common/Pagination';
 import { getFilteredRegulations, getFilterOptions } from '@/lib/data-service';
-import type { Regulation } from '@/lib/dummy-data';
-
 // ... transformRegulation function (keep as is) ...
 
 // Transform database regulation to match component interface
@@ -13,43 +11,47 @@ function transformRegulation(reg: {
   id: string;
   title: string;
   description: string | null;
-  type: { name: string; shortName: string };
-    versions: Array<{
-      id: string;
-      number: string;
+  type: { id: string; name: string; shortName: string; createdAt?: Date; updatedAt?: Date };
+  versions: Array<{
+    id: string;
+    number: string;
     year: number;
     fullTitle: string;
     status: string;
     effectiveDate: Date | null;
-      pdfPath: string | null;
-      articles: Array<{
-        id: string;
-        articleNumber: string;
-        content?: string;
-        status: string;
-      }>;
+    pdfPath: string | null;
+    articles: Array<{
+      id: string;
+      articleNumber: string;
+      content: string;
+      status: string;
     }>;
+  }>;
+  createdAt?: Date;
+  _count?: { versions: number };
 }) {
   return {
     id: reg.id,
     title: reg.title,
-    type: reg.type.shortName,
+    type: { id: reg.type.id, shortName: reg.type.shortName, name: reg.type.name },
     description: reg.description || '',
+    createdAt: reg.createdAt || new Date(),
+    _count: reg._count || { versions: reg.versions.length },
     versions: reg.versions.map(v => ({
       id: v.id,
       number: v.number,
       year: v.year,
       fullTitle: v.fullTitle,
-      status: v.status.toLowerCase() as 'active' | 'amended' | 'revoked',
-      effectiveDate: v.effectiveDate?.toISOString() || '',
-      pdfPath: v.pdfPath || undefined,
-        articles: v.articles.map(a => ({
-          id: a.id,
-          number: a.articleNumber,
-          content: a.content || '',
-          status: a.status.toLowerCase() as 'active' | 'modified' | 'deleted' | 'new'
-        }))
-      }))
+      status: v.status,
+      effectiveDate: v.effectiveDate,
+      articles: v.articles.map(a => ({
+        id: a.id,
+        articleNumber: a.articleNumber,
+        content: a.content,
+        status: a.status,
+        orderIndex: 0,
+      })),
+    })),
   };
 }
 
@@ -77,7 +79,7 @@ export default async function DashboardPage(props: {
     pageSize
   });
 
-  const regulations: Regulation[] = dbRegulations.map(transformRegulation);
+  const regulations = dbRegulations.map(transformRegulation);
   const totalVersions = regulations.reduce((sum, r) => sum + r.versions.length, 0);
   const totalArticles = regulations.reduce(
     (sum, r) => sum + r.versions.reduce((vs, v) => vs + v.articles.length, 0),

@@ -1,55 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PUU Tracker — Peraturan Perundang-Undangan Tracker
 
-## Getting Started
+Aplikasi untuk melacak, membandingkan, dan menganalisis perubahan peraturan perundang-undangan Indonesia.
 
-First, run the development server:
+## Fitur
+
+- **Upload & parsing PDF** — upload peraturan via PDF, auto-extract teks dengan chain pdfjs → pdf-parse → Gemini Vision OCR
+- **Auto-fetch dari JDIH** — ambil peraturan dari peraturan.bpk.go.id secara otomatis
+- **AI-powered article parsing** — ekstrak pasal-pasal dari teks legal menggunakan LLM
+- **Perbandingan versi** — bandingkan dua versi peraturan berdampingan dengan word-level diff
+- **Judicial Review tracking** — lacak putusan MK/MA yang memengaruhi pasal
+- **Export PDF** — generate laporan perbandingan
+- **Dark/light mode** — full theme support
+
+## Tech Stack
+
+| Layer | Teknologi |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19 |
+| Database | PostgreSQL + Prisma 7 |
+| Auth | NextAuth.js v5 (Credentials + JWT) |
+| Storage | MinIO (S3-compatible) |
+| Styling | Tailwind CSS v4 + shadcn/ui |
+| AI/ML | OpenAI-compatible LLM proxy, Gemini Vision |
+
+## Setup Lokal
 
 ```bash
+# 1. Clone dan install
+git clone <repo-url>
+cd puu
+npm ci
+
+# 2. Konfigurasi environment
+cp .env.example .env
+# Edit .env — isi semua variabel yang diperlukan
+
+# 3. Generate Prisma client
+npx prisma generate
+
+# 4. Jalankan database & MinIO
+docker compose up -d postgres minio
+
+# 5. Push schema & seed
+npm run db:migrate
+npm run db:seed
+
+# 6. Dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Buka http://localhost:3006
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-This project runs locally on port `3006` by default (`npm run dev`).
-
-## Smoke Check
-
-After starting the app, run:
+## Docker (Full Stack)
 
 ```bash
-npm run smoke
+cp .env.example .env  # isi semua variabel
+docker compose up --build
 ```
 
-Optional authenticated checks:
+## Credentials Bootstrap
 
-```bash
-SMOKE_BASE_URL=http://localhost:3006
-SMOKE_TEST_EMAIL=admin@example.com
-SMOKE_TEST_PASSWORD=your-password
-npm run smoke
+Untuk membuat admin user pertama kali, set env vars:
+
+```env
+BOOTSTRAP_ADMIN_EMAIL="admin@example.com"
+BOOTSTRAP_ADMIN_PASSWORD="min-12-character-password"
 ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Lalu jalankan `POST /api/seed` dengan header `x-bootstrap-token: puu-seed` (hanya berlaku saat tidak ada user di database).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Script | Perintah |
+|---|---|
+| `npm run dev` | Dev server (port 3006) |
+| `npm run build` | Build production |
+| `npm run start` | Jalankan production build |
+| `npm run lint` | ESLint |
+| `npm run format` | ESLint auto-fix |
+| `npm run test` | Vitest |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run smoke` | Smoke test (HTTP checks) |
+| `npm run db:migrate` | Prisma migrate dev |
+| `npm run db:push` | Prisma db push |
+| `npm run db:seed` | Prisma seed |
+| `npm run db:studio` | Prisma Studio |
 
-To learn more about Next.js, take a look at the following resources:
+## Arsitektur
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+  actions/          Server Actions (CRUD mutations)
+  app/api/          REST API routes + streaming endpoints
+  app/              Next.js App Router pages
+  components/       UI, layout, feature components
+  hooks/            Client hooks (useAsyncAction, useFlashMessage)
+  lib/              Shared services (auth, db, AI, storage, validations)
+  __tests__/        Test files
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Lisensi
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Private — internal use.

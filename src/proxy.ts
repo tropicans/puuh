@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 async function getSessionRole(req: NextRequest): Promise<string | null> {
   try {
@@ -29,7 +30,7 @@ async function getSessionRole(req: NextRequest): Promise<string | null> {
 
     return session.user?.role ?? null;
   } catch (error) {
-    console.error('Failed to fetch session role in proxy:', error);
+    logger.error('Failed to fetch session role in proxy:', error);
     return null;
   }
 }

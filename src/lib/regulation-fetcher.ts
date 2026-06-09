@@ -10,8 +10,8 @@
 
 import { extractTextWithVision } from './ocr-service';
 
-const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
-const LLM_API_KEY = process.env.OPENAI_API_KEY || '';
+const LLM_BASE_URL = process.env.OPENAI_BASE_URL;
+const LLM_API_KEY = process.env.OPENAI_API_KEY;
 const LLM_MODEL = process.env.OPENAI_MODEL || 'gpt-oss-120b-medium';
 
 const BPK_BASE = 'https://peraturan.bpk.go.id';
@@ -399,7 +399,7 @@ async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string, onProgress?:
     // Fallback to Vision OCR for scanned PDFs
     try {
         onProgress?.('Menjalankan Vision OCR (bisa memakan beberapa menit)...');
-        const ocrText = await extractTextWithVision(pdfBuffer);
+        const ocrText = await extractTextWithVision(pdfBuffer, onProgress);
         if (ocrText && ocrText.length > 200) {
             console.log(`Vision OCR successful: ${ocrText.length} chars`);
             onProgress?.(`OCR berhasil: ${ocrText.length.toLocaleString()} karakter`);

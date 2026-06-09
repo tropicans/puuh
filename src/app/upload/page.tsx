@@ -124,58 +124,58 @@ function UploadContent() {
             return;
         }
 
-        setLoading(true);
         setStatusMessage('Memulai pencarian...');
         setResult(null);
 
-        const data = await autoFetchAction.run(async () => {
-            const body = { ...formData, existingRegulationId: amendsId };
-            const res = await fetch('/api/regulations/fetch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+        await autoFetchAction.run(async () => {
+            try {
+                const body = { ...formData, existingRegulationId: amendsId };
+                const res = await fetch('/api/regulations/fetch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
 
-            if (!res.body) throw new Error('No response stream');
+                if (!res.body) throw new Error('No response stream');
 
-            // Handle Streaming Response
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
+                // Handle Streaming Response
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
 
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const data = JSON.parse(line);
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const data = JSON.parse(line);
 
-                        if (data.type === 'progress') {
-                            setStatusMessage(data.message);
-                        } else if (data.type === 'success') {
-                            setResult({
-                                success: true,
-                                message: data.data.message,
-                                articlesCount: data.data.parsedArticles,
-                                sourceUrl: data.data.sourceUrl
-                            });
-                            setFormData({ ...formData, number: '', year: '', title: '' });
-                        } else if (data.type === 'error') {
-                            setResult({ success: false, message: data.message });
+                            if (data.type === 'progress') {
+                                setStatusMessage(data.message);
+                            } else if (data.type === 'success') {
+                                setResult({
+                                    success: true,
+                                    message: data.data.message,
+                                    articlesCount: data.data.parsedArticles,
+                                    sourceUrl: data.data.sourceUrl
+                                });
+                                setFormData({ ...formData, number: '', year: '', title: '' });
+                            } else if (data.type === 'error') {
+                                setResult({ success: false, message: data.message });
+                            }
+                        } catch {
+                            // Ignore parsing errors for partial chunks
                         }
-                    } catch {
-                        // Ignore parsing errors for partial chunks
                     }
                 }
+            } catch (error) {
+                setResult({ success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan' });
             }
-        } catch (error) {
-            setResult({ success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan' });
-        }
-        setLoading(false);
+        });
         setStatusMessage('');
     };
 

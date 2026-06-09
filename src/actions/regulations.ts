@@ -2,12 +2,21 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getCurrentUser, isAdminRole } from '@/lib/authorization';
+import { logger } from '@/lib/logger';
 
 // Types for error handling
 interface ActionResult<T> {
     success: boolean;
     data?: T;
     error?: string;
+}
+
+async function requireAdmin(): Promise<ActionResult<null> | null> {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Silakan login terlebih dahulu' };
+    if (!isAdminRole(user.role)) return { success: false, error: 'Akses ditolak' };
+    return null;
 }
 
 // ==================== Regulation Types ====================
@@ -19,20 +28,23 @@ export async function getRegulationTypes(): Promise<ActionResult<Awaited<ReturnT
         });
         return { success: true, data: types };
     } catch (error) {
-        console.error('Error fetching regulation types:', error);
+        logger.error('Error fetching regulation types:', error);
         return { success: false, error: 'Gagal mengambil jenis peraturan' };
     }
 }
 
 export async function createRegulationType(data: { name: string; shortName: string }) {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         const type = await prisma.regulationType.create({
             data
         });
         revalidatePath('/');
         return { success: true, data: type };
     } catch (error) {
-        console.error('Error creating regulation type:', error);
+        logger.error('Error creating regulation type:', error);
         return { success: false, error: 'Gagal membuat jenis peraturan' };
     }
 }
@@ -55,7 +67,7 @@ export async function getRegulations() {
         });
         return { success: true, data: regulations };
     } catch (error) {
-        console.error('Error fetching regulations:', error);
+        logger.error('Error fetching regulations:', error);
         return { success: false, error: 'Gagal mengambil daftar peraturan' };
     }
 }
@@ -83,7 +95,7 @@ export async function getRegulationById(id: string) {
 
         return { success: true, data: regulation };
     } catch (error) {
-        console.error('Error fetching regulation:', error);
+        logger.error('Error fetching regulation:', error);
         return { success: false, error: 'Gagal mengambil detail peraturan' };
     }
 }
@@ -94,6 +106,9 @@ export async function createRegulation(data: {
     typeId: string;
 }) {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         const regulation = await prisma.regulation.create({
             data,
             include: { type: true }
@@ -101,18 +116,21 @@ export async function createRegulation(data: {
         revalidatePath('/');
         return { success: true, data: regulation };
     } catch (error) {
-        console.error('Error creating regulation:', error);
+        logger.error('Error creating regulation:', error);
         return { success: false, error: 'Gagal membuat peraturan' };
     }
 }
 
 export async function deleteRegulation(id: string) {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         await prisma.regulation.delete({ where: { id } });
         revalidatePath('/');
         return { success: true };
     } catch (error) {
-        console.error('Error deleting regulation:', error);
+        logger.error('Error deleting regulation:', error);
         return { success: false, error: 'Gagal menghapus peraturan' };
     }
 }
@@ -135,7 +153,7 @@ export async function getVersionById(id: string) {
 
         return { success: true, data: version };
     } catch (error) {
-        console.error('Error fetching version:', error);
+        logger.error('Error fetching version:', error);
         return { success: false, error: 'Gagal mengambil detail versi' };
     }
 }
@@ -151,35 +169,42 @@ export async function createVersion(data: {
     amendsId?: string;
 }) {
     try {
-        // Jika ini adalah amandemen, update status versi sebelumnya
-        if (data.amendsId) {
-            await prisma.regulationVersion.update({
-                where: { id: data.amendsId },
-                data: { status: 'AMENDED' }
-            });
-        }
+        const authError = await requireAdmin();
+        if (authError) return authError;
 
-        const version = await prisma.regulationVersion.create({
-            data: {
-                ...data,
-                status: 'ACTIVE'
-            },
-            include: {
-                regulation: true
+        const version = await prisma.$transaction(async (tx) => {
+            if (data.amendsId) {
+                await tx.regulationVersion.update({
+                    where: { id: data.amendsId },
+                    data: { status: 'AMENDED' }
+                });
             }
+
+            return tx.regulationVersion.create({
+                data: {
+                    ...data,
+                    status: 'ACTIVE'
+                },
+                include: {
+                    regulation: true
+                }
+            });
         });
 
         revalidatePath('/');
         revalidatePath(`/regulations/${data.regulationId}`);
         return { success: true, data: version };
     } catch (error) {
-        console.error('Error creating version:', error);
+        logger.error('Error creating version:', error);
         return { success: false, error: 'Gagal membuat versi baru' };
     }
 }
 
 export async function updateVersionStatus(id: string, status: 'ACTIVE' | 'AMENDED' | 'REVOKED') {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         const version = await prisma.regulationVersion.update({
             where: { id },
             data: { status }
@@ -187,7 +212,7 @@ export async function updateVersionStatus(id: string, status: 'ACTIVE' | 'AMENDE
         revalidatePath('/');
         return { success: true, data: version };
     } catch (error) {
-        console.error('Error updating version status:', error);
+        logger.error('Error updating version status:', error);
         return { success: false, error: 'Gagal mengubah status versi' };
     }
 }
@@ -205,7 +230,7 @@ export async function getArticlesByVersionId(versionId: string) {
         });
         return { success: true, data: articles };
     } catch (error) {
-        console.error('Error fetching articles:', error);
+        logger.error('Error fetching articles:', error);
         return { success: false, error: 'Gagal mengambil daftar pasal' };
     }
 }
@@ -216,10 +241,11 @@ export async function createArticles(versionId: string, articles: {
     status?: 'ACTIVE' | 'MODIFIED' | 'DELETED' | 'NEW';
 }[]) {
     try {
-        // Delete existing articles first
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         await prisma.article.deleteMany({ where: { versionId } });
 
-        // Create new articles
         const createdArticles = await prisma.article.createMany({
             data: articles.map((article, index) => ({
                 versionId,
@@ -233,7 +259,7 @@ export async function createArticles(versionId: string, articles: {
         revalidatePath('/');
         return { success: true, data: createdArticles };
     } catch (error) {
-        console.error('Error creating articles:', error);
+        logger.error('Error creating articles:', error);
         return { success: false, error: 'Gagal membuat pasal' };
     }
 }
@@ -250,10 +276,13 @@ export async function createArticleChange(data: {
     notes?: string;
 }) {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         const change = await prisma.articleChange.create({ data });
         return { success: true, data: change };
     } catch (error) {
-        console.error('Error creating article change:', error);
+        logger.error('Error creating article change:', error);
         return { success: false, error: 'Gagal mencatat perubahan pasal' };
     }
 }
@@ -262,6 +291,9 @@ export async function createArticleChange(data: {
 
 export async function seedInitialData() {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         // Check if data already exists
         const existingTypes = await prisma.regulationType.count();
         if (existingTypes > 0) {
@@ -419,7 +451,7 @@ b. Peserta bukan Penerima Bantuan Iuran (Non-PBI).`,
         revalidatePath('/');
         return { success: true, message: 'Data berhasil di-seed' };
     } catch (error) {
-        console.error('Error seeding data:', error);
+        logger.error('Error seeding data:', error);
         return { success: false, error: 'Gagal membuat data awal' };
     }
 }
@@ -428,6 +460,9 @@ b. Peserta bukan Penerima Bantuan Iuran (Non-PBI).`,
 
 export async function checkDatabaseConnection() {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         await prisma.$queryRaw`SELECT 1`;
         const regulationCount = await prisma.regulation.count();
         const versionCount = await prisma.regulationVersion.count();
@@ -443,7 +478,7 @@ export async function checkDatabaseConnection() {
             }
         };
     } catch (error) {
-        console.error('Database connection error:', error);
+        logger.error('Database connection error:', error);
         return {
             success: false,
             connected: false,

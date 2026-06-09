@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
+import { isInvalidatingDisposition, normalizeArticleNumber } from '@/lib/judicial-review';
 import { use } from 'react';
 import Link from 'next/link';
 
@@ -35,6 +36,27 @@ interface Regulation {
     type: string;
     description: string;
     versions: RegulationVersion[];
+    judicialReviews: JudicialReviewCase[];
+}
+
+type JudicialDisposition = 'INVALIDATED' | 'UPHELD' | 'CONDITIONALLY_VALID' | 'CONDITIONALLY_INVALID' | 'NO_DIRECT_EFFECT';
+
+interface JudicialReviewImpact {
+    id: string;
+    articleNumber: string;
+    disposition: JudicialDisposition;
+    amarExcerpt?: string | null;
+}
+
+interface JudicialReviewCase {
+    id: string;
+    forum: 'MK' | 'MA';
+    decisionNumber: string;
+    decisionDate?: string | null;
+    outcome: 'GRANTED' | 'PARTIALLY_GRANTED' | 'REJECTED' | 'INADMISSIBLE' | 'WITHDRAWN' | 'OTHER';
+    amarText: string;
+    sourceUrl?: string | null;
+    impacts: JudicialReviewImpact[];
 }
 
 interface PageProps {
@@ -47,6 +69,8 @@ export default function RegulationDetailPage({ params }: PageProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
+    const [syncingJudicial, setSyncingJudicial] = useState(false);
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchRegulation = async () => {
@@ -92,6 +116,30 @@ export default function RegulationDetailPage({ params }: PageProps) {
                             content: a.content,
                             status: a.status.toLowerCase() as 'active' | 'modified' | 'deleted' | 'new'
                         }))
+                    })),
+                    judicialReviews: (reg.judicialReviews || []).map((jr: {
+                        id: string;
+                        forum: 'MK' | 'MA';
+                        decisionNumber: string;
+                        decisionDate: string | null;
+                        outcome: 'GRANTED' | 'PARTIALLY_GRANTED' | 'REJECTED' | 'INADMISSIBLE' | 'WITHDRAWN' | 'OTHER';
+                        amarText: string;
+                        sourceUrl: string | null;
+                        impacts: Array<{
+                            id: string;
+                            articleNumber: string;
+                            disposition: JudicialDisposition;
+                            amarExcerpt: string | null;
+                        }>;
+                    }) => ({
+                        id: jr.id,
+                        forum: jr.forum,
+                        decisionNumber: jr.decisionNumber,
+                        decisionDate: jr.decisionDate,
+                        outcome: jr.outcome,
+                        amarText: jr.amarText,
+                        sourceUrl: jr.sourceUrl,
+                        impacts: jr.impacts
                     }))
                 };
 
@@ -155,6 +203,87 @@ export default function RegulationDetailPage({ params }: PageProps) {
     const canCompare = selectedVersionObjects.length === 2;
 
     const latestVersion = regulation.versions[regulation.versions.length - 1];
+
+    const handleSyncJudicial = async () => {
+        setSyncingJudicial(true);
+        setSyncMessage(null);
+        try {
+            const response = await fetch(`/api/regulations/${id}/judicial-reviews/sync`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                setSyncMessage(data.error || 'Gagal sinkronisasi putusan judicial review');
+                return;
+            }
+
+            setSyncMessage(`Sinkronisasi selesai: ${data.synced || 0} kandidat diproses. Silakan refresh halaman.`);
+        } catch (syncError) {
+            setSyncMessage(syncError instanceof Error ? syncError.message : 'Gagal sinkronisasi putusan judicial review');
+        } finally {
+            setSyncingJudicial(false);
+        }
+    };
+    const allJudicialImpacts = regulation.judicialReviews.flatMap((review) =>
+        review.impacts.map((impact) => ({
+            ...impact,
+            forum: review.forum,
+            decisionNumber: review.decisionNumber,
+            decisionDate: review.decisionDate,
+            outcome: review.outcome
+        }))
+    );
+
+    const impactsByArticle = allJudicialImpacts.reduce((acc, impact) => {
+        const key = normalizeArticleNumber(impact.articleNumber);
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(impact);
+        return acc;
+    }, {} as Record<string, Array<JudicialReviewImpact & { forum: 'MK' | 'MA'; decisionNumber: string; decisionDate?: string | null; outcome: string }>>);
+
+    const comparisonJudicialMap = Object.entries(impactsByArticle).reduce((acc, [articleKey, impacts]) => {
+        const prioritized = [...impacts].sort((a, b) => {
+            const aPriority = isInvalidatingDisposition(a.disposition) ? 0 : 1;
+            const bPriority = isInvalidatingDisposition(b.disposition) ? 0 : 1;
+            if (aPriority !== bPriority) {
+                return aPriority - bPriority;
+            }
+
+            const aDate = a.decisionDate ? new Date(a.decisionDate).getTime() : 0;
+            const bDate = b.decisionDate ? new Date(b.decisionDate).getTime() : 0;
+            return bDate - aDate;
+        })[0];
+
+        if (prioritized) {
+            acc[articleKey] = {
+                forum: prioritized.forum,
+                decisionNumber: prioritized.decisionNumber,
+                disposition: prioritized.disposition,
+                amarExcerpt: prioritized.amarExcerpt || undefined
+            };
+        }
+
+        return acc;
+    }, {} as Record<string, { forum: 'MK' | 'MA'; decisionNumber: string; disposition: JudicialDisposition; amarExcerpt?: string }>);
+
+    const judicialOutcomeLabel: Record<JudicialReviewCase['outcome'], string> = {
+        GRANTED: 'Dikabulkan',
+        PARTIALLY_GRANTED: 'Dikabulkan Sebagian',
+        REJECTED: 'Ditolak',
+        INADMISSIBLE: 'Tidak Dapat Diterima',
+        WITHDRAWN: 'Ditarik Kembali',
+        OTHER: 'Lainnya'
+    };
+
+    const dispositionLabel: Record<JudicialDisposition, string> = {
+        INVALIDATED: 'Dinyatakan Tidak Berlaku',
+        UPHELD: 'Dipertahankan',
+        CONDITIONALLY_VALID: 'Konstitusional Bersyarat',
+        CONDITIONALLY_INVALID: 'Inkonstitusional Bersyarat',
+        NO_DIRECT_EFFECT: 'Tidak Berdampak Langsung'
+    };
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -226,6 +355,9 @@ export default function RegulationDetailPage({ params }: PageProps) {
                     <TabsTrigger value="consolidated" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                         ✅ Konsolidasi
                     </TabsTrigger>
+                    <TabsTrigger value="judicial" className="shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        ⚖️ Judicial Review
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="compare" className="space-y-6">
@@ -233,6 +365,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
                         <ComparisonView
                             oldVersion={selectedVersionObjects[0]!}
                             newVersion={selectedVersionObjects[1]!}
+                            judicialImpacts={comparisonJudicialMap}
                         />
                     ) : (
                         <Card className="bg-card/70 border-border/70">
@@ -266,8 +399,8 @@ export default function RegulationDetailPage({ params }: PageProps) {
                                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                         <span>📝</span>
-                                        <span>{version.articles.length} pasal</span>
-                                    </div>
+                                    <span>{version.articles.length} pasal</span>
+                                </div>
                                     {version.effectiveDate && (
                                         <div className="flex items-center gap-1">
                                             <span>📅</span>
@@ -286,7 +419,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
                     ))}
                 </TabsContent>
 
-                <TabsContent value="consolidated" className="space-y-4">
+                    <TabsContent value="consolidated" className="space-y-4">
                     <Card className="bg-card/70 border-border/70">
                         <CardHeader>
                             <CardTitle className="text-lg text-foreground flex items-center gap-2">
@@ -299,26 +432,127 @@ export default function RegulationDetailPage({ params }: PageProps) {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {latestVersion?.articles.map(article => (
+                                (() => {
+                                    const articleImpacts = impactsByArticle[normalizeArticleNumber(article.number)] || [];
+                                    const isInvalidatedByJudicialReview = articleImpacts.some((impact) => isInvalidatingDisposition(impact.disposition));
+
+                                    return (
                                 <div
                                     key={article.id}
                                     className="p-4 bg-background/60 rounded-lg border border-border/70"
                                 >
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className="font-semibold text-foreground">{article.number}</span>
-                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 border text-xs">
-                                            ✓ Berlaku
-                                        </Badge>
+                                        {isInvalidatedByJudicialReview ? (
+                                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 border text-xs">
+                                                ⚖️ Tidak Berlaku (JR)
+                                            </Badge>
+                                        ) : (
+                                            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 border text-xs">
+                                                ✓ Berlaku
+                                            </Badge>
+                                        )}
                                     </div>
                                     <div className="font-mono text-sm text-foreground whitespace-pre-wrap">
                                         {article.content}
                                     </div>
+                                    {articleImpacts.length > 0 && (
+                                        <div className="mt-3 space-y-2">
+                                            {articleImpacts.map((impact, idx) => (
+                                                <div key={`${impact.decisionNumber}-${idx}`} className="rounded-md border border-border/60 bg-card/40 p-2 text-xs text-muted-foreground">
+                                                    <span className="font-medium text-foreground">{impact.forum} {impact.decisionNumber}</span>
+                                                    <span className="mx-1">•</span>
+                                                    <span>{dispositionLabel[impact.disposition]}</span>
+                                                    {impact.decisionDate && (
+                                                        <>
+                                                            <span className="mx-1">•</span>
+                                                            <span>{formatDate(impact.decisionDate)}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
+                                    );
+                                })()
                             ))}
 
                             {(!latestVersion || latestVersion.articles.length === 0) && (
                                 <div className="text-center py-8 text-muted-foreground">
                                     Tidak ada pasal yang tersedia
                                 </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="judicial" className="space-y-4">
+                    <Card className="bg-card/70 border-border/70">
+                        <CardHeader>
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                                    <span>⚖️</span>
+                                    Judicial Review (MK/MA)
+                                </CardTitle>
+                                <Button type="button" variant="outline" onClick={handleSyncJudicial} disabled={syncingJudicial}>
+                                    {syncingJudicial ? 'Sinkronisasi...' : 'Sinkronkan MK/MA'}
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {syncMessage && (
+                                <div className="rounded-md border border-border/60 bg-card/40 p-3 text-xs text-muted-foreground">
+                                    {syncMessage}
+                                </div>
+                            )}
+                            {regulation.judicialReviews.length === 0 ? (
+                                <div className="text-sm text-muted-foreground">
+                                    Belum ada data judicial review untuk regulasi ini.
+                                </div>
+                            ) : (
+                                regulation.judicialReviews.map((review) => (
+                                    <div key={review.id} className="rounded-lg border border-border/70 bg-background/50 p-4 space-y-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Badge variant="outline" className="border-primary/40 text-primary">
+                                                {review.forum}
+                                            </Badge>
+                                            <span className="font-semibold text-foreground">Putusan {review.decisionNumber}</span>
+                                            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 border">
+                                                {judicialOutcomeLabel[review.outcome]}
+                                            </Badge>
+                                            {review.decisionDate && (
+                                                <span className="text-xs text-muted-foreground">{formatDate(review.decisionDate)}</span>
+                                            )}
+                                        </div>
+
+                                        <div className="text-sm text-muted-foreground line-clamp-4">
+                                            {review.amarText}
+                                        </div>
+
+                                        {review.sourceUrl && (
+                                            <a href={review.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline break-all">
+                                                {review.sourceUrl}
+                                            </a>
+                                        )}
+
+                                        {review.impacts.length > 0 && (
+                                            <div className="space-y-2">
+                                                <div className="text-xs font-medium text-foreground">Pasal Terdampak</div>
+                                                {review.impacts.map((impact) => (
+                                                    <div key={impact.id} className="rounded-md border border-border/60 bg-card/40 p-2 text-xs text-muted-foreground">
+                                                        <span className="font-medium text-foreground">{impact.articleNumber}</span>
+                                                        <span className="mx-1">•</span>
+                                                        <span>{dispositionLabel[impact.disposition]}</span>
+                                                        {impact.amarExcerpt && (
+                                                            <div className="mt-1 line-clamp-3">{impact.amarExcerpt}</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
                             )}
                         </CardContent>
                     </Card>

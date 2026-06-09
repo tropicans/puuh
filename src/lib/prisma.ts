@@ -4,7 +4,10 @@ import { Pool } from 'pg';
 
 // Create PostgreSQL connection pool
 const connectionPool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    connectionString: process.env.DATABASE_URL,
+    max: 20,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 30000,
 });
 
 // Create Prisma adapter from pg pool

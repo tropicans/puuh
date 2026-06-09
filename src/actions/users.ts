@@ -2,6 +2,8 @@
 
 import prisma from '@/lib/prisma';
 import { hash } from 'bcryptjs';
+import { getCurrentUser, isAdminRole } from '@/lib/authorization';
+import { logger } from '@/lib/logger';
 
 const MIN_BOOTSTRAP_PASSWORD_LENGTH = 12;
 
@@ -11,12 +13,22 @@ interface SeedUserResult {
     error?: string;
 }
 
+async function requireAdmin(): Promise<SeedUserResult | null> {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: 'Silakan login terlebih dahulu' };
+    if (!isAdminRole(user.role)) return { success: false, error: 'Akses ditolak' };
+    return null;
+}
+
 /**
  * Seeds a bootstrap admin user if no users exist in the database.
  * Requires BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD.
  */
 export async function seedAdminUser(): Promise<SeedUserResult> {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         // Check if any users exist
         const existingUsers = await prisma.user.count();
 
@@ -62,7 +74,7 @@ export async function seedAdminUser(): Promise<SeedUserResult> {
             message: `Created bootstrap admin user (${bootstrapAdminEmail})`
         };
     } catch (error) {
-        console.error('Error seeding users:', error);
+        logger.error('Error seeding users:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to seed users'
@@ -75,6 +87,9 @@ export async function seedAdminUser(): Promise<SeedUserResult> {
  */
 export async function getUsers() {
     try {
+        const authError = await requireAdmin();
+        if (authError) return authError;
+
         const users = await prisma.user.findMany({
             select: {
                 id: true,
@@ -87,7 +102,7 @@ export async function getUsers() {
         });
         return { success: true, data: users };
     } catch (error) {
-        console.error('Error fetching users:', error);
+        logger.error('Error fetching users:', error);
         return { success: false, error: 'Failed to fetch users' };
     }
 }

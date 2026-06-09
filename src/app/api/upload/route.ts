@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import rateLimit from '@/lib/rate-limit';
+import { uploadLimiter } from '@/lib/rate-limit';
 import { uploadSchema } from '@/lib/validations';
 import { getCurrentUser, isAdminRole } from '@/lib/authorization';
-
-// Initialize rate limiter: 10 requests per minute
-const limiter = rateLimit({
-    interval: 60 * 1000, // 60 seconds
-    uniqueTokenPerInterval: 500, // Max 500 users per second
-});
 
 export async function POST(request: NextRequest) {
     try {
@@ -21,10 +15,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Rate Limiting Check
-        const ip = request.headers.get('x-forwarded-for') ?? 'anonymous';
-        try {
-            await limiter.check(NextResponse, 10, ip); // 10 requests per minute
-        } catch {
+        const { limited } = await uploadLimiter.check(request);
+        if (limited) {
             return NextResponse.json(
                 { success: false, message: 'Rate limit exceeded. Coba lagi nanti.' },
                 { status: 429 }
@@ -57,6 +49,30 @@ export async function POST(request: NextRequest) {
         }
 
         const file = formData.get('file') as File | null;
+
+        if (!file) {
+            return NextResponse.json(
+                { success: false, message: `File harus diupload.` },
+                { status: 400 }
+            );
+        }
+
+        // MIME type and file extension validation
+        const ALLOWED_MIMES = ['application/pdf'];
+        if (!ALLOWED_MIMES.includes(file.type)) {
+            return NextResponse.json({
+                success: false,
+                message: 'Hanya file PDF yang diterima.'
+            }, { status: 400 });
+        }
+
+        const fileName = file.name.toLowerCase();
+        if (!fileName.endsWith('.pdf')) {
+            return NextResponse.json({
+                success: false,
+                message: 'Ekstensi file harus .pdf.'
+            }, { status: 400 });
+        }
 
         // Zod Validation
         const result = uploadSchema.safeParse({

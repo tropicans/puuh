@@ -1,6 +1,6 @@
 
 function parseArticlesWithRegex(rawText: string) {
-    const articles: any[] = [];
+    const articles: { number: string; content: string }[] = [];
     const normalizedText = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const parts = normalizedText.split(/(?=\nPasal\s+\d+|Pasal\s+\d+)/i);
 

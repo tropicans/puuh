@@ -9,11 +9,11 @@ services:
       - "3006:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://puu_admin:puu123@postgres:5432/puu_tracker?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-puu_admin}:${POSTGRES_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:-puu_tracker}?schema=public
       - NEXTAUTH_URL=http://localhost:3006
       - AUTH_TRUST_HOST=true
       - AUTH_URL=http://localhost:3006/api/auth
-      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_SECRET=${AUTH_SECRET:?required}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL}
       - OPENAI_MODEL=${OPENAI_MODEL}
@@ -21,12 +21,14 @@ services:
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
       - MINIO_USE_SSL=false
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-puu-documents}
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   postgres:
     image: postgres:15-alpine
@@ -35,11 +37,17 @@ services:
     ports:
       - "5434:5432"
     environment:
-      - POSTGRES_USER=puu_admin
-      - POSTGRES_PASSWORD=puu123
-      - POSTGRES_DB=puu_tracker
+      - POSTGRES_USER=${POSTGRES_USER:-puu_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?required}
+      - POSTGRES_DB=${POSTGRES_DB:-puu_tracker}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-puu_admin} -d ${POSTGRES_DB:-puu_tracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   minio:
     image: minio/minio
@@ -49,18 +57,25 @@ services:
       - "9002:9000"
       - "9003:9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY}
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   createbuckets:
     image: minio/mc
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: >
-      /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}; /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME}; /usr/bin/mc anonymous set download myminio/${MINIO_BUCKET_NAME}; exit 0; "
+      /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin}; /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME:-puu-documents}; /usr/bin/mc anonymous set download myminio/${MINIO_BUCKET_NAME:-puu-documents}; exit 0; "
 
 volumes:
   postgres_data:

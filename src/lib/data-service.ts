@@ -74,6 +74,7 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
                             select: {
                                 id: true,
                                 articleNumber: true,
+                                content: true,
                                 status: true,
                             }
                         }
