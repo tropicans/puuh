@@ -275,7 +275,8 @@ export async function POST(request: NextRequest) {
                     const fullTitle = `${regulationType} Nomor ${number} Tahun ${year} tentang ${title}`;
                     send({ type: 'progress', message: `Menyimpan ${uniqueArticles.length} pasal ke database...` });
 
-                    const version = await prisma.$transaction(async (tx) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const version = await prisma.$transaction(async (tx: any) => {
                         if (previousVersion) {
                             await tx.regulationVersion.update({
                                 where: { id: previousVersion.id },

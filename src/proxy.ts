@@ -54,7 +54,7 @@ export async function proxy(req: NextRequest) {
 
   const isLoggedIn = !!sessionToken;
 
-  const publicRoutes = ['/design', '/login', '/api/auth', '/api/seed'];
+  const publicRoutes = ['/design', '/login', '/api/auth', '/api/seed', '/api/db-status'];
   const isPublicRoute = pathname === '/' || publicRoutes.some((route) => pathname.startsWith(route));
 
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.includes('.')) {

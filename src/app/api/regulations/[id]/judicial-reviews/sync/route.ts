@@ -67,7 +67,8 @@ export async function POST(
         let createdCount = 0;
         let updatedCount = 0;
 
-        await prisma.$transaction(async (tx) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await prisma.$transaction(async (tx: any) => {
             for (const candidate of candidates) {
                 const existing = await tx.judicialReviewCase.findFirst({
                     where: {

@@ -39,8 +39,24 @@ async function callLLM(messages: { role: string; content: string }[], maxTokens:
         throw new Error(`LLM API Error: ${response.status} ${errorText}`);
     }
 
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '';
+    const text = await response.text();
+    try {
+        const data = JSON.parse(text);
+        return data.choices?.[0]?.message?.content || '';
+    } catch {
+        // Some proxies return malformed JSON with trailing garbage — try to extract valid prefix
+        const lastBrace = text.lastIndexOf('}');
+        if (lastBrace > 0) {
+            const truncated = text.substring(0, lastBrace + 1);
+            try {
+                const data = JSON.parse(truncated);
+                return data.choices?.[0]?.message?.content || '';
+            } catch {
+                // fall through to throw
+            }
+        }
+        throw new Error(`Failed to parse LLM response JSON: ${text.substring(0, 200)}`);
+    }
 }
 
 /**
@@ -270,7 +286,15 @@ export async function testLLMConnection(): Promise<{ success: boolean; model: st
             };
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        let data: { model?: string; choices?: { message?: { content?: string } }[] };
+
+        try {
+            data = JSON.parse(text);
+        } catch {
+            const lastBrace = text.lastIndexOf('}');
+            data = lastBrace > 0 ? JSON.parse(text.substring(0, lastBrace + 1)) : {};
+        }
 
         return {
             success: true,

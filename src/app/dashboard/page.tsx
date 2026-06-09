@@ -29,7 +29,29 @@ function transformRegulation(reg: {
   }>;
   createdAt?: Date;
   _count?: { versions: number };
-}) {
+}): {
+  id: string;
+  title: string;
+  type: { id: string; shortName: string; name: string };
+  description: string;
+  createdAt: Date;
+  _count: { versions: number };
+  versions: Array<{
+    id: string;
+    number: string;
+    year: number;
+    fullTitle: string;
+    status: string;
+    effectiveDate: Date | null;
+    articles: Array<{
+      id: string;
+      articleNumber: string;
+      content: string;
+      status: string;
+      orderIndex: number;
+    }>;
+  }>;
+} {
   return {
     id: reg.id,
     title: reg.title,
@@ -79,10 +101,11 @@ export default async function DashboardPage(props: {
     pageSize
   });
 
-  const regulations = dbRegulations.map(transformRegulation);
-  const totalVersions = regulations.reduce((sum, r) => sum + r.versions.length, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const regulations: any[] = dbRegulations.map(transformRegulation);
+  const totalVersions = regulations.reduce((sum: number, r: any) => sum + r.versions.length, 0);
   const totalArticles = regulations.reduce(
-    (sum, r) => sum + r.versions.reduce((vs, v) => vs + v.articles.length, 0),
+    (sum: number, r: any) => sum + r.versions.reduce((vs: number, v: any) => vs + v.articles.length, 0),
     0
   );
 

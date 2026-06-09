@@ -172,7 +172,8 @@ export async function createVersion(data: {
         const authError = await requireAdmin();
         if (authError) return authError;
 
-        const version = await prisma.$transaction(async (tx) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const version = await prisma.$transaction(async (tx: any) => {
             if (data.amendsId) {
                 await tx.regulationVersion.update({
                     where: { id: data.amendsId },

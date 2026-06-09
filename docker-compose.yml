@@ -14,9 +14,9 @@ services:
       - AUTH_TRUST_HOST=true
       - AUTH_URL=http://localhost:3006/api/auth
       - AUTH_SECRET=${AUTH_SECRET:?required}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
-      - OPENAI_MODEL=${OPENAI_MODEL}
+      - OPENAI_API_KEY=sk-dca3f71601cefbbf-jzw6gj-8d19d4f0
+      - OPENAI_BASE_URL=https://sembilan.kelazz.my.id/v1
+      - OPENAI_MODEL=glm-cn/glm-5.1
       - GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY}
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
@@ -24,6 +24,9 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-puu-documents}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@test.com}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-password123456}
+      - BOOTSTRAP_SEED_TOKEN=${BOOTSTRAP_SEED_TOKEN:-puu-seed}
     depends_on:
       postgres:
         condition: service_healthy

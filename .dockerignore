@@ -24,6 +24,14 @@ scripts/
 
 # Prisma migrations (not needed in runtime)
 prisma/migrations
+prisma/seed.ts
+
+# Standalone scripts (not part of Next.js app)
+seed-users.ts
+
+# Test files
+src/__tests__/
+vitest.config.ts
 
 # Markdown/docs (keep README for health check reference)
 *.md

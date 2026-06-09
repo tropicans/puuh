@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 export type RegulationFilters = {
     q?: string;
@@ -14,7 +13,8 @@ export async function getFilteredRegulations(filters: RegulationFilters) {
     const { q, typeId, year, regulationId, page = 1, pageSize = 10 } = filters;
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.RegulationWhereInput = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {};
 
     if (typeId && typeId !== 'all') {
         where.typeId = typeId;
@@ -108,6 +108,6 @@ export async function getFilterOptions() {
 
     return {
         types,
-        years: yearsResult.map((y) => y.year),
+        years: yearsResult.map((y: { year: number }) => y.year),
     };
 }

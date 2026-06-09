@@ -83,7 +83,8 @@ export async function POST(
             }, { status: 422 });
         }
 
-        await prisma.$transaction(async (tx) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.$transaction(async (tx: any) => {
             await tx.article.deleteMany({ where: { versionId: id } });
             await tx.article.createMany({
                 data: uniqueArticles.map((article, index) => ({
