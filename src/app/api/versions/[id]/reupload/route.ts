@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { parseArticlesFromText } from '@/lib/ai-service';
+import { smartExtractPdfText } from '@/lib/pdf-service';
 import { getCurrentUser, isAdminRole } from '@/lib/authorization';
 
 // Re-upload PDF file to update rawText and re-parse articles
@@ -48,25 +49,10 @@ export async function POST(
         let rawText = '';
         let numPages = 0;
         try {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const pdfParse = require('pdf-parse');
-            let text = '';
-            let pages = 0;
-            if (typeof pdfParse === 'function') {
-                const pdfData = await pdfParse(buffer);
-                text = pdfData.text || '';
-                pages = pdfData.numpages || 0;
-            } else if (pdfParse && typeof pdfParse.PDFParse === 'function') {
-                const parser = new pdfParse.PDFParse({ data: new Uint8Array(buffer) });
-                const result = await parser.getText();
-                text = result.text || '';
-                pages = result.total || result.pages?.length || 0;
-            } else {
-                throw new Error('Unsupported pdf-parse module format');
-            }
-            rawText = text;
-            numPages = pages;
-            console.log(`PDF re-uploaded: ${rawText.length} chars, ${numPages} pages`);
+            const result = await smartExtractPdfText(buffer);
+            rawText = result.text;
+            numPages = result.numPages || 0;
+            console.log(`PDF re-uploaded: ${rawText.length} chars, ${numPages} pages, method: ${result.method}`);
         } catch (e) {
             console.error('Error parsing PDF:', e);
             return NextResponse.json({

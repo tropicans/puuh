@@ -9,7 +9,7 @@
  */
 
 import './polyfills';
-import { extractTextWithVision } from './ocr-service';
+import { smartExtractPdfText } from './pdf-service';
 
 const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
 const LLM_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -371,59 +371,20 @@ async function downloadPDF(url: string, onProgress?: ProgressCallback): Promise<
 async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string, onProgress?: ProgressCallback): Promise<FetchResult> {
     onProgress?.('Mengekstrak teks dari PDF...');
 
-    // First try pdf-parse for text-based PDFs
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        let text = '';
-        let numPages = 0;
-        if (typeof pdfParse === 'function') {
-            const pdfData = await pdfParse(pdfBuffer);
-            text = pdfData.text || '';
-            numPages = pdfData.numpages || 0;
-        } else if (pdfParse && typeof pdfParse.PDFParse === 'function') {
-            const parser = new pdfParse.PDFParse({ data: new Uint8Array(pdfBuffer) });
-            const result = await parser.getText();
-            text = result.text || '';
-            numPages = result.total || result.pages?.length || 0;
-        } else {
-            throw new Error('Unsupported pdf-parse module format');
-        }
-
-        if (text && text.length > 500) {
-            console.log(`PDF text extraction successful: ${text.length} chars`);
-            onProgress?.(`Teks berhasil diekstrak: ${text.length.toLocaleString()} karakter, ${numPages} halaman`);
+        const result = await smartExtractPdfText(pdfBuffer, onProgress);
+        if (result.text && result.text.length > 500) {
+            console.log(`PDF text extraction successful using ${result.method}: ${result.text.length} chars`);
             return {
                 success: true,
-                rawText: text,
+                rawText: result.text,
                 sourceUrl,
-                numPages: numPages,
-                ocrUsed: false
-            };
-        }
-        console.log(`PDF text too short (${text?.length || 0} chars), trying Vision OCR...`);
-        onProgress?.('Teks PDF terlalu pendek, mencoba OCR...');
-    } catch (e) {
-        console.log('PDF text extraction failed, trying Vision OCR...', e);
-        onProgress?.('Ekstraksi teks gagal, mencoba OCR...');
-    }
-
-    // Fallback to Vision OCR for scanned PDFs
-    try {
-        onProgress?.('Menjalankan Vision OCR (bisa memakan beberapa menit)...');
-        const ocrText = await extractTextWithVision(pdfBuffer);
-        if (ocrText && ocrText.length > 200) {
-            console.log(`Vision OCR successful: ${ocrText.length} chars`);
-            onProgress?.(`OCR berhasil: ${ocrText.length.toLocaleString()} karakter`);
-            return {
-                success: true,
-                rawText: ocrText,
-                sourceUrl,
-                ocrUsed: true
+                numPages: result.numPages,
+                ocrUsed: result.method === 'ocr'
             };
         }
     } catch (e) {
-        console.error('Vision OCR failed:', e);
+        console.error('PDF extraction failed:', e);
     }
 
     return { success: false, error: 'Gagal mengekstrak teks dari PDF' };

@@ -1,14 +1,15 @@
 import './polyfills';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { cleanPdfText } from './utils';
+import { pathToFileURL } from 'url';
+import path from 'path';
 
 type PdfDocument = Awaited<ReturnType<typeof pdfjsLib.getDocument>['promise']>;
 
 // Configure worker for Node.js
 if (typeof window === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const workerPort = require('pdfjs-dist/legacy/build/pdf.worker.mjs');
-    pdfjsLib.GlobalWorkerOptions.workerPort = workerPort;
+    const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString();
 }
 
 /**
@@ -33,7 +34,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<{
 
         // Timeout wrapper for pdf loading
         const timeoutPromise = new Promise<PdfDocument>((_, reject) => {
-            setTimeout(() => reject(new Error('PDFJS_TIMEOUT')), 5000);
+            setTimeout(() => reject(new Error('PDFJS_TIMEOUT')), 30000);
         });
 
         // Race between loading and timeout
