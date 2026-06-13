@@ -8,13 +8,12 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
-## Current Milestone: v1.1 Intelligent Search & Resilient Processing
+## Current Milestone: v1.2 Complete Documentation
 
-**Goal:** Enable semantic natural language search for legal articles and implement robust page-by-page PDF processing fallback recovery.
+**Goal:** Create comprehensive documentation for the PUU Tracker application in the docs folder.
 
 **Target features:**
-- Semantic indexing of legal articles to support natural language AI search queries.
-- Robust PDF page-splitting error recovery to process pages one-by-one defensively if chunk-compilation fails.
+- Create User Guide, Developer Guide, System Architecture, API Specification, and Deployment/Setup Instructions in the `docs` folder.
 
 ## Requirements
 
@@ -29,11 +28,16 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **Environment & Auth Security Stabilization (v1.0)** — Aligned database ports, Prisma migrations schema, role guards, and environment credentials.
 - ✓ **Parser & OCR Optimizations (v1.0)** — Parallelized Vision OCR chunks, regex fallback parser hardening, and MinIO proxy hostname mapping.
 - ✓ **Diff Engine Verification (v1.0)** — Vitest environment config and automated unit tests for diff-engine compare logic.
+- ✓ **PDF Page-Splitting Fallback (v1.1)** — Try/catch page-by-page fallback processing in the PDF upload and parsing pipeline.
 
 ### Active
 
-- [ ] **AI-01**: Implement PDF page-splitting error recovery to process pages one-by-one defensively if chunk-compilation fails.
-- [ ] **AI-02**: Add semantic indexing of legal articles to support AI search queries.
+- [ ] **DOC-01**: Create User Guide detailing PDF Upload, Verbatim Diff comparison, and search usage.
+- [ ] **DOC-02**: Create Developer Guide detailing codebase layout, Prisma/PostgreSQL/MinIO details, and guide for adding features.
+- [ ] **DOC-03**: Create System Architecture & Data Flow detailing verbatim diff engine and text extraction fallback mechanism.
+- [ ] **DOC-04**: Create API Specification detailing endpoint description, input validation, and auth guards.
+- [ ] **DOC-05**: Create Deployment & Operations guide detailing Docker compose, database migrations, and environment setup.
+
 
 ### Out of Scope
 
@@ -75,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-08 for Milestone v1.1*
+*Last updated: 2026-06-13 for Milestone v1.2*
