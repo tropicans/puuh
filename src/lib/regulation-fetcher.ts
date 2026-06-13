@@ -244,7 +244,6 @@ async function extractDownloadFromDetailPage(detailUrl: string): Promise<string 
 function generatePossibleUrls(info: RegulationInfo): string[] {
     const { type, number, year } = info;
     const typeLower = type.toLowerCase();
-    const paddedNumber = number.padStart(2, '0');
 
     const urls: string[] = [];
 
@@ -252,8 +251,6 @@ function generatePossibleUrls(info: RegulationInfo): string[] {
         urls.push(
             `https://jdih.setneg.go.id/viewpdfperaturan/Perpres%20Nomor%20${number}%20Tahun%20${year}.pdf`,
             `https://jdih.setneg.go.id/viewpdfperaturan/Perpres%20Nomor%20${number}%20Tahun%20${year}%20Produk%20setkab.pdf`,
-            `https://jdih.setkab.go.id/PUUdoc/${year}${paddedNumber}_PERPRES%20${number}%20TAHUN%20${year}.pdf`,
-            `https://jdih.setkab.go.id/PUUdoc/${year}0${number}_Perpres%20${number}%20Tahun%20${year}.pdf`,
             `https://peraturan.go.id/common/dokumen/ln/${year}/perpres${number}-${year}bt.pdf`,
             `https://peraturan.go.id/common/dokumen/ln/${year}/perpres${number}-${year}.pdf`,
         );
@@ -311,7 +308,7 @@ Anda hanya memberikan URL langsung ke file PDF, bukan halaman web.
 
 Sumber yang valid:
 - peraturan.bpk.go.id
-- jdih.setkab.go.id  
+- pasal.id
 - jdih.setneg.go.id
 - peraturan.go.id
 
@@ -432,6 +429,108 @@ async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string, onProgress?:
     return { success: false, error: 'Gagal mengekstrak teks dari PDF' };
 }
 
+/**
+ * Strategy 4 (Fallback): Fetch download URL from pasal.id API using PASAL_ID_TOKEN
+ */
+async function fetchFromPasalId(info: RegulationInfo, onProgress?: ProgressCallback): Promise<string | null> {
+    const token = process.env.PASAL_ID_TOKEN;
+    if (!token) {
+        console.log('fetchFromPasalId: PASAL_ID_TOKEN is not configured in environment');
+        return null;
+    }
+
+    const typeInfo = resolveType(info.type);
+    const query = `${typeInfo.fullName} Nomor ${info.number} Tahun ${info.year}`;
+    onProgress?.(`Mencari di Pasal.id: ${query}...`);
+    console.log(`Pasal.id Search: ${query}`);
+
+    try {
+        const searchUrl = `https://pasal.id/api/v1/search?q=${encodeURIComponent(query)}`;
+        const response = await fetch(searchUrl, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'User-Agent': USER_AGENT,
+            }
+        });
+
+        if (!response.ok) {
+            console.log(`Pasal.id Search API responded with status ${response.status}`);
+            return null;
+        }
+
+        const data = await response.json();
+        const results = data.results || [];
+        if (results.length === 0) {
+            console.log('Pasal.id Search: no results found');
+            return null;
+        }
+
+        // Filter results to find a match for type, number, and year
+        const targetType = typeInfo.bpkJenis.toLowerCase();
+        const targetNumber = info.number.toLowerCase();
+        const targetYear = info.year;
+
+        const match = results.find((r: {
+            work?: {
+                type?: string;
+                number?: string;
+                year?: number;
+                frbr_uri?: string;
+                title?: string;
+            }
+        }) => {
+            if (!r.work) return false;
+            const wType = r.work.type?.toLowerCase() || '';
+            const wNum = r.work.number?.toLowerCase() || '';
+            const wYear = r.work.year;
+            return (wType === targetType || wType.includes(targetType) || targetType.includes(wType)) &&
+                   wNum === targetNumber &&
+                   wYear === targetYear;
+        });
+
+        if (!match) {
+            console.log('Pasal.id Search: no matching regulation found in results');
+            return null;
+        }
+
+        const frbrUri = match.work.frbr_uri;
+        if (!frbrUri) {
+            console.log('Pasal.id Search: match has no frbr_uri');
+            return null;
+        }
+
+        onProgress?.(`Menyinkronkan detail untuk ${match.work.title}...`);
+        const detailUrl = `https://pasal.id/api/v1/laws${frbrUri}`;
+        console.log(`Pasal.id Details: ${detailUrl}`);
+
+        const detailRes = await fetch(detailUrl, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'User-Agent': USER_AGENT,
+            }
+        });
+
+        if (!detailRes.ok) {
+            console.log(`Pasal.id Details API responded with status ${detailRes.status}`);
+            return null;
+        }
+
+        const detailData = await detailRes.json();
+        const pdfUrl = detailData.work?.source_pdf_url || detailData.work?.provenance?.source_pdf_url;
+        
+        if (pdfUrl) {
+            console.log(`Pasal.id: Found PDF URL: ${pdfUrl}`);
+            return pdfUrl;
+        }
+
+        console.log('Pasal.id: No source_pdf_url found in details');
+        return null;
+    } catch (error) {
+        console.error('Pasal.id search error:', error);
+        return null;
+    }
+}
+
 // ─── Main Pipeline ───────────────────────────────────────────────────────────
 
 /**
@@ -519,6 +618,24 @@ export async function fetchRegulation(info: RegulationInfo, onProgress?: Progres
         }
     } catch (error) {
         console.error('AI search strategy failed:', error);
+    }
+
+    // ── Strategy 4: Pasal.id Fallback ──
+    onProgress?.('Strategi 4: Mencari di database Pasal.id...');
+    try {
+        const pasalUrl = await fetchFromPasalId(info, onProgress);
+        if (pasalUrl) {
+            onProgress?.(`Pasal.id menyarankan: ${pasalUrl}`);
+            const pdfBuffer = await downloadPDF(pasalUrl, onProgress);
+            if (pdfBuffer) {
+                const result = await extractPDFText(pdfBuffer, pasalUrl, onProgress);
+                if (result.success) return result;
+            }
+        } else {
+            onProgress?.('Pasal.id tidak menemukan URL yang valid');
+        }
+    } catch (error) {
+        console.error('Pasal.id search strategy failed:', error);
     }
 
     // All strategies failed

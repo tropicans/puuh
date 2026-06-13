@@ -24,6 +24,7 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - PASAL_ID_TOKEN=${PASAL_ID_TOKEN}
     depends_on:
       - postgres
       - minio

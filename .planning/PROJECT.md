@@ -8,14 +8,15 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
-## Current Milestone: v1.4 Fix Automatic Regulation Fetcher
+## Current Milestone: v1.5 Integrate Pasal.id and Remove Setkab
 
-**Goal:** Fix the automatic regulation fetcher failure, specifically for Perpres No. 82 Tahun 2018, by correcting PDF parsing and filtering issues.
+**Goal:** Integrate the Pasal.id API as a fallback regulation fetching source and clean up dead JDIH Setkab URL patterns.
 
 **Target features:**
-- Fix `pdf-parse` import/usage crash due to library API mismatch (it uses modern `PDFParse` class instead of legacy function).
-- Fix JDIH BPK search results filtering by decoding URI components (filename/slugs) to match spaces and special characters.
-- Verify automatic fetching of Indonesian regulations (like Peraturan Presiden No. 82 Tahun 2018) succeeds, is parsed, and is compared.
+- Add `.env` configuration for `PASAL_ID_TOKEN`.
+- Implement the `pasal.id` API search and fetching fallback in `regulation-fetcher.ts`.
+- Discard dead `jdih.setkab.go.id` URLs from the direct pattern generator to save connection timeouts.
+- Verify E2E that fetching from `pasal.id` works as a fallback.
 
 ## Requirements
 
@@ -33,10 +34,11 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **PDF Page-Splitting Fallback (v1.1)** — Try/catch page-by-page fallback processing in the PDF upload and parsing pipeline.
 - ✓ **Complete Documentation (v1.2)** — Created User Guide, Developer Guide, System Architecture, API Specification, and Deployment/Setup Instructions in the `docs` folder.
 - ✓ **Core Feature Verification (v1.3)** — Verified Docker container build/runtime, database migration/seeding, MinIO storage operations, digital PDF extraction, Vision OCR concurrency worker logic, article parser regex fallbacks, LCS diff engine unit tests, and NextAuth route protection guards.
+- ✓ **Automatic Regulation Fetcher Stabilization (v1.4)** — Fixed modern pdf-parse module API crash and BPK crawler search URL-encoded matches.
 
 ### Active
 
-- **Automatic Regulation Fetcher Stabilization (v1.4)** — Fix automatic regulation fetcher failure, specifically for Perpres No. 82 Tahun 2018, by correcting PDF parsing and filtering issues.
+- **Pasal.id Integration & Setkab Cleanup (v1.5)** — Integrate the Pasal.id API fallback using personal token authentication and remove dead JDIH Setkab connection attempts.
 
 
 ### Out of Scope
@@ -79,4 +81,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-13 for Milestone v1.4*
+*Last updated: 2026-06-13 for Milestone v1.5*
