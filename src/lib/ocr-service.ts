@@ -7,7 +7,7 @@ import type { PDFDocument } from 'pdf-lib';
 
 const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
 const LLM_API_KEY = process.env.OPENAI_API_KEY || '';
-const VISION_MODEL = 'gemini-2.5-flash'; // Vision-capable model
+const VISION_MODEL = process.env.VISION_MODEL || 'commandcode/google/gemini-3.5-flash'; // Vision-capable model
 
 /**
  * Perform OCR on an image using LLM Vision
