@@ -8,12 +8,18 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
-## Current Milestone: v1.2 Complete Documentation
+## Current Milestone: v1.3 Verify Main Application Features
 
-**Goal:** Create comprehensive documentation for the PUU Tracker application in the docs folder.
+**Goal:** Verify and audit that all core features of the PUU Tracker application are working correctly, robust, and correctly integrated.
 
 **Target features:**
-- Create User Guide, Developer Guide, System Architecture, API Specification, and Deployment/Setup Instructions in the `docs` folder.
+- Docker Setup, DB setup, Migrations, and Seeding verification.
+- PDF Upload & MinIO storage verification.
+- Digital and Scanned OCR PDF text extraction pipeline verification.
+- Article parsing and splitting verification.
+- Verbatim LCS diff engine verification.
+- NextAuth Authentication and role guards verification.
+- End-to-End document comparison flow verification.
 
 ## Requirements
 
@@ -29,14 +35,17 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **Parser & OCR Optimizations (v1.0)** — Parallelized Vision OCR chunks, regex fallback parser hardening, and MinIO proxy hostname mapping.
 - ✓ **Diff Engine Verification (v1.0)** — Vitest environment config and automated unit tests for diff-engine compare logic.
 - ✓ **PDF Page-Splitting Fallback (v1.1)** — Try/catch page-by-page fallback processing in the PDF upload and parsing pipeline.
+- ✓ **Complete Documentation (v1.2)** — Created User Guide, Developer Guide, System Architecture, API Specification, and Deployment/Setup Instructions in the `docs` folder.
 
 ### Active
 
-- [ ] **DOC-01**: Create User Guide detailing PDF Upload, Verbatim Diff comparison, and search usage.
-- [ ] **DOC-02**: Create Developer Guide detailing codebase layout, Prisma/PostgreSQL/MinIO details, and guide for adding features.
-- [ ] **DOC-03**: Create System Architecture & Data Flow detailing verbatim diff engine and text extraction fallback mechanism.
-- [ ] **DOC-04**: Create API Specification detailing endpoint description, input validation, and auth guards.
-- [ ] **DOC-05**: Create Deployment & Operations guide detailing Docker compose, database migrations, and environment setup.
+- [ ] **VERIFY-01**: Verify that the application builds, lints, and runs correctly in Docker with PostgreSQL and MinIO, and database migrations/seeding work.
+- [ ] **VERIFY-02**: Verify that PDF uploads to MinIO work correctly and the files are successfully stored and retrieved.
+- [ ] **VERIFY-03**: Verify that digital PDF text extraction (`pdfjs-dist`) extracts characters accurately.
+- [ ] **VERIFY-04**: Verify that scanned PDF Vision OCR processes chunks concurrently using `gemini-2.5-flash` under API proxy.
+- [ ] **VERIFY-05**: Verify that the LLM-assisted article parser and the Regex fallback parser segment legal texts into proper article JSON formats.
+- [ ] **VERIFY-06**: Verify that the verbatim LCS diff engine passes all unit tests and accurately maps word-level differences.
+- [ ] **VERIFY-07**: Verify that credentials authentication (NextAuth) and role-based access control (guards on pages/actions) restrict access properly.
 
 
 ### Out of Scope
@@ -79,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-13 for Milestone v1.2*
+*Last updated: 2026-06-13 for Milestone v1.3*
