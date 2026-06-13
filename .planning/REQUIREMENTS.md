@@ -1,20 +1,26 @@
-# Requirements: PUU Tracker Stabilization & Enhancement
+# Requirements: PUU Tracker Documentation
 
-**Defined:** 2026-06-08
-**Core Value:** Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation, and find them quickly.
+**Defined:** 2026-06-13
+**Core Value:** Enable users and developers to understand, run, develop, and deploy the PUU Tracker application through comprehensive documentation.
 
 ## v1 Requirements
 
-Requirements for this milestone cycle (v1.1). Each maps to roadmap phases.
+Requirements for this milestone cycle (v1.2). Each maps to roadmap phases.
+
+### Documentation
+
+- [ ] **DOC-01**: Create User Guide detailing PDF Upload, Verbatim Diff comparison, and search usage.
+- [ ] **DOC-02**: Create Developer Guide detailing codebase layout, Prisma/PostgreSQL/MinIO details, and guide for adding features.
+- [ ] **DOC-03**: Create System Architecture & Data Flow detailing verbatim diff engine and text extraction fallback mechanism.
+- [ ] **DOC-04**: Create API Specification detailing endpoint description, input validation, and auth guards.
+- [ ] **DOC-05**: Create Deployment & Operations guide detailing Docker compose, database migrations, and environment setup.
+
+## Completed Requirements (v1.1)
+
+Successfully completed in Milestone v1.1.
 
 ### PDF Processing Resilience
-
-- [ ] **RESIL-01**: Implement page-by-page fallback recovery in `pdf-service.ts`. If page-splitting via `pdf-lib` fails on a PDF file, catch the error and process pages one by one defensively.
-
-### Semantic Search & Indexing
-
-- [ ] **SEARCH-01**: Implement legal article embeddings generation using the OpenAI/Gemini API and store the embedding vectors in PostgreSQL.
-- [ ] **SEARCH-02**: Implement a natural language query interface in the dashboard allowing users to execute semantic searches across indexed legal articles.
+- ✓ **RESIL-01**: Implement page-by-page fallback recovery in `pdf-service.ts`. If page-splitting via `pdf-lib` fails on a PDF file, catch the error and process pages one by one defensively.
 
 ## Completed Requirements (v1.0)
 
@@ -39,6 +45,8 @@ Successfully completed in Milestone v1.0.
 
 Deferred to future releases.
 
+- **SEARCH-01**: Implement legal article embeddings generation using the OpenAI/Gemini API and store the embedding vectors in PostgreSQL.
+- **SEARCH-02**: Implement a natural language query interface in the dashboard allowing users to execute semantic searches across indexed legal articles.
 - **AI-03**: Add automatic summarization of legislation changes using LLMs.
 
 ## Out of Scope
@@ -54,11 +62,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RESIL-01 | Phase 4 | Pending |
-| SEARCH-01 | Phase 5 | Pending |
-| SEARCH-02 | Phase 5 | Pending |
+| DOC-01 | Phase 5 | Pending |
+| DOC-02 | Phase 5 | Pending |
+| DOC-03 | Phase 5 | Pending |
+| DOC-04 | Phase 5 | Pending |
+| DOC-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 3 total
-- Mapped to phases: 3
+- v1 requirements: 5 total
+- Mapped to phases: 5
 - Unmapped: 0 ✓
