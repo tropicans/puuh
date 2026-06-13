@@ -45,7 +45,7 @@ Last activity: 2026-06-13 — Milestone v1.2 started
 | 2. Parser & OCR | 2/2 | - | - |
 | 3. Testing | 1/1 | - | - |
 | 4. PDF Resilience | 1/1 | - | - |
-| 5. Semantic Search | 0/2 | - | - |
+| 5. Documentation | 0/1 | - | - |
 
 **Recent Trend:**
 
@@ -74,9 +74,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-08T05:57:00.000Z
-Stopped at: Phase 4 Plan 1 complete
-Resume file: .planning/phases/04-pdf-processing-resilience/04-01-PLAN.md
+Last session: 2026-06-13
+Stopped at: Milestone v1.2 started
+Resume file: .planning/phases/05-puu-tracker-documentation/05-01-PLAN.md
 
 ## Operator Next Steps
 
