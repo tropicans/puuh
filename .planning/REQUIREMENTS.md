@@ -1,21 +1,30 @@
-# Requirements: PUU Tracker Feature Verification
+# Requirements: PUU Tracker Automatic Regulation Fetcher Fix
 
 **Defined:** 2026-06-13
-**Core Value:** Ensure that the main features of the PUU Tracker application are verified, stable, and working properly.
+**Core Value:** Ensure that the automatic regulation fetcher works correctly and reliably, resolving PDF parsing crashes and slug matching issues.
 
-## v1.3 Requirements
+## v1.4 Requirements
 
-Requirements for this milestone cycle (v1.3). Each maps to roadmap phases.
+Requirements for this milestone cycle (v1.4). Each maps to roadmap phases.
+
+### Regulation Fetching & Parsing
+
+- [ ] **FETCH-01**: Fix `pdf-parse` implementation in the codebase by using the modern `PDFParse` class API to avoid runtime crashes.
+- [ ] **FETCH-02**: Normalize and decode URI components for BPK search result slugs and titles to correctly filter matches with spaces.
+- [ ] **FETCH-03**: Verify E2E that finding "Peraturan Presiden No. 82 Tahun 2018" automatically successfully searches, downloads, parses, and persists without needing manual upload.
+
+## Completed Requirements (v1.3)
+
+Successfully completed in Milestone v1.3.
 
 ### Feature Verification
-
-- [ ] **VERIFY-01**: Verify that the application builds, lints, and runs correctly in Docker with PostgreSQL and MinIO, and database migrations/seeding work.
-- [ ] **VERIFY-02**: Verify that PDF uploads to MinIO work correctly and the files are successfully stored and retrieved.
-- [ ] **VERIFY-03**: Verify that digital PDF text extraction (`pdfjs-dist`) extracts characters accurately.
-- [ ] **VERIFY-04**: Verify that scanned PDF Vision OCR processes chunks concurrently using `gemini-2.5-flash` under API proxy.
-- [ ] **VERIFY-05**: Verify that the LLM-assisted article parser and the Regex fallback parser segment legal texts into proper article JSON formats.
-- [ ] **VERIFY-06**: Verify that the verbatim LCS diff engine passes all unit tests and accurately maps word-level differences.
-- [ ] **VERIFY-07**: Verify that credentials authentication (NextAuth) and role-based access control (guards on pages/actions) restrict access properly.
+- ✓ **VERIFY-01**: Verify that the application builds, lints, and runs correctly in Docker with PostgreSQL and MinIO, and database migrations/seeding work.
+- ✓ **VERIFY-02**: Verify that PDF uploads to MinIO work correctly and the files are successfully stored and retrieved.
+- ✓ **VERIFY-03**: Verify that digital PDF text extraction (`pdfjs-dist`) extracts characters accurately.
+- ✓ **VERIFY-04**: Verify that scanned PDF Vision OCR processes chunks concurrently using `gemini-2.5-flash` under API proxy.
+- ✓ **VERIFY-05**: Verify that the LLM-assisted article parser and the Regex fallback parser segment legal texts into proper article JSON formats.
+- ✓ **VERIFY-06**: Verify that the verbatim LCS diff engine passes all unit tests and accurately maps word-level differences.
+- ✓ **VERIFY-07**: Verify that credentials authentication (NextAuth) and role-based access control (guards on pages/actions) restrict access properly.
 
 ## Completed Requirements (v1.2)
 
@@ -75,15 +84,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VERIFY-01   | Phase 6 | Pending |
-| VERIFY-02   | Phase 6 | Pending |
-| VERIFY-03   | Phase 6 | Pending |
-| VERIFY-04   | Phase 6 | Pending |
-| VERIFY-05   | Phase 6 | Pending |
-| VERIFY-06   | Phase 6 | Pending |
-| VERIFY-07   | Phase 6 | Pending |
+| FETCH-01    | Phase 7 | Pending |
+| FETCH-02    | Phase 7 | Pending |
+| FETCH-03    | Phase 7 | Pending |
 
 **Coverage:**
-- v1.3 requirements: 7 total
-- Mapped to phases: 7
+- v1.4 requirements: 3 total
+- Mapped to phases: 3
 - Unmapped: 0 ✓

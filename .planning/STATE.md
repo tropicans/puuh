@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: milestone
-status: completed
-stopped_at: Phase 6 complete
-last_updated: "2026-06-13T04:48:55.506Z"
-last_activity: 2026-06-13 -- Phase 6 marked complete
+milestone: v1.4
+milestone_name: Fix Automatic Regulation Fetcher
+status: planning
+last_updated: "2026-06-13T05:28:13.882Z"
+last_activity: 2026-06-13
 progress:
-  total_phases: 6
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 17
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-07)
 
 ## Current Position
 
-Phase: 6 — COMPLETE
-Plan: 1 of ?
-Status: Phase 6 complete
-Last activity: 2026-06-13 -- Phase 6 marked complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-13 — Milestone v1.4 started
 
 ## Performance Metrics
 

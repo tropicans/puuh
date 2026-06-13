@@ -8,18 +8,14 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
-## Current Milestone: v1.3 Verify Main Application Features
+## Current Milestone: v1.4 Fix Automatic Regulation Fetcher
 
-**Goal:** Verify and audit that all core features of the PUU Tracker application are working correctly, robust, and correctly integrated.
+**Goal:** Fix the automatic regulation fetcher failure, specifically for Perpres No. 82 Tahun 2018, by correcting PDF parsing and filtering issues.
 
 **Target features:**
-- Docker Setup, DB setup, Migrations, and Seeding verification.
-- PDF Upload & MinIO storage verification.
-- Digital and Scanned OCR PDF text extraction pipeline verification.
-- Article parsing and splitting verification.
-- Verbatim LCS diff engine verification.
-- NextAuth Authentication and role guards verification.
-- End-to-End document comparison flow verification.
+- Fix `pdf-parse` import/usage crash due to library API mismatch (it uses modern `PDFParse` class instead of legacy function).
+- Fix JDIH BPK search results filtering by decoding URI components (filename/slugs) to match spaces and special characters.
+- Verify automatic fetching of Indonesian regulations (like Peraturan Presiden No. 82 Tahun 2018) succeeds, is parsed, and is compared.
 
 ## Requirements
 
@@ -40,7 +36,7 @@ Enable users to trace and visualize verbatim changes in articles across differen
 
 ### Active
 
-*(none)*
+- **Automatic Regulation Fetcher Stabilization (v1.4)** — Fix automatic regulation fetcher failure, specifically for Perpres No. 82 Tahun 2018, by correcting PDF parsing and filtering issues.
 
 
 ### Out of Scope
@@ -83,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-13 for Milestone v1.3*
+*Last updated: 2026-06-13 for Milestone v1.4*

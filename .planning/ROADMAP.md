@@ -1,8 +1,8 @@
-# Roadmap: PUU Tracker Feature Verification
+# Roadmap: PUU Tracker Feature Verification & Fetcher Fix
 
 ## Overview
 
-Verify that the main features of the PUU Tracker application are working properly. This roadmap details the steps and success criteria for auditing and validating the core components of the system.
+Verify that the main features of the PUU Tracker application are working properly, and stabilize the automatic regulation fetching system.
 
 ## Phases
 
@@ -12,6 +12,7 @@ Verify that the main features of the PUU Tracker application are working properl
 - [x] **Phase 4: PDF Processing Resilience** - Implement single-page defensive fallback processing for complex legislation PDFs. (completed 2026-06-08)
 - [x] **Phase 5: PUU Tracker Documentation** - Create complete user, developer, architecture, API, and deployment documentation. (completed 2026-06-13)
 - [x] **Phase 6: Core Feature Verification** - Audit, test, and verify all core features of the application. (completed 2026-06-13)
+- [ ] **Phase 7: Automatic Regulation Fetcher Fix** - Fix modern pdf-parse API usage and slug URL-decoding issues to stabilize automatic downloads.
 
 ---
 
@@ -33,23 +34,23 @@ Verify that the main features of the PUU Tracker application are working properl
 *(Completed)*
 
 ### Phase 6: Core Feature Verification
+*(Completed)*
 
-**Goal**: Audit and verify all core features of the application to ensure they work correctly.
-**Mode**: verification
-**Depends on**: Phase 5
-**Requirements**: [VERIFY-01, VERIFY-02, VERIFY-03, VERIFY-04, VERIFY-05, VERIFY-06, VERIFY-07]
+### Phase 7: Automatic Regulation Fetcher Fix
+
+**Goal**: Fix modern pdf-parse API usage and decode search results URI components to successfully download regulations.
+**Mode**: execution
+**Depends on**: Phase 6
+**Requirements**: [FETCH-01, FETCH-02, FETCH-03]
 **Success Criteria**:
-  1. Docker container environment builds and runs, database migrations run successfully, and seed users are populated.
-  2. PDF file uploads to MinIO succeed, and URLs resolve correctly in both server and browser contexts.
-  3. Digital text extraction and concurrent scanned Vision OCR process test PDFs successfully and extract text.
-  4. Article parsing and regex fallbacks cleanly structure text into JSON arrays of articles.
-  5. Verbatim LCS diff engine successfully runs all unit tests and accurately diffs text differences.
-  6. Authentication credentials login and admin-only role guards restrict access properly.
-  7. A complete E2E workflow is verified (upload, parse, compare) on local/Docker.
+  1. No `pdf-parse is not a function` errors are thrown in the codebase.
+  2. BPK search result matching handles URL-encoded strings (e.g. `%20`) correctly.
+  3. Automatic fetching of Perpres No. 82 Tahun 2018 works successfully from the user interface/API and parses 74 pages of text.
+  4. Build compiles and lints cleanly.
 
 **Plans**: 1 plan
 Plans:
-- [x] 06-01: Audit all core components, run tests, spin up Docker, and perform E2E verification of the main flows.
+- [ ] 07-01: Update pdf-parse calls to use class syntax, decode slugs/titles in BPK results, verify automatic fetching of Perpres 82 2018, and run lint/build check.
 
 ---
 
@@ -63,3 +64,4 @@ Plans:
 | 4. PDF Processing Resilience | 1/1 | Complete | 2026-06-08 |
 | 5. PUU Tracker Documentation | 1/1 | Complete | 2026-06-13 |
 | 6. Core Feature Verification | 1/1 | Complete | 2026-06-13 |
+| 7. Automatic Regulation Fetcher Fix | 0/1 | Planning | - |
