@@ -36,16 +36,11 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **Diff Engine Verification (v1.0)** — Vitest environment config and automated unit tests for diff-engine compare logic.
 - ✓ **PDF Page-Splitting Fallback (v1.1)** — Try/catch page-by-page fallback processing in the PDF upload and parsing pipeline.
 - ✓ **Complete Documentation (v1.2)** — Created User Guide, Developer Guide, System Architecture, API Specification, and Deployment/Setup Instructions in the `docs` folder.
+- ✓ **Core Feature Verification (v1.3)** — Verified Docker container build/runtime, database migration/seeding, MinIO storage operations, digital PDF extraction, Vision OCR concurrency worker logic, article parser regex fallbacks, LCS diff engine unit tests, and NextAuth route protection guards.
 
 ### Active
 
-- [ ] **VERIFY-01**: Verify that the application builds, lints, and runs correctly in Docker with PostgreSQL and MinIO, and database migrations/seeding work.
-- [ ] **VERIFY-02**: Verify that PDF uploads to MinIO work correctly and the files are successfully stored and retrieved.
-- [ ] **VERIFY-03**: Verify that digital PDF text extraction (`pdfjs-dist`) extracts characters accurately.
-- [ ] **VERIFY-04**: Verify that scanned PDF Vision OCR processes chunks concurrently using `gemini-2.5-flash` under API proxy.
-- [ ] **VERIFY-05**: Verify that the LLM-assisted article parser and the Regex fallback parser segment legal texts into proper article JSON formats.
-- [ ] **VERIFY-06**: Verify that the verbatim LCS diff engine passes all unit tests and accurately maps word-level differences.
-- [ ] **VERIFY-07**: Verify that credentials authentication (NextAuth) and role-based access control (guards on pages/actions) restrict access properly.
+*(none)*
 
 
 ### Out of Scope
