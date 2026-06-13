@@ -1,3 +1,4 @@
+import './polyfills';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { cleanPdfText } from './utils';
 
@@ -113,12 +114,26 @@ export async function smartExtractPdfText(
         if (onProgress) onProgress('Metode 1 gagal/timeout, mencoba metode alternatif...');
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const pdfParse = require('pdf-parse');
-        const data = await pdfParse(pdfBuffer);
-        if (data.text && data.text.length > 200) {
+        let text = '';
+        let numPages = 0;
+        if (typeof pdfParse === 'function') {
+            const data = await pdfParse(pdfBuffer);
+            text = data.text || '';
+            numPages = data.numpages || 0;
+        } else if (pdfParse && typeof pdfParse.PDFParse === 'function') {
+            const parser = new pdfParse.PDFParse({ data: new Uint8Array(pdfBuffer) });
+            const result = await parser.getText();
+            text = result.text || '';
+            numPages = result.total || result.pages?.length || 0;
+        } else {
+            throw new Error('Unsupported pdf-parse module format');
+        }
+
+        if (text && text.length > 200) {
             return {
-                text: cleanPdfText(data.text), // Clean logic is hoisted or we duplicate/move the function function to top level scope if needed, but here it assumes it's available
+                text: cleanPdfText(text),
                 method: 'pdf-parse',
-                numPages: data.numpages
+                numPages: numPages
             };
         }
         console.log('pdf-parse also got little text');

@@ -50,9 +50,22 @@ export async function POST(
         try {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const pdfParse = require('pdf-parse');
-            const pdfData = await pdfParse(buffer);
-            rawText = pdfData.text || '';
-            numPages = pdfData.numpages || 0;
+            let text = '';
+            let pages = 0;
+            if (typeof pdfParse === 'function') {
+                const pdfData = await pdfParse(buffer);
+                text = pdfData.text || '';
+                pages = pdfData.numpages || 0;
+            } else if (pdfParse && typeof pdfParse.PDFParse === 'function') {
+                const parser = new pdfParse.PDFParse({ data: new Uint8Array(buffer) });
+                const result = await parser.getText();
+                text = result.text || '';
+                pages = result.total || result.pages?.length || 0;
+            } else {
+                throw new Error('Unsupported pdf-parse module format');
+            }
+            rawText = text;
+            numPages = pages;
             console.log(`PDF re-uploaded: ${rawText.length} chars, ${numPages} pages`);
         } catch (e) {
             console.error('Error parsing PDF:', e);

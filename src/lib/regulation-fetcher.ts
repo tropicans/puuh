@@ -8,6 +8,7 @@
  *  3. LLM Search (last resort) — asks AI to help find the URL
  */
 
+import './polyfills';
 import { extractTextWithVision } from './ocr-service';
 
 const LLM_BASE_URL = process.env.OPENAI_BASE_URL || 'https://proxy.kelazz.my.id/v1';
@@ -196,8 +197,8 @@ async function searchBPK(info: RegulationInfo, onProgress?: ProgressCallback): P
     const yearStr = String(info.year);
 
     const filtered = results.filter(r => {
-        const slug = r.slug.toLowerCase();
-        const title = r.title.toLowerCase();
+        const slug = decodeURIComponent(r.slug).toLowerCase();
+        const title = decodeURIComponent(r.title).toLowerCase();
         const combined = `${slug} ${title}`;
 
         // Must match type prefix
@@ -377,19 +378,33 @@ async function extractPDFText(pdfBuffer: Buffer, sourceUrl: string, onProgress?:
     try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const pdfParse = require('pdf-parse');
-        const pdfData = await pdfParse(pdfBuffer);
-        if (pdfData.text && pdfData.text.length > 500) {
-            console.log(`PDF text extraction successful: ${pdfData.text.length} chars`);
-            onProgress?.(`Teks berhasil diekstrak: ${pdfData.text.length.toLocaleString()} karakter, ${pdfData.numpages} halaman`);
+        let text = '';
+        let numPages = 0;
+        if (typeof pdfParse === 'function') {
+            const pdfData = await pdfParse(pdfBuffer);
+            text = pdfData.text || '';
+            numPages = pdfData.numpages || 0;
+        } else if (pdfParse && typeof pdfParse.PDFParse === 'function') {
+            const parser = new pdfParse.PDFParse({ data: new Uint8Array(pdfBuffer) });
+            const result = await parser.getText();
+            text = result.text || '';
+            numPages = result.total || result.pages?.length || 0;
+        } else {
+            throw new Error('Unsupported pdf-parse module format');
+        }
+
+        if (text && text.length > 500) {
+            console.log(`PDF text extraction successful: ${text.length} chars`);
+            onProgress?.(`Teks berhasil diekstrak: ${text.length.toLocaleString()} karakter, ${numPages} halaman`);
             return {
                 success: true,
-                rawText: pdfData.text,
+                rawText: text,
                 sourceUrl,
-                numPages: pdfData.numpages,
+                numPages: numPages,
                 ocrUsed: false
             };
         }
-        console.log(`PDF text too short (${pdfData.text?.length || 0} chars), trying Vision OCR...`);
+        console.log(`PDF text too short (${text?.length || 0} chars), trying Vision OCR...`);
         onProgress?.('Teks PDF terlalu pendek, mencoba OCR...');
     } catch (e) {
         console.log('PDF text extraction failed, trying Vision OCR...', e);
