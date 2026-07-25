@@ -1,17 +1,31 @@
-# Requirements: PUU Tracker Automatic Regulation Fetcher Fix
+# Requirements: PUU Tracker Documentation Updates
 
-**Defined:** 2026-06-13
-**Core Value:** Ensure that the automatic regulation fetcher works correctly and reliably, resolving PDF parsing crashes and slug matching issues.
+**Defined:** 2026-07-25
+**Core Value:** Ensure that the system documentation is complete, accurate, and covers all recently added features (BPK Fetcher, Pasal.id fallback, API endpoints, etc.).
 
-## v1.4 Requirements
+## v1.6 Requirements
 
-Requirements for this milestone cycle (v1.4). Each maps to roadmap phases.
+Requirements for this milestone cycle (v1.6). Each maps to roadmap phases.
 
-### Regulation Fetching & Parsing
+### Documentation Updates
 
-- [x] **FETCH-01**: Fix `pdf-parse` implementation in the codebase by using the modern `PDFParse` class API to avoid runtime crashes.
-- [x] **FETCH-02**: Normalize and decode URI components for BPK search result slugs and titles to correctly filter matches with spaces.
-- [x] **FETCH-03**: Verify E2E that finding "Peraturan Presiden No. 82 Tahun 2018" automatically successfully searches, downloads, parses, and persists without needing manual upload.
+- [ ] **DOC-06**: Update `docs/api-specification.md` to detail the `/api/regulations/fetch` streamed POST endpoint, request parameters, and progress Server-Sent Events structure.
+- [ ] **DOC-07**: Update `docs/architecture.md` with description of BPK crawler search and Pasal.id API fallback flow integration.
+- [ ] **DOC-08**: Update `docs/deployment.md` and `docs/developer-guide.md` to detail `PASAL_ID_TOKEN` config and codebase fetcher functions.
+- [ ] **DOC-09**: Update `docs/user-guide.md` to instruct on the UI dashboard search bar automatic download usage.
+- [ ] **DOC-10**: Verify all documentation files build, compile, have correct internal links, and present clean formatting.
+
+## Completed Requirements (v1.4 & v1.5)
+
+Successfully completed in Milestones v1.4 and v1.5.
+
+### Automatic Fetcher & Pasal.id Fallback
+
+- ✓ **FETCH-01**: Fix `pdf-parse` implementation in the codebase by using the modern `PDFParse` class API to avoid runtime crashes.
+- ✓ **FETCH-02**: Normalize and decode URI components for BPK search result slugs and titles to correctly filter matches with spaces.
+- ✓ **FETCH-03**: Verify E2E that finding "Peraturan Presiden No. 82 Tahun 2018" automatically successfully searches, downloads, parses, and persists without needing manual upload.
+- ✓ **FETCH-04**: Implement Pasal.id search and details API fetching fallback using personal token authentication in `regulation-fetcher.ts`.
+- ✓ **FETCH-05**: Clean up and remove dead Setkab crawler URL pattern generation.
 
 ## Completed Requirements (v1.3)
 
@@ -90,12 +104,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FETCH-01    | Phase 7 | Complete |
-| FETCH-02    | Phase 7 | Complete |
-| FETCH-03    | Phase 7 | Complete |
 
 **Coverage:**
 
-- v1.4 requirements: 3 total
-- Mapped to phases: 3
-- Unmapped: 0 ✓
+- v1.6 requirements: 5 total
+- Mapped to phases: 0
+- Unmapped: 5
+
+*Last updated: 2026-07-25*
