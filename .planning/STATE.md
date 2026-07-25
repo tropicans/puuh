@@ -1,13 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Phase 6 complete
-last_updated: "2026-06-13T06:20:50.552Z"
-last_activity: 2026-06-13 — Milestone v1.5 completed and archived
+milestone: v1.6
+milestone_name: Update Documentation for Automatic Fetcher & Pasal.id API fallback
+status: planning
+last_updated: "2026-07-25T13:33:17.929Z"
+last_activity: 2026-07-25
 progress:
-  total_phases: 8
+  total_phases: 0
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-07)
 
 ## Current Position
 
-Phase: Milestone v1.5 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-13 — Milestone v1.5 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-25 — Milestone v1.6 started
 
 ## Performance Metrics
 

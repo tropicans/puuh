@@ -8,15 +8,15 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
-## Current Milestone: v1.5 Integrate Pasal.id and Remove Setkab
+## Current Milestone: v1.6 Update Documentation for Automatic Fetcher & Pasal.id API fallback
 
-**Goal:** Integrate the Pasal.id API as a fallback regulation fetching source and clean up dead JDIH Setkab URL patterns.
+**Goal:** Audit and update system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
 
 **Target features:**
-- Add `.env` configuration for `PASAL_ID_TOKEN`.
-- Implement the `pasal.id` API search and fetching fallback in `regulation-fetcher.ts`.
-- Discard dead `jdih.setkab.go.id` URLs from the direct pattern generator to save connection timeouts.
-- Verify E2E that fetching from `pasal.id` works as a fallback.
+- Add `/api/regulations/fetch` stream endpoint details to `docs/api-specification.md`.
+- Add description of the BPK search crawler and Pasal.id API fallback strategies to `docs/architecture.md`.
+- Document `PASAL_ID_TOKEN` and BPK fetch configurations in `docs/deployment.md` and `docs/developer-guide.md`.
+- Document the UI search bar automatic fetch usage in `docs/user-guide.md`.
 
 ## Requirements
 
@@ -35,10 +35,11 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **Complete Documentation (v1.2)** — Created User Guide, Developer Guide, System Architecture, API Specification, and Deployment/Setup Instructions in the `docs` folder.
 - ✓ **Core Feature Verification (v1.3)** — Verified Docker container build/runtime, database migration/seeding, MinIO storage operations, digital PDF extraction, Vision OCR concurrency worker logic, article parser regex fallbacks, LCS diff engine unit tests, and NextAuth route protection guards.
 - ✓ **Automatic Regulation Fetcher Stabilization (v1.4)** — Fixed modern pdf-parse module API crash and BPK crawler search URL-encoded matches.
+- ✓ **Pasal.id Integration & Setkab Cleanup (v1.5)** — Integrate the Pasal.id API fallback using personal token authentication and remove dead JDIH Setkab connection attempts.
 
 ### Active
 
-- **Pasal.id Integration & Setkab Cleanup (v1.5)** — Integrate the Pasal.id API fallback using personal token authentication and remove dead JDIH Setkab connection attempts.
+- **Update Documentation (v1.6)** — Audit and update system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
 
 
 ### Out of Scope
@@ -59,7 +60,7 @@ The codebase is a Next.js App Router project leveraging React 19, Prisma, Postgr
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Focus on Stabilization | The core features (PDF parsing, diffing) exist but need environment, security, and performance cleanup. | — Pending |
+| Focus on Documentation Update | Recent critical features (BPK fetcher, Pasal.id fallback, modern pdf-parse) were implemented but are completely missing from the system documentation. | — Pending |
 
 ---
 
@@ -81,4 +82,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-13 for Milestone v1.5*
+*Last updated: 2026-07-25 for Milestone v1.6*
