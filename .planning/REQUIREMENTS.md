@@ -104,11 +104,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| DOC-06      | Phase 9 | Planning |
+| DOC-07      | Phase 9 | Planning |
+| DOC-08      | Phase 9 | Planning |
+| DOC-09      | Phase 9 | Planning |
+| DOC-10      | Phase 9 | Planning |
 
 **Coverage:**
 
 - v1.6 requirements: 5 total
-- Mapped to phases: 0
-- Unmapped: 5
+- Mapped to phases: 5
+- Unmapped: 0 ✓
 
 *Last updated: 2026-07-25*

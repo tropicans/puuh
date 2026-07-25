@@ -13,6 +13,8 @@ Verify that the main features of the PUU Tracker application are working properl
 - [x] **Phase 5: PUU Tracker Documentation** - Create complete user, developer, architecture, API, and deployment documentation. (completed 2026-06-13)
 - [x] **Phase 6: Core Feature Verification** - Audit, test, and verify all core features of the application. (completed 2026-06-13)
 - [x] **Phase 7: Automatic Regulation Fetcher Fix** - Fix modern pdf-parse API usage and slug URL-decoding issues to stabilize automatic downloads. (completed 2026-06-13)
+- [x] **Phase 8: Integrate Pasal.id and Clean Setkab** - Integrate the Pasal.id API fallback using personal token authentication and remove dead JDIH Setkab connection attempts. (completed 2026-06-13)
+- [ ] **Phase 9: Documentation Update** - Audit and update system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
 
 ---
 
@@ -40,53 +42,34 @@ Verify that the main features of the PUU Tracker application are working properl
 
 ### Phase 6: Core Feature Verification
 
-**Goal**: Audit and verify all core features of the application to ensure they work correctly.
-**Mode**: verification
-**Depends on**: Phase 5
-**Requirements**: [VERIFY-01, VERIFY-02, VERIFY-03, VERIFY-04, VERIFY-05, VERIFY-06, VERIFY-07]
-**Success Criteria**:
-
-  1. Docker container environment builds and runs, database migrations run successfully, and seed users are populated.
-  2. PDF file uploads to MinIO succeed, and URLs resolve correctly in both server and browser contexts.
-  3. Digital text extraction and concurrent scanned Vision OCR process test PDFs successfully and extract text.
-  4. Article parsing and regex fallbacks cleanly structure text into JSON arrays of articles.
-  5. Verbatim LCS diff engine successfully runs all unit tests and accurately diffs text differences.
-  6. Authentication credentials login and admin-only role guards restrict access properly.
-  7. A complete E2E workflow is verified (upload, parse, compare) on local/Docker.
-
-**Plans**: 1 plan
-Plans:
-
-- [x] 06-01: Audit all core components, run tests, spin up Docker, and perform E2E verification of the main flows.
+*(Completed)*
 
 ### Phase 7: Automatic Regulation Fetcher Fix
 
-**Goal**: Fix modern pdf-parse API usage and decode search results URI components to successfully download regulations.
+*(Completed)*
+
+### Phase 8: Integrate Pasal.id and Clean Setkab
+
+*(Completed)*
+
+### Phase 9: Documentation Update
+
+**Goal**: Audit and update system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
 **Mode**: execution
-**Depends on**: Phase 6
-**Requirements**: [FETCH-01, FETCH-02, FETCH-03]
+**Depends on**: Phase 8
+**Requirements**: [DOC-06, DOC-07, DOC-08, DOC-09, DOC-10]
 **Success Criteria**:
 
-  1. No `pdf-parse is not a function` errors are thrown in the codebase.
-  2. BPK search result matching handles URL-encoded strings (e.g. `%20`) correctly.
-  3. Automatic fetching of Perpres No. 82 Tahun 2018 works successfully from the user interface/API and parses 74 pages of text.
-  4. Build compiles and lints cleanly.
+  1. `docs/api-specification.md` updated with the `/api/regulations/fetch` streamed POST endpoint, request parameters, and progress SSE structure.
+  2. `docs/architecture.md` updated to describe the BPK crawler search and Pasal.id API fallback flow integration.
+  3. `docs/deployment.md` and `docs/developer-guide.md` updated with `PASAL_ID_TOKEN` and fetching configuration.
+  4. `docs/user-guide.md` updated with user instructions on automatic fetching via the search bar.
+  5. All markdown files build/compile cleanly with proper formatting and links.
 
 **Plans**: 1 plan
 Plans:
 
-- [x] 07-01: Update pdf-parse calls to use class syntax, decode slugs/titles in BPK results, verify automatic fetching of Perpres 82 2018, and run lint/build check.
-
-### Phase 8: Integrate Pasal.id and Clean Setkab
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 7
-**Plans:** 0/0 plans complete
-
-Plans:
-
-- [x] TBD (run /gsd-plan-phase 8 to break down) (completed 2026-06-13)
+- [ ] 09-01: Update documentation markdown files to cover fetcher/Pasal.id API fallback and verify their formatting and links.
 
 ---
 
@@ -100,4 +83,6 @@ Plans:
 | 4. PDF Processing Resilience | 1/1 | Complete | 2026-06-08 |
 | 5. PUU Tracker Documentation | 1/1 | Complete | 2026-06-13 |
 | 6. Core Feature Verification | 1/1 | Complete | 2026-06-13 |
-| 7. Automatic Regulation Fetcher Fix | 0/0 | Complete    | 2026-06-13 |
+| 7. Automatic Regulation Fetcher Fix | 1/1 | Complete | 2026-06-13 |
+| 8. Integrate Pasal.id and Clean Setkab | 1/1 | Complete | 2026-06-13 |
+| 9. Documentation Update | 0/1 | Planning | |
