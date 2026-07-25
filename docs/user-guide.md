@@ -33,7 +33,7 @@ Access to PUU Tracker is secured via credential-based login. There are two prima
 ## 3. Dashboard Overview
 
 After logging in, you will be redirected to the **Dashboard** (`/dashboard`). The dashboard serves as the central hub of the application:
-1. **Search Bar**: Search regulations by title, type, number, or year.
+1. **Search Bar**: Search regulations by title, type, number, or year. Admins can also use this bar to quickly fetch and import regulations that are not yet stored in the system (e.g. typing "Perpres 82 2018" and initiating an automatic fetch process).
 2. **Recent Uploads**: View the latest uploaded regulations and their processing status.
 3. **Quick Statistics**: See the total number of regulations, active versions, and parsed articles in the system.
 
@@ -65,6 +65,23 @@ Click **Upload and Parse**. The app will upload the PDF to MinIO object storage 
 2. **Vision OCR Fallback**: If pages are scanned images (or digital extraction yields no text), the system defensive fallback kicks in to execute page-by-page OCR using the Gemini Vision API.
 3. **Article Deconstruction**: The parsed raw text is sent to an LLM-assisted parser to split the text into a clean JSON array of articles (`Pasal` structure).
 4. **Diff Analysis**: The engine compares the newly parsed articles with the original version (if an "Amends" relationship was set) and logs the differences.
+
+---
+
+## 4.1. Automatic Regulation Fetching (Admin Flow)
+
+In addition to manual PDF uploads, Admins can utilize the Automatic Regulation Fetcher to query, download, and parse legislation directly from the internet.
+
+### How to Use the Fetcher
+1. **Input Search Query**: In the Dashboard's Search Bar, type a query using natural Indonesian regulation shorthand (e.g. `Perpres 82 2018`, `UU 11 2020`, `PP 35 2021`).
+2. **Launch Fetch**: If the search doesn't return any local results, click the **Fetch from Internet** button.
+3. **Monitor Progress**: The page will display live, streaming progress updates as the fetcher advances through its pipeline:
+   - *Memahami input pencarian...* (Parsing query via AI)
+   - *Strategi 1: Mencari di database JDIH BPK...* (Searching BPK crawler)
+   - *Strategi 4: Mencari di database Pasal.id...* (Failing back to Pasal.id fallback if needed)
+   - *Menyimpan ke database...* (Saving version metadata and PDF text content)
+   - *AI sedang mengekstrak pasal-pasal...* (Invoking LLM parser to split articles)
+4. **Completion**: Upon successful import, the screen automatically updates to present the new regulation details and parsed article list. If the fetch pipeline fails on all 4 strategies, an error message is printed and the Admin is guided to perform a manual PDF upload.
 
 ---
 

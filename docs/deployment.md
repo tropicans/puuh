@@ -27,11 +27,15 @@ MINIO_ACCESS_KEY="minio_admin"
 MINIO_SECRET_KEY="minio_secret_pass"
 MINIO_BUCKET_NAME="puu-documents"
 
-# LLM & Vision OCR Settings
+# LLM, Vision OCR & Fetcher Settings
 OPENAI_API_KEY="your-llm-api-key"
 OPENAI_BASE_URL="https://proxy.kelazz.my.id/v1"
 OPENAI_MODEL="gemini-2.5-flash"
 GOOGLE_VISION_API_KEY="optional-google-vision-key"
+
+# Optional Pasal.id API token (for automatic fetch fallback Strategy 4)
+# Highly recommended for maximum automatic fetch success rates
+PASAL_ID_TOKEN="your-pasal-id-personal-token"
 ```
 
 ---

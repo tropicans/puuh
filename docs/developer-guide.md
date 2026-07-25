@@ -56,6 +56,12 @@ The app integrates with an LLM provider (configured via proxy in `.env`) to hand
 * **Vision OCR**: Concurrently running scanned PDF pages through Gemini Vision OCR (`src/lib/ocr-service.ts`).
 * **Text Structuring**: Parsing raw Indonesian legal text into structured JSON articles (`src/lib/ai-service.ts`).
 
+### Automatic Regulation Fetcher & Pasal.id API Fallback
+The automatic fetching service (`src/lib/regulation-fetcher.ts`) queries public repositories to import new legislation versions automatically:
+* **Endpoint route**: `src/app/api/regulations/fetch/route.ts` manages query parsing, NextAuth authorization checks, and streams raw text extraction progress to client UIs.
+* **Fallback API client**: Integrates with the external Pasal.id API to serve as a high-reliability fallback when public JDIH crawlers fail or become rate-limited.
+* **Configuration variable**: Set `PASAL_ID_TOKEN` in `.env` to enable authenticating to the Pasal.id search and detail endpoints. If left unconfigured, Strategy 4 fallback will be skipped.
+
 ---
 
 ## 3. Database Model Architecture

@@ -73,6 +73,53 @@ flowchart TD
 
 ---
 
+## 2.2. Automatic Regulation Fetching Pipeline
+
+To simplify data ingestion, the system includes an automatic fetching service (`src/lib/regulation-fetcher.ts`) that implements a 4-strategy pipeline to query, download, and extract text from public sources. This runs entirely in the background and reports progress in real time via Server-Sent Events (SSE).
+
+```mermaid
+flowchart TD
+    Start([Receive Fetch Request]) --> InputCheck{Has raw query?}
+    
+    InputCheck -- Yes --> ParseInput[Parse query via LLM\ne.g., 'Perpres 82 2018']
+    ParseInput --> SetParams[Extract Type, Number, Year]
+    InputCheck -- No --> SetParams
+    
+    SetParams --> Strategy1[Strategy 1: JDIH BPK Search Scraping]
+    Strategy1 --> S1Check{PDF found & downloaded?}
+    
+    S1Check -- Yes --> ExtractText[Extract PDF Text\nSmart Extraction]
+    S1Check -- No --> Strategy2[Strategy 2: Direct URL Patterns\nSetneg / peraturan.go.id]
+    
+    Strategy2 --> S2Check{PDF found & downloaded?}
+    S2Check -- Yes --> ExtractText
+    S2Check -- No --> Strategy3[Strategy 3: LLM-Assisted URL Search]
+    
+    Strategy3 --> S3Check{PDF found & downloaded?}
+    S3Check -- Yes --> ExtractText
+    S3Check -- No --> Strategy4[Strategy 4: Pasal.id Fallback\nPersonal Token API]
+    
+    Strategy4 --> S4Check{PDF found & downloaded?}
+    S4Check -- Yes --> ExtractText
+    S4Check -- No --> Fail([Return Error Event])
+    
+    ExtractText --> TextCheck{Text extraction success?}
+    TextCheck -- Yes --> SaveDB[Save Version & Parse Articles]
+    TextCheck -- No --> Fail
+    
+    SaveDB --> Success([Return Success Event])
+```
+
+### Detailed Strategy Fallback Loop
+
+1. **Strategy 1: BPK Search Scraping (`searchBPK`)**: Performs a query directly on `peraturan.bpk.go.id/Search?nomor={number}&tahun={year}`. It parses the results for direct PDF download links and matching detail page paths (`/Details/{id}`). If no direct download link exists, it attempts to follow detail pages to scrape the PDF URLs. Matches are validated against the target regulation type, number, and year using string heuristics.
+2. **Strategy 2: Direct URL Patterns (`generatePossibleUrls`)**: Constructs candidate URLs based on known patterns for `jdih.setneg.go.id` and `peraturan.go.id` for major types (`UU`, `PP`, `Perpres`).
+3. **Strategy 3: LLM Search (`searchWithAI`)**: Queries the LLM proxy to suggest an exact URL structure for the target regulation from trusted domains.
+4. **Strategy 4: Pasal.id API Fallback (`fetchFromPasalId`)**: Serves as the ultimate fallback. Uses the `PASAL_ID_TOKEN` to call Pasal.id's search API (`/api/v1/search`), filters the results for exact metadata matches, retrieves the unique `frbr_uri`, requests the specific legislation JSON details, and extracts the `source_pdf_url` (or `provenance.source_pdf_url`).
+5. **JDIH Setkab Removal**: All legacy connection attempts to JDIH Setkab (which were unstable and rate-limited) have been removed, making the fetcher lean and reliant on the BPK crawler as primary and Pasal.id as the robust secondary.
+
+---
+
 ## 3. Verbatim LCS Diff Engine
 
 The diff engine (`src/lib/diff-engine.ts`) implements a word-level (verbatim) Longest Common Subsequence (LCS) algorithm to track legislative modifications.

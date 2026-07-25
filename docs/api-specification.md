@@ -84,6 +84,63 @@ Serves as a secure download proxy for PDFs stored inside the MinIO object storag
 
 ---
 
+### POST `/api/regulations/fetch`
+Initiates a streamed background process that searches, downloads, parses, and imports a regulation from public JDIH databases or the Pasal.id fallback API.
+
+* **Authorization**: Requires authenticated user with `ADMIN` role.
+* **Rate Limiting**: Same as other admin mutation endpoints.
+* **Headers**:
+  * Request `Content-Type: application/json`
+  * Response `Content-Type: text/plain; charset=utf-8`
+  * Response `Transfer-Encoding: chunked`
+* **JSON Parameters**:
+  * `query` *(Optional string)*: A natural query to parse (e.g. `"Perpres 82 2018"` or `"UU Nomor 11 Tahun 2020"`). If provided, type, number, and year are parsed automatically via LLM.
+  * `type` *(Optional string)*: The regulation type short name (e.g., `UU`, `PP`, `Perpres`, `Permen`, `Perda`). Required if `query` is omitted.
+  * `number` *(Optional string)*: The regulation official number (e.g. `82`). Required if `query` is omitted.
+  * `year` *(Optional number/string)*: The publication year (e.g. `2018`). Required if `query` is omitted.
+  * `title` *(Optional string)*: Custom title to apply. If omitted, the crawled/fetched title or generated standard title is used.
+  * `existingRegulationId` *(Optional string)*: ID of the regulation if importing a new version of an existing legislation topic.
+
+#### Stream Response (Newline-Delimited JSON)
+The endpoint returns a chunked `text/plain` stream where each line contains a single serialized JSON object followed by a newline `\n`.
+
+* **Progress Event**:
+  ```json
+  { "type": "progress", "message": "Strategi 1: Mencari di database JDIH BPK..." }
+  ```
+  Sent periodically to update the client on the current pipeline phase or strategy.
+  
+* **Success Event**:
+  ```json
+  {
+    "type": "success",
+    "data": {
+      "message": "Perpres Nomor 82 Tahun 2018 berhasil ditambahkan",
+      "regulationId": "cuid-regulation-123",
+      "versionId": "cuid-version-456",
+      "sourceUrl": "https://peraturan.bpk.go.id/Download/12345/Perpres_82_2018.pdf",
+      "numPages": 45,
+      "parsedArticles": 12
+    }
+  }
+  ```
+  Sent once at the very end when the PDF is downloaded, stored, parsed, and its articles successfully saved to the database.
+
+* **Error Event**:
+  ```json
+  { "type": "error", "message": "Tidak dapat menemukan Perpres No. 99 Tahun 2026 secara otomatis. Silakan upload manual." }
+  ```
+  Sent if any strategy fails or if a validation error occurs. Once an error event is sent, the stream terminates.
+
+#### HTTP Status Codes
+* `200 OK`: Successful connection initialization (stream starting).
+* `400 Bad Request`: Missing mandatory parameters or invalid search query format.
+* `401 Unauthorized`: No active session cookie.
+* `403 Forbidden`: User has `VIEWER` role instead of `ADMIN`.
+* `500 Internal Server Error`: Unexpected pipeline failure.
+
+---
+
 ## 3. Zod Input Validation Schema
 
 Data boundaries are validated using Zod schema models defined in `src/lib/validations.ts`:
