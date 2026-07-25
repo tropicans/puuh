@@ -1,121 +1,142 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-06-07
+**Analysis Date:** 2026-07-25
 
 ## Directory Layout
 
 ```
 puu/
-├── .agent/              # Agent skill configurations, GSD core workflows, and templates
-├── prisma/              # Prisma configuration and schema definition
-│   └── schema.prisma    # Database schema (PostgreSQL)
-├── public/              # Static public assets (images, icons, etc.)
-├── scripts/             # Infrastructure helper scripts (e.g. DB status checks)
-├── src/                 # Application source code
-│   ├── actions/         # Next.js Server Actions (data fetching & mutation)
-│   ├── app/             # Next.js App Router (pages, layouts, and API routes)
-│   ├── components/      # Reusable React components (shadcn/ui + feature views)
-│   └── lib/             # Shared libraries and business helper utilities
-├── .env                 # Environment variables configuration
-├── docker-compose.yml   # Multi-container orchestration (App, Postgres, MinIO)
-├── Dockerfile           # Docker configuration for production build
-├── package.json         # npm package manifest and dependencies
-└── tsconfig.json        # TypeScript compiler configuration
+├── .agent/             # GSD instructions, settings, and skills
+├── prisma/             # Prisma ORM setup and migrations
+│   └── migrations/    # SQL migration records
+├── public/             # Static public assets
+├── scripts/            # Database utility scripts
+├── src/                # Primary application source
+│   ├── actions/        # Next.js Server Actions (mutations & data actions)
+│   ├── app/            # App Router pages and API routes
+│   │   ├── api/        # REST APIs (auth, upload, document endpoints)
+│   │   ├── compare/    # Comparison routing views
+│   │   ├── dashboard/  # Application Dashboard
+│   │   ├── design/     # Theme test views
+│   │   ├── login/      # Auth login components
+│   │   ├── manage/     # Admin management paths
+│   │   ├── regulations/# Regulation details
+│   │   ├── settings/   # App settings views
+│   │   └── upload/     # File upload pages
+│   ├── components/     # React presentation components
+│   │   ├── common/     # Reusable UI elements
+│   │   ├── comparison/ # Highlighted diff panels
+│   │   ├── dashboard/  # Dashboard segments
+│   │   ├── layout/     # Shared layout wrappers (Sidebar, Topbar)
+│   │   ├── regulations/# Legislation lists and timelines
+│   │   ├── search/     # Search input bars
+│   │   └── ui/         # shadcn headless primitives
+│   └── lib/            # Specialized library services (LCS, OCR, PDF parser)
+├── Dockerfile          # Multi-stage production container build
+├── docker-compose.yml  # Multi-service runtime configuration
+├── package.json        # Node dependencies and scripts
+└── tsconfig.json       # TypeScript options
 ```
 
 ## Directory Purposes
 
+**prisma/**
+- Purpose: Database configuration, schemas, and tracking migrations.
+- Contains: `schema.prisma` mapping database relations and SQL migrations.
+- Key files: `schema.prisma`.
+
 **src/actions/**
-- Purpose: Contains server actions invoked directly by React client/server components.
-- Contains: `regulations.ts`, `users.ts`.
-- Key files:
-  - `regulations.ts`: CRUD operations for regulation types, regulations, versions, and articles.
-  - `users.ts`: Actions to fetch users or seed administrative user accounts.
+- Purpose: React Server Actions implementing server mutations, authorization, and database calls.
+- Contains: `regulations.ts` and `users.ts` server logic.
+- Key files: `regulations.ts` - creates, modifies, and deletes regulation metadata and text changes.
 
 **src/app/**
-- Purpose: Next.js App Router page components, global layouts, styles, and API route handlers.
-- Contains:
-  - `api/`: API endpoints, including `/api/upload` (streamed file processor), `/api/auth` (NextAuth), `/api/db-status`.
-  - `compare/`: Version comparison page.
-  - `dashboard/`: Application overview and search panel.
-  - `regulations/`: Detail pages for specific regulations and versions.
-  - `upload/`: Form for admins to upload new PDF files.
-  - `globals.css`: Tailwind v4 styles.
-  - `layout.tsx` & `page.tsx`: Core shell and redirection logic.
+- Purpose: App Router directory defining URL page hierarchies and API routes.
+- Contains: Page paths, layouts, styles, and API route handlers (`route.ts`).
+- Key files: `layout.tsx` - top-level view wrapper, `globals.css` - global styling rules.
 
 **src/components/**
-- Purpose: Modular React UI components divided by domain.
-- Subdirectories:
-  - `common/`: Reusable basic components (e.g., `Pagination.tsx`).
-  - `comparison/`: Side-by-side version comparison items.
-  - `dashboard/`: Dashboard statistics and overview UI.
-  - `layout/`: Shell frame layout (`app-shell.tsx`).
-  - `regulations/`: Timelines (`VersionTimeline.tsx`) and regulation listing grids (`RegulationList.tsx`).
-  - `search/`: Advanced query panels (`UnifiedSearchBar.tsx`, `SearchInput.tsx`, `RegulationFilters.tsx`).
-  - `skeletons/`: Visual loading placeholders.
-  - `ui/`: shadcn/ui primitives.
+- Purpose: Reusable and page-specific React UI components.
+- Contains: Layouts, custom forms, diff renderers, and shadcn inputs.
+- Key files: components in `comparison/` for highlighting article diffs.
 
 **src/lib/**
-- Purpose: Domain services and helper classes containing business logic.
-- Key files:
-  - `ai-service.ts`: Interfaces with custom proxy LLM for text parsing and analysis.
-  - `pdf-service.ts`: Digital text extractor.
-  - `ocr-service.ts`: Vision-based OCR processor.
-  - `storage.ts`: MinIO object storage API client.
-  - `diff-engine.ts`: LCS verbatim token diff engine.
-  - `auth.ts`: NextAuth initialization and credential validation config.
-  - `authorization.ts`: User permissions/role helper functions.
+- Purpose: Core application service layer, algorithms, and third-party wrappers.
+- Contains: PDF parsers, OCR, custom LCS comparison engine, rate limiters, and Pasal.id API client.
+- Key files: `diff-engine.ts` - custom LCS token matcher, `ocr-service.ts` - Google Vision OCR, `pdf-service.ts` - digital text readers.
 
 ## Key File Locations
 
 **Entry Points:**
-- `src/app/page.tsx` - App entry point (redirects to dashboard).
-- `src/app/api/upload/route.ts` - Streamed upload endpoint.
-- `docker-compose.yml` - Infrastructure launcher.
+- `src/app/page.tsx` - Root index view redirecting to dashboard.
+- `src/app/api/auth/[...nextauth]/route.ts` - NextAuth entry handler.
 
 **Configuration:**
-- `tsconfig.json` - TypeScript config with `@/*` mapping.
-- `package.json` - Dependencies and build scripts.
-- `next.config.ts` - Next.js configurations.
-- `.env` - Project environment variables.
-- `components.json` - shadcn/ui initialization file.
+- `tsconfig.json` - TypeScript path mappings and compiler settings.
+- `next.config.ts` - Next.js compiler config.
+- `postcss.config.mjs` - PostCSS compilation for Tailwind.
+- `eslint.config.mjs` - Lint rule validation.
+- `prisma.config.ts` - Prisma DB adapter endpoint connection.
+- `components.json` - shadcn component configuration.
+- `.env` - Environment secrets.
 
 **Core Logic:**
-- `src/lib/` - Business engines (AI, PDF parsing, OCR, Storage).
-- `src/actions/` - DB mutation/read orchestrators.
+- `src/lib/diff-engine.ts` - Longest Common Subsequence logic for legislation word matching.
+- `src/lib/pdf-service.ts` - Digital PDF parsing chain.
+- `src/lib/ocr-service.ts` - Resilient image OCR fallbacks.
+- `src/lib/ai-service.ts` - AI extraction of legislation chapters and articles.
+- `src/lib/storage.ts` - MinIO object upload operations.
+- `src/lib/regulation-fetcher.ts` - Pasal.id API client.
 
 **Testing:**
-- Currently none (no testing frameworks or test suites configured).
+- `src/lib/diff-engine.test.ts` - Unit test file for comparison engine.
+- `src/lib/ocr-service.test.ts` - Resilient OCR testing routines.
+- `src/lib/regulation-fetcher.test.ts` - Pasal.id mock queries.
+- `vitest.config.ts` - Vitest parameters.
 
 ## Naming Conventions
 
 **Files:**
-- PascalCase for React components: `UnifiedSearchBar.tsx`, `RegulationFilters.tsx`.
-- kebab-case for utilities, route configurations, and server actions: `ai-service.ts`, `diff-engine.ts`, `regulations.ts`.
-- Special Next.js filenames: `page.tsx`, `layout.tsx`, `route.ts`.
+- kebab-case.ts/js: Utility modules and files (`diff-engine.ts`, `pdf-service.ts`).
+- PascalCase.tsx: React components (`RegulationList.tsx`, `VersionTimeline.tsx`).
+- standard-next-files: `page.tsx`, `layout.tsx`, `route.ts`.
+- *.test.ts: Tests matching target logic.
 
 **Directories:**
-- kebab-case for all source directories: `src/components/ui/`, `src/app/api/db-status/`.
+- kebab-case: Directories grouping pages, UI widgets, or services (`src/actions`, `src/components`).
+- plural names: Groupings of multiple items (`actions`, `components`, `regulations`).
 
 **Special Patterns:**
-- `index.ts` is not heavily used as a barrel export file; files are imported directly via path alias, e.g., `import prisma from '@/lib/prisma'`.
+- index.ts: Used for modular package imports.
 
 ## Where to Add New Code
 
-**New Feature (e.g., User Activity Log):**
-- UI View: `src/app/activity/page.tsx`
-- Layout/Components: `src/components/activity/ActivityLogList.tsx`
-- Server Action: `src/actions/activity.ts`
-- Database Schema: Add `ActivityLog` model in `prisma/schema.prisma` and run `npx prisma migrate dev`.
+**New Feature (Backend Action / Service):**
+- Primary code: `src/actions/` (for mutations) or `src/lib/` (for computations).
+- Tests: Alongside implementation with `.test.ts`.
 
-**New UI Component:**
-- Domain Component: `src/components/<domain>/ComponentName.tsx`
-- Reusable Primitive: `npx shadcn@latest add <component>` (adds to `src/components/ui/`).
+**New Component/UI Piece:**
+- Implementation: `src/components/` under the corresponding subdirectory.
+- Styling: Built-in Tailwind v4 classes within component JSX.
 
-**Utilities:**
-- Helper code: Create `src/lib/<service-name>.ts`.
+**New Route / Endpoint:**
+- Definition: `src/app/` under the path directory (using `page.tsx` or `api/*/route.ts`).
+
+## Special Directories
+
+**.agent/**
+- Purpose: Agentic configurations, skills, and status tracking.
+- Committed: Yes (holds workflow plans and context mapping files).
+
+**.next/**
+- Purpose: Build outputs generated during compiler assembly.
+- Committed: No (in `.gitignore`).
+
+**node_modules/**
+- Purpose: Standard external dependencies.
+- Committed: No (in `.gitignore`).
 
 ---
 
-*Structure analysis: 2026-06-07*
+*Structure analysis: 2026-07-25*
 *Update when directory structure changes*

@@ -1,91 +1,96 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-06-07
+**Analysis Date:** 2026-07-25
 
 ## Naming Patterns
 
 **Files:**
-- PascalCase for React component files (e.g., `RegulationList.tsx`, `VersionTimeline.tsx`).
-- kebab-case for services, utility libraries, and server action files (e.g., `ai-service.ts`, `diff-engine.ts`, `regulations.ts`).
-- Standard Next.js files: `page.tsx`, `layout.tsx`, `route.ts`.
+- PascalCase for React component files (`RegulationList.tsx`, `VersionTimeline.tsx`).
+- kebab-case for server action and utility files (`regulations.ts`, `diff-engine.ts`, `ai-service.ts`).
+- Standard Next.js framework files in lowercase (`page.tsx`, `layout.tsx`, `route.ts`).
+- Test files suffix matches standard test configuration (`*.test.ts`, `*.test.tsx`).
 
 **Functions:**
-- camelCase for all function names (e.g., `smartExtractPdfText`, `getCurrentUser`, `compareTexts`).
-- No specific prefix for async functions (they return `Promise<T>`).
-- Event handlers typically prefixed with `handle` (e.g., `handleUpload`, `handleSubmit`).
+- camelCase for all variable and function names (`smartExtractPdfText`, `compareTexts`).
+- Event handlers typically prefixed with `handle` (`handleUpload`, `handleSubmit`).
+- No specific prefixes for asynchronous functions (returning `Promise<T>`).
 
 **Variables:**
-- camelCase for variables (e.g., `rawText`, `fileSizeMB`, `parsedArticles`).
-- UPPER_SNAKE_CASE for global configuration constants (e.g., `MODEL`, `VISION_MODEL`, `MINIO_PORT`, `MAX_SIZE_MB`).
+- camelCase for variable names (`rawText`, `fileSizeMB`).
+- UPPER_SNAKE_CASE for global constants (`MODEL`, `VISION_MODEL`, `MINIO_PORT`, `MAX_SIZE_MB`).
 
-**Types & Interfaces:**
-- PascalCase for type aliases, interfaces, and classes.
-- No `I` prefix for interfaces (e.g., `ParsedArticle`, `ActionResult<T>`, `CurrentUser`).
-- Prisma enums are UPPERCASE (e.g., `VersionStatus.ACTIVE`, `Role.ADMIN`, `ChangeType.ADDED`).
+**Types:**
+- PascalCase for interfaces, type definitions, and classes.
+- No `I` prefix prefixing interface names (`ParsedArticle`, `ActionResult<T>`).
+- Prisma schema enum values must be uppercase (`VersionStatus.ACTIVE`, `Role.ADMIN`, `ChangeType.ADDED`).
 
 ## Code Style
 
 **Formatting:**
 - Semicolons: **Required** at the end of statements.
-- Quotes: **Single quotes** for string literals in code (`'use server'`, `'application/pdf'`). Double quotes are acceptable in JSX attributes.
+- Quotes: **Single quotes** for string literals in Javascript/TypeScript (`'use server'`, `'application/pdf'`). Double quotes are allowed in JSX attributes.
 - Indentation: **4 spaces** for indentation.
-- Cleanliness: Keep lines under 120 characters where possible.
+- Width: Keep lines under 120 characters where possible.
 
 **Linting:**
-- Linter: ESLint v9 (`eslint.config.mjs` config).
-- Run check: `npm run lint`.
-- Strict typing enabled (`tsconfig.json` runs with `"strict": true`). Avoid utilizing `any` where possible.
+- ESLint v9 configured via `eslint.config.mjs`.
+- Run checks: `npm run lint`.
+- Strict typing enabled (`tsconfig.json` runs with `"strict": true`). Avoid using `any` type definitions. Use unions, generics, or `unknown` + narrowing instead.
 
 ## Import Organization
 
 **Order:**
-1. External npm packages (e.g., `import NextAuth from "next-auth"`, `import { z } from "zod"`).
-2. Internal alias imports starting with `@/` (e.g., `import prisma from '@/lib/prisma'`, `import { uploadSchema } from '@/lib/validations'`).
-3. Relative imports starting with `./` or `../` (e.g., `import { cleanPdfText } from './utils'`).
+1. External npm packages (e.g. `react`, `next`, `openai`).
+2. Internal alias imports using `@/` mapping (`@/lib/prisma`, `@/components/comparison`).
+3. Relative imports pointing to directory sibling files (`./utils`, `../types`).
+4. Type-only imports (`import type { User }`).
+
+**Grouping:**
+- Keep a single blank line separating each group of imports.
+- Maintain alphabetical order within each import group.
 
 **Path Aliases:**
-- Use `@/*` mapping to `src/*` for all absolute imports. Do not write relative imports going up more than 2 levels (use path alias instead).
+- Prefer absolute path alias `@/` mapping to `src/` for all imports. Do not use relative imports traversing up more than 2 directories.
 
 ## Error Handling
 
-**Server Actions:**
-- Must return a standard structured object implementing `ActionResult<T>` to avoid uncaught server-side exceptions crashing the UI:
-  ```typescript
-  interface ActionResult<T> {
-      success: boolean;
-      data?: T;
-      error?: string;
-  }
-  ```
-- Wrap database, storage, and API operations in `try/catch` blocks.
-- Log error context using `console.error` before returning a user-friendly message:
-  ```typescript
-  try {
-      // business logic
-  } catch (error) {
-      console.error('Error in actionName:', error);
-      return { success: false, error: 'User-friendly error message' };
-  }
-  ```
-
-**API Route Handlers:**
-- Return `NextResponse.json` with appropriate HTTP status codes (e.g., 401 for Unauthorized, 403 for Forbidden, 429 for Rate Limit, 413 for Payload Too Large, 500 for Internal Server Error).
-
-**Graceful Degradation:**
-- Build robust fallbacks for external service failures. If an LLM-based operation fails, fall back to Regex parsing (`ai-service.ts`) or log a warning and continue without breaking the entire process chain (e.g., MinIO upload failure).
+**Patterns:**
+- Return a structured result implementing `ActionResult<T>` in Server Actions to prevent uncaught exceptions from throwing white screens:
+  `{ success: boolean; data?: T; error?: string }`
+- Wrap all database operations, network API requests, and third-party interactions in `try/catch` blocks.
+- Log error context with `console.error` before returning a user-friendly message.
+- API route handlers must return `NextResponse.json` with correct HTTP status codes (401 Unauthorized, 403 Forbidden, 413 Payload Too Large, 500 Internal Error).
+- Tolerant fallbacks: If MinIO or AI structural extraction fails, log the exception and proceed with text-based fallback parses without crashing.
 
 ## Logging
 
-- Use standard `console.log` for informational execution steps (e.g., `console.log('PDF loaded: 12 pages')`).
-- Use `console.error` for errors and warnings.
-- Keep logs concise. Never log full database credentials, access tokens, API keys, or raw file contents.
+**Framework:**
+- Native console outputs (`console.log`, `console.error`).
+- Structured logging details in CLI outputs.
+- Never log database connection URLs, tokens, passwords, or raw file contents in standard logs.
 
 ## Comments
 
+**When to Comment:**
 - Use double-slash `//` comments to explain *why* code was written in a certain way, or to highlight temporary workarounds/fallbacks.
-- Document complex functions using JSDoc/TSDoc notation (`/** ... */`) describing parameters, return values, and behavior.
+- Keep comments concise and avoid obvious statements.
+- Document public components and complex functions using JSDoc/TSDoc blocks explaining arguments and return types.
+- TODO format: `// TODO: description` (no username, tracking changes using git blame).
+
+## Function Design
+
+**Size:**
+- Keep functions short, single-purpose, and composable.
+- Extract helper sub-functions if logic exceeds 50 lines.
+
+**Parameters:**
+- Limit functions to 3 parameters. For more parameters, use destructured configuration objects instead.
+
+**Return Values:**
+- Use early return patterns with guard clauses to minimize indentation nesting.
+- Ensure all function execution paths return explicit values.
 
 ---
 
-*Convention analysis: 2026-06-07*
+*Convention analysis: 2026-07-25*
 *Update when patterns change*

@@ -1,81 +1,140 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-06-07
+**Analysis Date:** 2026-07-25
 
 ## Test Framework
 
 **Runner:**
-- **None currently configured.** No unit, integration, or end-to-end test framework is set up in `package.json` or present in the repository files.
+- Vitest ^4.1.8
+- Config: `vitest.config.ts` in the project root
 
 **Assertion Library:**
-- None.
+- Vitest built-in `expect` assertions
+- Matchers: `toBe`, `toEqual`, `toThrow`, `toBeLessThanOrEqual`, `toContain`, `toHaveBeenCalledWith`
 
 **Run Commands:**
-- Currently, `npm test` is not configured.
+```bash
+npm run test                          # Run all tests in interactive mode
+npm run test:run                      # Run all tests once
+npm run test:watch                    # Run tests in watch mode
+npx vitest path/to/file.test.ts       # Run a single test file
+```
 
-## Diagnostic API Routes
+## Test File Organization
 
-For integration testing, the application has built-in diagnostic and bootstrapping endpoints that can be hit via HTTP requests to verify external connections and seed testing data:
+**Location:**
+- Test files are colocated directly alongside their corresponding source files inside `src/`.
+- No separate external `tests/` directory is used.
 
-**1. LLM API Diagnostics:**
-- Endpoint: `GET /api/test-ai`
-- Purpose: Inspects environment variables for OpenAI setup and runs a connection ping test.
+**Naming:**
+- Suffix `*.test.ts` for all test suites (`src/lib/diff-engine.test.ts`, `src/lib/ocr-service.test.ts`).
 
-**2. LLM Vision/OCR Diagnostics:**
-- Endpoint: `GET /api/test-vision`
-- Purpose: Checks whether a vision-capable model (like `gemini-2.5-flash`) is accessible through the configured proxy.
+**Structure:**
+```
+src/
+  lib/
+    diff-engine.ts
+    diff-engine.test.ts
+    ocr-service.ts
+    ocr-service.test.ts
+```
 
-**3. Database Seeding:**
-- Endpoint: `POST /api/seed`
-- Purpose: Seeds initial regulation types, a sample regulation ("Jaminan Kesehatan" with versions from 2018, 2019, 2020), and creates default testing user roles (`admin@puu.local` with password `admin123` and `viewer@puu.local` with password `viewer123`).
-- Security Rule: Allowed unauthenticated if zero users exist in the DB (for bootstrap). Otherwise, requires an active authenticated `ADMIN` session.
+## Test Structure
 
-**4. DB Connection Status:**
-- Endpoint: `GET /api/db-status`
-- Purpose: Verifies Postgres connectivity and returns statistical counts of regulations, versions, and articles.
+**Suite Organization:**
+Test suites are grouped using standard `describe` blocks. Individual specifications use `it` blocks.
+```typescript
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { someFunction } from './some-module';
 
-## Manual Verification Workflows
+describe('someModule - someFunction', () => {
+    beforeEach(() => {
+        // Arrange / Setup per test
+    });
 
-Since automated tests are not present, changes must be verified manually:
+    afterEach(() => {
+        // Cleanup / Teardown per test
+    });
 
-**1. Authentication Verification:**
-- Navigate to `/login` and test authentication with seeded users:
-  - Admin: `admin@puu.local` / `admin123`
-  - Viewer: `viewer@puu.local` / `viewer123`
-- Verify that only admins can access `/upload` and perform mutations.
+    it('should behave correctly under conditions', async () => {
+        // Act
+        const result = await someFunction();
+        
+        // Assert
+        expect(result).toBe(expected);
+    });
+});
+```
 
-**2. PDF Parser Verification:**
-- Go to `/upload`, upload a sample regulation PDF.
-- Monitor the Server-Sent Events (SSE) progress logs in the UI.
-- Verify that the PDF is uploaded to MinIO storage and text is successfully parsed into articles.
+**Patterns:**
+- Use `beforeEach` to clear mock call histories (`vi.clearAllMocks()`) or setup test spies.
+- Use `afterEach` to restore mocked objects/globals (`mockSpy.mockRestore()`).
+- Keep tests simple and focused on testing single logical behaviors.
 
-**3. Amendment Diff Verification:**
-- Go to `/compare` and choose two different versions of a regulation.
-- Verify that the word-by-word diff is rendered correctly (deleted words highlighted in red, inserted words in green).
-- Verify that the AI summary and change significance annotations are populated.
+## Mocking
 
-## Recommended Frameworks to Introduce
+**Framework:**
+- Vitest built-in mock utility (`vi`).
+- Module mocking via `vi.mock` at the top of test files (e.g. mocking `pdf-lib` module).
+- Global API stubbing via `vi.stubGlobal` (e.g. stubbing `fetch` to mock REST API integration responses).
+- Spy mocking using `vi.spyOn` (e.g. overriding `setTimeout` timer speeds during retry checks).
 
-If the project requires automated test runner integration in the future, the following structure is recommended:
+**Patterns:**
+```typescript
+// Mocking modules
+vi.mock('pdf-lib', () => {
+    return {
+        PDFDocument: {
+            load: vi.fn(),
+            create: vi.fn()
+        }
+    };
+});
 
-**Framework Choice: Vitest**
-- Why: Native ESM support, fast execution, seamless TypeScript integration, and configuration simplicity in Next.js.
-- Dependencies to install: `npm install -D vitest @vitejs/plugin-react`
-- Recommended npm scripts to add:
-  ```json
-  "test": "vitest",
-  "test:run": "vitest run",
-  "test:coverage": "vitest run --coverage"
-  ```
-- Test File Organization: Collocated testing files ending with `.test.ts` or `.test.tsx` next to the source files they test.
-  ```
-  src/
-    lib/
-      diff-engine.ts
-      diff-engine.test.ts
-  ```
+// Mocking globals
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
+// Configure mock returns in tests
+it('returns mocked response', async () => {
+    mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Text' } }] })
+    });
+});
+```
+
+**What to Mock:**
+- External REST APIs (Pasal.id, custom LLM proxy, Google Vision).
+- Heavy CPU/IO page libraries (`pdf-lib`, `pdfjs-dist`).
+- Timing functions (`setTimeout`) to run retry delays instantly.
+
+**What NOT to Mock:**
+- Pure functions, LCS string comparisons, and mathematical helper utilities.
+
+## Fixtures and Factories
+
+**Test Data:**
+- Simple test data is created inline (e.g., small strings like `'Saya makan nasi'`).
+- Simulated buffers (using `Buffer.alloc` or `Buffer.from`) are generated dynamically in tests.
+
+## Coverage
+
+**Requirements:**
+- No rigid test coverage thresholds currently set.
+- Focus is on validating critical logical services (`diff-engine.ts`, `ocr-service.ts`).
+
+## Test Types
+
+**Unit Tests:**
+- Test isolated, side-effect-free algorithms.
+- Example: `diff-engine.test.ts` checking text difference highlighting.
+
+**Integration Tests:**
+- Test orchestration pipelines with mocked external API requests.
+- Example: `ocr-service.test.ts` validating concurrent processing limits, resilient fallback strategies, page-splitting limits, and exponential backoff retry counts.
 
 ---
 
-*Testing analysis: 2026-06-07*
+*Testing analysis: 2026-07-25*
 *Update when test patterns change*
