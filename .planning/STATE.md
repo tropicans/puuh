@@ -1,12 +1,13 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.6
-milestone_name: Update Documentation for Automatic Fetcher & Pasal.id API fallback
-status: planning
-last_updated: "2026-07-25T13:33:17.929Z"
-last_activity: 2026-07-25
+milestone_name: milestone
+status: Defining requirements
+stopped_at: Phase 9 context gathered
+last_updated: "2026-07-25T13:38:16.199Z"
+last_activity: 2026-07-25 — Milestone v1.6 started
 progress:
-  total_phases: 0
+  total_phases: 9
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -76,9 +77,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-13
-Stopped at: Phase 6 complete
-Resume file: .planning/phases/06-core-feature-verification/SUMMARY.md
+Last session: 2026-07-25T13:38:16.182Z
+Stopped at: Phase 9 context gathered
+Resume file: .planning/phases/09-documentation-update/09-CONTEXT.md
 
 ## Operator Next Steps
 
