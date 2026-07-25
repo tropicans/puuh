@@ -8,15 +8,9 @@ PUU Tracker is a Next.js full-stack application designed to track, store, and an
 
 Enable users to trace and visualize verbatim changes in articles across different versions of Indonesian legislation.
 
-## Current Milestone: v1.6 Update Documentation for Automatic Fetcher & Pasal.id API fallback
+## Current Milestone: None (v1.6 Shipped)
 
-**Goal:** Audit and update system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
-
-**Target features:**
-- Add `/api/regulations/fetch` stream endpoint details to `docs/api-specification.md`.
-- Add description of the BPK search crawler and Pasal.id API fallback strategies to `docs/architecture.md`.
-- Document `PASAL_ID_TOKEN` and BPK fetch configurations in `docs/deployment.md` and `docs/developer-guide.md`.
-- Document the UI search bar automatic fetch usage in `docs/user-guide.md`.
+**Goal:** All current target milestones are complete. Run `/gsd-new-milestone` to start the next cycle.
 
 ## Requirements
 
@@ -36,11 +30,11 @@ Enable users to trace and visualize verbatim changes in articles across differen
 - ✓ **Core Feature Verification (v1.3)** — Verified Docker container build/runtime, database migration/seeding, MinIO storage operations, digital PDF extraction, Vision OCR concurrency worker logic, article parser regex fallbacks, LCS diff engine unit tests, and NextAuth route protection guards.
 - ✓ **Automatic Regulation Fetcher Stabilization (v1.4)** — Fixed modern pdf-parse module API crash and BPK crawler search URL-encoded matches.
 - ✓ **Pasal.id Integration & Setkab Cleanup (v1.5)** — Integrate the Pasal.id API fallback using personal token authentication and remove dead JDIH Setkab connection attempts.
+- ✓ **Documentation Update (v1.6)** — Audited and updated system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
 
 ### Active
 
-- **Update Documentation (v1.6)** — Audit and update system documentation to include details about the Automatic Regulation Fetcher and the Pasal.id API fallback.
-
+*(None)*
 
 ### Out of Scope
 
@@ -49,7 +43,7 @@ Enable users to trace and visualize verbatim changes in articles across differen
 
 ## Context
 
-The codebase is a Next.js App Router project leveraging React 19, Prisma, PostgreSQL, MinIO, and a custom LLM proxy. It was stabilized in Milestone v1.0, resolving environment configuration, auth guards, OCR performance, and setting up Vitest unit testing. Milestone v1.1 adds robust PDF splitting error recovery and semantic legal search.
+The codebase is a Next.js App Router project leveraging React 19, Prisma, PostgreSQL, MinIO, and a custom LLM proxy. It was stabilized in Milestone v1.0, resolving environment configuration, auth guards, OCR performance, and setting up Vitest unit testing. Milestones v1.4, v1.5, and v1.6 resolved pdf-parse API bugs, integrated the Pasal.id API fallback, cleaned up Setkab connections, and updated all system documentation.
 
 ## Constraints
 
@@ -60,7 +54,7 @@ The codebase is a Next.js App Router project leveraging React 19, Prisma, Postgr
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Focus on Documentation Update | Recent critical features (BPK fetcher, Pasal.id fallback, modern pdf-parse) were implemented but are completely missing from the system documentation. | — Pending |
+| Focus on Documentation Update | Recent critical features (BPK fetcher, Pasal.id fallback, modern pdf-parse) were implemented but are completely missing from the system documentation. | ✓ Satisfied |
 
 ---
 

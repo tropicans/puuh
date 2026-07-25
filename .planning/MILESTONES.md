@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.6 v1.6 (Shipped: 2026-07-25)
+
+**Phases completed:** 1 phase, 1 plan, 5 tasks
+
+**Key accomplishments:**
+
+- Audited and updated system documentation to cover the Automatic Regulation Fetcher and the Pasal.id API fallback.
+- Added comprehensive spec for `POST /api/regulations/fetch` with progress, success, and error SSE chunk schemas.
+- Illustrated the 4-stage fetching pipeline sequentially inside the architecture guide using a Mermaid flowchart.
+- Documented `PASAL_ID_TOKEN` and fetching configuration in the deployment and developer guides.
+- Updated the user guide to detail the automatic fetching usage via the search bar.
+
+---
+
 ## v1.5 v1.5 (Shipped: 2026-06-13)
 
 **Phases completed:** 1 phases, 0 plans, 0 tasks
