@@ -21,8 +21,8 @@ Requirements for the v1.0 milestone. Each maps to roadmap phases.
 
 ### Table & Markdown Extraction
 
-- [ ] **TAB-01**: Mengidentifikasi dan mengekstraksi tabel-tabel di dalam PDF peraturan ke format Markdown Table (`| col1 | col2 |`).
-- [ ] **TAB-02**: Menyimpan dan membersihkan output teks terstruktur berupa Markdown secara aman ke database/storage.
+- [x] **TAB-01**: Mengidentifikasi dan mengekstraksi tabel-tabel di dalam PDF peraturan ke format Markdown Table (`| col1 | col2 |`).
+- [x] **TAB-02**: Menyimpan dan membersihkan output teks terstruktur berupa Markdown secara aman ke database/storage.
 
 ### Downstream LLM & UI Integration
 
@@ -59,8 +59,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXT-01 | Phase 2 | Complete |
 | EXT-02 | Phase 2 | Complete |
 | EXT-03 | Phase 2 | Complete |
-| TAB-01 | Phase 3 | Pending |
-| TAB-02 | Phase 3 | Pending |
+| TAB-01 | Phase 3 | Complete |
+| TAB-02 | Phase 3 | Complete |
 | AI-01 | Phase 4 | Pending |
 | UI-01 | Phase 4 | Pending |
 | OCR-01 | Deferred | Pending |
