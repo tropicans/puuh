@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: Integrasi Docling
-status: planning
-last_updated: "2026-08-06T07:03:39.326Z"
-last_activity: 2026-08-06
+milestone_name: milestone
+status: Defining requirements
+last_updated: "2026-08-06T07:08:06.754Z"
+last_activity: 2026-08-06 — Milestone v1.0 started
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
