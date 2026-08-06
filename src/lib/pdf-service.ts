@@ -1,5 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { cleanPdfText } from './utils';
+import { cleanPdfText, cleanMarkdownText } from './utils';
 
 type PdfDocument = Awaited<ReturnType<typeof pdfjsLib.getDocument>['promise']>;
 
@@ -129,7 +129,7 @@ export async function smartExtractPdfText(
                 onProgress(`Teks berhasil diekstrak (docling): ${mdText.length} karakter`);
             }
             return {
-                text: cleanPdfText(mdText),
+                text: cleanMarkdownText(mdText),
                 method: 'docling'
             };
         } else {

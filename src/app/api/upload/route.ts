@@ -275,6 +275,11 @@ export async function POST(request: NextRequest) {
                     const fullTitle = `${regulationType} Nomor ${number} Tahun ${year} tentang ${title}`;
                     send({ type: 'progress', message: `Menyimpan ${uniqueArticles.length} pasal ke database...` });
 
+                    let dbRawText = rawText;
+                    if (extractionMethod !== 'docling') {
+                        dbRawText = `[PERINGATAN: Dokumen ini diproses menggunakan metode fallback (${extractionMethod}). Struktur tabel mungkin tidak terurai dengan sempurna.]\n\n${rawText}`;
+                    }
+
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const version = await prisma.$transaction(async (tx: any) => {
                         if (previousVersion) {
@@ -290,7 +295,7 @@ export async function POST(request: NextRequest) {
                                 number,
                                 year: parseInt(year),
                                 fullTitle,
-                                rawText: rawText.substring(0, 100000),
+                                rawText: dbRawText,
                                 status: 'ACTIVE',
                                 amendsId: previousVersion?.id,
                                 originalFileUrl // Store MinIO URL

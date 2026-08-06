@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn, formatDate, getStatusColor, getStatusLabel, cleanPdfText } from '@/lib/utils';
+import { cn, formatDate, getStatusColor, getStatusLabel, cleanPdfText, cleanMarkdownText } from '@/lib/utils';
 
 describe('cn', () => {
     it('merges class names', () => {
@@ -83,5 +83,45 @@ describe('cleanPdfText', () => {
         const result = cleanPdfText(input);
         // After cleaning, should have at most double newlines
         expect(result).not.toContain('\n\n\n');
+    });
+});
+
+describe('cleanMarkdownText', () => {
+    it('removes page numbers', () => {
+        const input = '- 12 -\nIsi pasal\n- 13 -';
+        const result = cleanMarkdownText(input);
+        expect(result).not.toContain('- 12 -');
+        expect(result).toContain('Isi pasal');
+    });
+
+    it('handles empty string', () => {
+        expect(cleanMarkdownText('')).toBe('');
+    });
+
+    it('removes PRESIDEN REPUBLIK INDONESIA', () => {
+        const input = 'PRESIDEN REPUBLIK INDONESIA\nIsi pasal';
+        const result = cleanMarkdownText(input);
+        expect(result).not.toContain('PRESIDEN');
+        expect(result).toContain('Isi pasal');
+    });
+
+    it('normalizes multiple newlines', () => {
+        const input = 'Paragraf 1\n\n\n\n\nParagraf 2';
+        const result = cleanMarkdownText(input);
+        expect(result).not.toContain('\n\n\n');
+    });
+
+    it('retains solitary numbers (unlike cleanPdfText)', () => {
+        const input = '1\nIsi pasal\n2';
+        const resultPdf = cleanPdfText(input);
+        const resultMd = cleanMarkdownText(input);
+
+        // cleanPdfText removes solitary numbers:
+        expect(resultPdf).not.toContain('1');
+        expect(resultPdf).not.toContain('2');
+
+        // cleanMarkdownText retains solitary numbers:
+        expect(resultMd).toContain('1');
+        expect(resultMd).toContain('2');
     });
 });

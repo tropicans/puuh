@@ -79,6 +79,26 @@ describe('smartExtractPdfText with Docling integration', () => {
         expect(progressMessages.some(m => m.includes('Teks berhasil diekstrak (docling)'))).toBe(true);
     });
 
+    it('should successfully extract text using Docling and preserve solitary numbers in markdown', async () => {
+        const mockMdContent = '# Peraturan Uji\n\n1\n\n| col 1 | 2 |';
+        fetchSpy.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                status: 'success',
+                document: {
+                    md_content: mockMdContent
+                }
+            })
+        });
+
+        const result = await smartExtractPdfText(mockPdfBuffer);
+
+        expect(result.method).toBe('docling');
+        expect(result.text).toContain('1');
+        expect(result.text).toContain('| col 1 | 2 |');
+    });
+
     it('should fallback to pdfjs when Docling API fails with HTTP error', async () => {
         // Docling returns 500 Internal Server Error
         fetchSpy.mockResolvedValueOnce({

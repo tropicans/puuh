@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
                         number: regInfo.number,
                         year: regInfo.year,
                         fullTitle,
-                        rawText: fetchResult.rawText.substring(0, 100000),
+                        rawText: fetchResult.rawText,
                         status: 'ACTIVE'
                     }
                 });

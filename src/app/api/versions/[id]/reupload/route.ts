@@ -105,7 +105,7 @@ export async function POST(
     await prisma.$transaction(async (tx: any) => {
             await tx.regulationVersion.update({
                 where: { id },
-                data: { rawText: rawText.substring(0, 100000) }
+                data: { rawText }
             });
 
             await tx.article.deleteMany({ where: { versionId: id } });
