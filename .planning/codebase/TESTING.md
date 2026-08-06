@@ -1,66 +1,355 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-06-08
+**Analysis Date:** 2026-06-10
 
 ## Test Framework
 
 **Runner:**
-- Currently, **no unit/integration testing framework** (such as Jest or Vitest) is installed or configured in `package.json`.
-- There are no `*.test.ts`, `*.test.tsx`, `*.spec.ts`, or `*.spec.tsx` files present in the source directories.
+- Vitest (v4.1.8)
+- Config: `vitest.config.ts`
 
-**Custom Smoke Test Runner:**
-- The project includes a custom HTTP smoke testing script located at `scripts/smoke-flow.mjs`.
-- This script validates endpoint routing, authentication flow handling, session cookie preservation, and error status responses.
+**Assertion Library:**
+- Vitest built-in (uses Chai assertions via `expect`)
 
 **Run Commands:**
 ```bash
-npm run smoke                         # Executes the smoke tests against localhost:3006
+npm test                  # Run all tests (vitest run)
+npm run test:watch       # Watch mode (vitest)
+npm run build            # Build production app
+npm run lint             # Lint codebase
 ```
 
-## Smoke Test Workflow
+**Configuration (`vitest.config.ts`):**
+```typescript
+export default defineConfig({
+    test: {
+        environment: 'node',
+        globals: true,  // Use global describe/it/expect
+    },
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
+    },
+});
+```
 
-The smoke test runner (`scripts/smoke-flow.mjs`) performs a sequence of HTTP requests using standard Node.js `fetch` to confirm the application runs correctly:
+## Test File Organization
 
-1. **Environment Variables Configuration:**
-   - `SMOKE_BASE_URL`: Base URL of the running target (defaults to `http://localhost:3006`).
-   - `SMOKE_TEST_EMAIL`: Email for credentials login testing.
-   - `SMOKE_TEST_PASSWORD`: Password for credentials login testing.
+**Location:**
+- Tests co-located with source in `src/__tests__/` directory
+- Test files: `*.test.ts`
+- Example: `src/__tests__/validation.test.ts`
 
-2. **Anonymous Checks:**
-   - Validates `/` (expects `200`, `307`, or `308`).
-   - Validates `/login` (expects `200`).
-   - Validates `/compare` (expects `200`, `307`, or `308`).
+**Naming:**
+- `<module-name>.test.ts`
+- Examples:
+  - `validation.test.ts`
+  - `authorization.test.ts`
+  - `utils.test.ts`
+  - `diff-engine.test.ts`
 
-3. **Authentication Phase (conditional upon email/password environment variables):**
-   - Fetches a CSRF token from `/api/auth/csrf`.
-   - Sends a `POST` request to `/api/auth/callback/credentials` with credentials and CSRF token.
-   - Parses the `Set-Cookie` header to store auth tokens in a local memory cookie jar.
+**Structure:**
+```
+src/__tests__/
+├── validation.test.ts
+├── authorization.test.ts
+├── utils.test.ts
+└── diff-engine.test.ts
+```
 
-4. **Authenticated Checks:**
-   - Validates `/dashboard` (expects `200`).
-   - Validates `/manage` (expects `200`, `307`, or `308`).
-   - Validates `/settings` (expects `200`, `307`, or `308`).
-   - Validates `/api/regulations` (expects `200`).
+## Test Structure
 
-5. **Failure & Boundary Checks (Destructive Endpoints):**
-   - Triggers `DELETE /api/versions/non-existent-id` (expects validation error status `400`, `404`, or `500` rather than allowing unauthenticated bypass).
-   - Triggers `DELETE /api/regulations/non-existent-id/manage` (expects `400`, `404`, or `500`).
+**Suite Organization:**
+```typescript
+import { describe, it, expect } from 'vitest';
+import { myFunction } from '@/lib/module';
 
-## Guidelines for Adding Tests
+describe('module description', () => {
+    it('handles happy path', () => {
+        const result = myFunction('input');
+        expect(result).toBe('expected');
+    });
 
-If a testing framework is introduced:
+    it('handles edge case', () => {
+        const result = myFunction('');
+        expect(result).toBe('default');
+    });
+});
+```
+
+**Patterns:**
+- `describe()` for grouping related tests
+- `it()` for individual test cases with descriptive names
+- `expect(value).toBe()` for assertions
+- Use `true`/`false` comparisons for booleans: `expect(result.success).toBe(true)`
+
+**Setup Pattern:**
+- Import test subject at top of file
+- No `beforeEach`/`afterEach` commonly used
+- Each test is independent
+
+## Mocking
+
+**Framework:** Vitest built-in (`vi`)
+
+**Patterns:**
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('@/lib/module', () => ({
+    myFunction: vi.fn(),
+}));
+
+// In test:
+vi.mock('@/lib/auth', () => ({
+    auth: vi.fn(),
+}));
+```
+
+**What to Mock:**
+- External dependencies (database, APIs, services)
+- Next.js modules (`next-auth`, `next/cache`)
+- File system operations
+- Rate limiters
+
+**What NOT to Mock:**
+- Pure utility functions (e.g., `cn()`, `formatDate()`)
+- Simple validation schemas
+- State-less transformation functions
+
+**Example Mock (authorization.test.ts):**
+```typescript
+vi.mock('@/lib/auth', () => ({
+    auth: vi.fn(),
+}));
+
+import { isAdminRole } from '@/lib/authorization';
+
+describe('isAdminRole', () => {
+    it('returns true for ADMIN', () => {
+        expect(isAdminRole('ADMIN')).toBe(true);
+    });
+});
+```
+
+## Fixtures and Factories
+
+**Test Data:**
+- Test data embedded directly in tests
+- No separate fixture files or factories
+
+**Location:**
+- Inline in test cases
+
+**Example:**
+```typescript
+it('accepts valid email and password', () => {
+    const result = loginSchema.safeParse({ 
+        email: 'admin@test.com', 
+        password: '123456' 
+    });
+    expect(result.success).toBe(true);
+});
+```
+
+## Coverage
+
+**Requirements:** Not configured
+
+**View Coverage:**
+Vitest supports coverage but not configured:
+```bash
+# Would require config:
+# npx vitest run --coverage
+```
+
+## Test Types
 
 **Unit Tests:**
-- **Runner:** Recommended to use **Vitest** for quick ES module compilation.
-- **Location:** Collocated alongside target files under a matching name (e.g. `src/lib/diff-engine.test.ts` next to `diff-engine.ts`).
-- **Mocking:** Mock filesystem calls (`fs-extra`) or network/LLM calls (`openai` / custom `fetch`) using Vitest `vi.mock`.
+- **Scope:** Individual functions and modules
+- **Approach:** Direct function calls with mocked dependencies
+- **Files:** `src/__tests__/*.test.ts`
 
-**Standard Testing Scripts (recommended to add to `package.json` if configured):**
-- `test` - Run all unit tests
-- `test:watch` - Interactive test developer loop
-- `test:coverage` - Code coverage generation
+**Integration Tests:**
+- **Scope:** API routes and database interactions
+- **Approach:** Full HTTP request flow
+- **Note:** Limited integration test coverage
+
+**E2E Tests:**
+- **Framework:** Not used
+- **Status:** No E2E test framework configured
+
+## Common Patterns
+
+**Async Testing:**
+```typescript
+it('handles async operation', async () => {
+    const result = await myAsyncFunction();
+    expect(result).toBeDefined();
+});
+```
+
+**Error Testing:**
+```typescript
+it('throws error for invalid input', () => {
+    expect(() => myFunction('invalid')).toThrow();
+});
+
+// For Zod validation:
+it('rejects invalid data', () => {
+    const result = mySchema.safeParse(invalidData);
+    expect(result.success).toBe(false);
+});
+```
+
+**Promise Resolution Testing:**
+```typescript
+it('returns successful result', async () => {
+    const result = await myAction();
+    expect(result.success).toBe(true);
+    expect(result.data).toBeDefined();
+});
+
+it('handles error case', async () => {
+    const result = await myAction();
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+});
+```
+
+**State Management Testing:**
+```typescript
+it('compares identical texts', () => {
+    const result = compareTexts('same text', 'same text');
+    expect(result.hasChanges).toBe(false);
+});
+
+it('detects additions', () => {
+    const result = compareTexts('original', 'original and more');
+    expect(result.addedCount).toBeGreaterThan(0);
+    expect(result.hasChanges).toBe(true);
+});
+
+it('detects deletions', () => {
+    const result = compareTexts('original text', 'original');
+    expect(result.deletedCount).toBeGreaterThan(0);
+    expect(result.hasChanges).toBe(true);
+});
+```
+
+**Validation Testing (Zod):**
+```typescript
+// Test valid input:
+const result = schema.safeParse(validData);
+expect(result.success).toBe(true);
+
+// Test invalid input:
+const result = schema.safeParse(invalidData);
+expect(result.success).toBe(false);
+
+// Test required fields:
+expect(schema.safeParse({}).success).toBe(false);
+
+// Test strict schema:
+expect(schema.safeParse({ ...validData, extra: 'field' }).success).toBe(false);
+```
+
+## Testing Reference Examples
+
+**Diff Engine Tests (`diff-engine.test.ts`):**
+```typescript
+describe('compareTexts', () => {
+    it('detects no change', () => {
+        const result = compareTexts('Pasal 1 sama', 'Pasal 1 sama');
+        expect(result.hasChanges).toBe(false);
+    });
+
+    it('detects additions', () => {
+        const result = compareTexts('Pasal 1', 'Pasal 1 telah diubah');
+        expect(result.addedCount).toBeGreaterThan(0);
+        expect(result.hasChanges).toBe(true);
+    });
+
+    it('returns diff parts array', () => {
+        const result = compareTexts('kalimat pertama.', 'kalimat kedua.');
+        expect(Array.isArray(result.parts)).toBe(true);
+        expect(result).toHaveProperty('hasChanges');
+        expect(result).toHaveProperty('addedCount');
+        expect(result).toHaveProperty('deletedCount');
+    });
+});
+```
+
+**Validation Tests (`validation.test.ts`):**
+```typescript
+describe('loginSchema', () => {
+    it('accepts valid email and password', () => {
+        const result = loginSchema.safeParse({ 
+            email: 'admin@test.com', 
+            password: '123456' 
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it('rejects invalid email', () => {
+        const result = loginSchema.safeParse({ 
+            email: 'not-email', 
+            password: '123456' 
+        });
+        expect(result.success).toBe(false);
+    });
+});
+
+describe('uploadSchema', () => {
+    it('requires regulationType', () => {
+        const result = uploadSchema.safeParse({
+            number: '82',
+            year: '2018',
+        });
+        expect(result.success).toBe(false);
+    });
+});
+```
+
+**Utility Tests (`utils.test.ts`):**
+```typescript
+describe('cn', () => {
+    it('merges class names', () => {
+        expect(cn('px-4', 'py-2')).toBe('px-4 py-2');
+    });
+
+    it('handles conditional classes', () => {
+        expect(cn('base', false && 'hidden', 'active')).toBe('base active');
+    });
+
+    it('resolves tailwind conflicts', () => {
+        expect(cn('px-4', 'px-2')).toBe('px-2');
+    });
+});
+```
+
+**Authorization Tests (`authorization.test.ts`):**
+```typescript
+vi.mock('@/lib/auth', () => ({
+    auth: vi.fn(),
+}));
+
+describe('isAdminRole', () => {
+    it('returns true for ADMIN', () => {
+        expect(isAdminRole('ADMIN')).toBe(true);
+    });
+
+    it('returns false for VIEWER', () => {
+        expect(isAdminRole('VIEWER')).toBe(false);
+    });
+
+    it('returns false for null', () => {
+        expect(isAdminRole(null)).toBe(false);
+    });
+});
+```
 
 ---
 
-*Testing analysis: 2026-06-08*
-*Update when test runners or patterns are added*
+*Testing analysis: 2026-06-10*

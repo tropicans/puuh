@@ -1,123 +1,202 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-06-08
+**Analysis Date:** 2026-06-10
 
 ## Directory Layout
 
 ```
 puuh/
-├── prisma/             # Prisma schema, migrations, and seed scripts
-├── public/             # Static public assets
-├── scripts/            # Script files (e.g., custom smoke test runner)
-├── src/                # Primary application source code
-│   ├── actions/        # Next.js Server Actions (business logic mutations)
-│   ├── app/            # Next.js page routes, layouts, and API endpoints
-│   ├── components/     # React presentation components
-│   │   ├── common/     # Reusable layout and helper elements
-│   │   ├── comparison/ # Diffing UI and side-by-side versions components
-│   │   ├── dashboard/  # Dashboard segments (Stats, lists)
-│   │   ├── layout/     # Page frame structures (app-shell)
-│   │   ├── regulations/# Regulation lists and upload forms
-│   │   ├── search/     # Unified search components
-│   │   ├── skeletons/  # UI Loading skeletons
-│   │   └── ui/         # Base UI library (shadcn/ui primitives)
-│   ├── hooks/          # React hooks (async helpers, flash messages)
-│   ├── lib/            # Shared service utilities (LLM APIs, storage, parsers)
-│   └── proxy.ts        # Next.js custom route/API handling proxy helper
-├── package.json        # Dependencies list and scripts
-└── tsconfig.json       # TypeScript options
+├── prisma/                  # Database schema and migrations
+│   ├── schema.prisma        # Prisma schema definition
+│   └── seed.ts              # Database seeding script
+├── src/
+│   ├── app/                 # Next.js App Router pages and routes
+│   │   ├── api/             # API route handlers
+│   │   │   ├── auth/        # NextAuth endpoints
+│   │   │   ├── regulations/ # Regulation CRUD operations
+│   │   │   ├── versions/    # Version management endpoints
+│   │   │   ├── articles/    # Article endpoints
+│   │   │   ├── export/      # PDF export endpoint
+│   │   │   ├── seed/        # Data seeding endpoint
+│   │   │   ├── upload/      # File upload handler
+│   │   │   └── test-*.ts    # Diagnostic endpoints
+│   │   ├── regulations/[id]/ # Regulation detail page
+│   │   ├── manage/          # Admin management pages
+│   │   ├── settings/        # Admin settings page
+│   │   ├── upload/          # File upload page
+│   │   ├── compare/         # Comparison view page
+│   │   ├── dashboard/       # Main dashboard
+│   │   ├── login/           # Authentication page
+│   │   ├── page.tsx         # Root landing page
+│   │   ├── layout.tsx       # Root layout wrapper
+│   │   ├── globals.css      # Global Tailwind styles
+│   │   └── favicon.ico      # favicon
+│   ├── actions/             # Server actions (form mutations)
+│   │   ├── regulations.ts   # Regulation CRUD actions
+│   │   └── users.ts         # User management actions
+│   ├── lib/                 # Shared libraries and utilities
+│   │   ├── prisma.ts        # Prisma client singleton
+│   │   ├── auth.ts          # NextAuth configuration
+│   │   ├── authorization.ts # Role checks
+│   │   ├── data-service.ts  # Data fetching helpers
+│   │   ├── pdf-service.ts   # PDF text extraction
+│   │   ├── ai-service.ts    # LLM integration
+│   │   ├── storage.ts       # MinIO client
+│   │   ├── diff-engine.ts   # Text comparison engine
+│   │   ├── validations.ts   # Zod schemas
+│   │   ├── utils.ts         # Helper functions
+│   │   ├── logger.ts        # Logging utility
+│   │   ├── rate-limit.ts    # Rate limiter factory
+│   │   └── judicial-review.ts # Judicial review helpers
+│   ├── components/          # React components
+│   │   ├── ui/              # shadcn/ui components
+│   │   ├── common/          # Reusable components
+│   │   ├── regulations/     # Regulation-specific UI
+│   │   ├── comparison/      # Comparison visualization
+│   │   ├── search/          # Search components
+│   │   └── skeletons/       # Loading states
+│   └── hooks/               # Custom React hooks
+│       ├── useAsyncAction.ts
+│       └── useFlashMessage.ts
+├── .planning/               # Planning documents (codebase maps)
+│   └── codebase/            # Generated documentation
+├── package.json             # Dependencies and scripts
+├── tsconfig.json            # TypeScript configuration
+├── next.config.mjs          # Next.js configuration
+├── tailwind.config.js       # Tailwind CSS config
+└── postcss.config.mjs       # PostCSS configuration
 ```
 
 ## Directory Purposes
 
-**prisma/**
-- **Purpose:** Manages the database schema definitions and migrations.
-- **Contains:** `schema.prisma` (DB model declaration) and `migrations/` directory.
+### prisma/
+- **Purpose:** Database schema, migrations, and seeding
+- **Contains:** `schema.prisma` (all models), `seed.ts` (default users)
+- **Key files:** `prisma/schema.prisma`
 
-**scripts/**
-- **Purpose:** Development and test helper scripts.
-- **Contains:** `smoke-flow.mjs` for checking application endpoints' availability.
+### src/app/
+- **Purpose:** Next.js App Router implementation
+- **Contains:** Pages, layouts, API routes
+- **Key files:** `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/api/*/route.ts`
 
-**src/actions/**
-- **Purpose:** Server actions layer encapsulating SQL mutations and revalidation.
-- **Contains:** Server actions such as `regulations.ts` and `users.ts`.
+### src/actions/
+- **Purpose:** Server actions for form submissions
+- **Contains:** Mutations that require `use server`
+- **Key files:** `src/actions/regulations.ts`, `src/actions/users.ts`
 
-**src/app/**
-- **Purpose:** Layouts, pages, styles, and API route controllers under Next.js App Router.
-- **Contains:** Page folders (`dashboard/`, `settings/`, `compare/`, `login/`, `upload/`), static files (`favicon.ico`), and global styles (`globals.css`).
+### src/lib/
+- **Purpose:** Shared business logic and utilities
+- **Contains:** Prisma client, auth, services, validators
+- **Key files:** `src/lib/prisma.ts`, `src/lib/auth.ts`, `src/lib/ai-service.ts`
 
-**src/components/**
-- **Purpose:** React presentational components.
-- **Contains:** Visual components structured by domain or layout concerns.
+### src/components/
+- **Purpose:** React component library
+- **Contains:** shadcn/ui components and custom components
+- **Key files:** `src/components/ui/button.tsx`, `src/components/regulations/RegulationList.tsx`
 
-**src/lib/**
-- **Purpose:** Services layer for system features (diff logic, PDF reading, MinIO SDK wrapper, LLM parsing).
-- **Contains:** Independent helper modules (`ai-service.ts`, `storage.ts`, `pdf-service.ts`, `diff-engine.ts`, `ocr-service.ts`).
+### src/hooks/
+- **Purpose:** Custom React hooks
+- **Contains:** Reusable stateful logic
+- **Key files:** `src/hooks/useAsyncAction.ts`
 
 ## Key File Locations
 
 **Entry Points:**
-- `src/app/page.tsx` - App landing page redirection.
-- `src/app/api/auth/[...nextauth]/route.ts` - NextAuth entry point.
+- `src/app/page.tsx`: Root landing page
+- `src/app/layout.tsx`: Root layout with theme provider
+- `src/app/api/auth/[...nextauth]/route.ts`: Auth route handler
+- `src/app/api/upload/route.ts`: File upload endpoint with streaming
 
 **Configuration:**
-- `prisma/schema.prisma` - Database structure source of truth.
-- `next.config.ts` - Next.js bundler and routing options.
-- `eslint.config.mjs` - ESLint linter.
-- `postcss.config.mjs` - Tailwind PostCSS processor.
-- `components.json` - Shadcn UI paths configuration.
+- `package.json`: Project metadata, scripts, dependencies
+- `tsconfig.json`: TypeScript compiler options
+- `next.config.mjs`: Next.js build configuration
+- `tailwind.config.js`: Tailwind CSS theme and plugins
 
 **Core Logic:**
-- `src/actions/regulations.ts` - CRUD operations for regulations.
-- `src/lib/ai-service.ts` - Deep parsing and LLM operations.
-- `src/lib/diff-engine.ts` - Comparison difference engine.
+- `src/lib/prisma.ts`: Prisma client singleton
+- `src/lib/ai-service.ts`: LLM integration for article parsing
+- `src/lib/diff-engine.ts`: Verbatim text comparison
+- `src/lib/data-service.ts`: Database query helpers
 
 **Testing:**
-- `scripts/smoke-flow.mjs` - Custom automated HTTP smoke checks.
-
-**Documentation:**
-- `AGENTS.md` - Agent instruction guidelines.
-- `README.md` - User setup and docker guidance.
+- `src/__tests__/validation.test.ts`: Validation schema tests
+- `src/__tests__/diff-engine.test.ts`: Diff engine tests
+- `src/__tests__/utils.test.ts`: Utility function tests
+- `src/__tests__/authorization.test.ts`: Auth checks tests
 
 ## Naming Conventions
 
 **Files:**
-- **Domain components:** PascalCase (e.g. `RegulationSection.tsx`, `StatsSection.tsx`)
-- **Shared/UI components:** kebab-case (e.g. `button.tsx`, `scroll-area.tsx`, `theme-toggle.tsx`)
-- **API routes:** `route.ts`
-- **Pages/Layouts:** `page.tsx` or `layout.tsx`
-- **Actions and libraries:** kebab-case (e.g. `ai-service.ts`, `regulations.ts`, `useAsyncAction.ts`)
+- Component files: `PascalCase.tsx` (e.g., `RegulationList.tsx`, `UnifiedSearchBar.tsx`)
+- Utility files: `camelCase.ts` (e.g., `utils.ts`, `pdf-service.ts`)
+- Test files: `*.test.ts` (e.g., `diff-engine.test.ts`)
+- API routes: `src/app/api/*/route.ts` (e.g., `src/app/api/upload/route.ts`)
 
 **Directories:**
-- **Routing:** kebab-case matching the URL path (e.g. `api/regulations/`, `compare/`)
-- **Library/Components:** Plural/Kebab-case grouping names (`actions/`, `components/dashboard/`)
+- Component directories: `kebab-case` (e.g., `src/components/common/`)
+- Test directories: `__tests__/` (plural)
+- API route directories: `src/app/api/*/` (e.g., `src/app/api/regulations/`)
+
+**Variables/Functions:**
+- Variables/Functions: `camelCase` (e.g., `getFilteredRegulations`, `extractTextFromPdf`)
+- Constants: `UPPER_SNAKE_CASE` (e.g., `MAX_LOGIN_ATTEMPTS`)
+- TypeScript types: `PascalCase` (e.g., `RegulationFilters`, `ChangeAnalysis`)
+
+**Prisma:**
+- Enums: `UPPER_SNAKE_CASE` (e.g., `ACTIVE`, `AMENDED`, `REVOKED`)
+- Model names: `PascalCase` (e.g., `Regulation`, `RegulationVersion`, `Article`)
 
 ## Where to Add New Code
 
-**New Feature Pages:**
-- Add folder under `src/app/` with name matching the path. Implement `page.tsx`.
-- Connect logic via server actions in `src/actions/` or direct database helpers.
+**New Feature Page:**
+- Page: `src/app/features/new-feature/page.tsx`
+- API route (if needed): `src/app/api/features/new-feature/route.ts`
+- Action (if mutation needed): `src/actions/features.ts`
 
-**New UI Components:**
-- Base UI primitive: Add to `src/components/ui/` in kebab-case.
-- Feature-bound component: Add to appropriate `src/components/[domain]/` folder in PascalCase.
+**New UI Component:**
+- Implementation: `src/components/ui/new-component.tsx`
+- If shadcn-based: `src/components/ui/new-component.tsx` (using `npx shadcn@latest add`)
+
+**New Database Feature:**
+- Update schema: `prisma/schema.prisma`
+- Generate client: `npx prisma generate`
+- Add service: `src/lib/data-service.ts` or `src/lib/model-name-service.ts`
+- Add validation: `src/lib/validations.ts`
+
+**New Utility Function:**
+- General purpose: `src/lib/utils.ts`
+- Domain-specific: `src/lib/domain-utils.ts` (e.g., `src/lib/judicial-review.ts`)
 
 **New API Endpoint:**
-- Add folder in `src/app/api/` with `route.ts` declaring standard HTTP methods (`GET`, `POST`, `PUT`, `DELETE`).
+- Route: `src/app/api/resource/route.ts`
+- Implement GET/POST/PUT/DELETE handlers
+- Add authorization check with `getCurrentUser()`
+- Validate input with Zod schema from `src/lib/validations.ts`
+
+**New Server Action:**
+- Add to existing `src/actions/` file or create new
+- Use `use server` directive at top
+- Return structured result: `{ success, data?, error? }`
+- Call `revalidatePath()` after mutations affecting UI
 
 ## Special Directories
 
-**.next/**
-- **Purpose:** Next.js build compilation cache.
-- **Source:** Automatically generated during `npm run build` or `npm run dev`.
-- **Committed:** No (in `.gitignore`).
+**src/__tests__/**
+- Purpose: Unit and integration tests
+- Generated: Manual (no automatic generation)
+- Committed: Yes (tests are part of the codebase)
 
-**node_modules/**
-- **Purpose:** Node dependencies.
-- **Committed:** No (in `.gitignore`).
+**prisma/**
+- Purpose: Database schema and migrations
+- Generated: `npx prisma generate` creates client
+- Committed: Yes (schema is tracked)
+
+**src/components/ui/**
+- Purpose: shadcn/ui component library
+- Generated: Manual or via `npx shadcn@latest add`
+- Committed: Yes (components are application code)
 
 ---
 
-*Structure analysis: 2026-06-08*
-*Update when directory structure changes*
-```
+*Structure analysis: 2026-06-10*

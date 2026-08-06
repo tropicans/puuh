@@ -294,7 +294,22 @@ async function callLLM(messages: { role: string; content: string }[]): Promise<s
         throw new Error(`LLM Error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    let data: { choices?: { message?: { content?: string } }[] };
+    try {
+        data = JSON.parse(rawText);
+    } catch {
+        const lastBrace = rawText.lastIndexOf('}');
+        if (lastBrace > 0) {
+            try {
+                data = JSON.parse(rawText.substring(0, lastBrace + 1));
+            } catch {
+                throw new Error(`Failed to parse LLM response: ${rawText.substring(0, 200)}`);
+            }
+        } else {
+            throw new Error(`Failed to parse LLM response: ${rawText.substring(0, 200)}`);
+        }
+    }
     return data.choices?.[0]?.message?.content || '';
 }
 

@@ -1,110 +1,210 @@
+<!-- refreshed: 2026-06-10 -->
 # Architecture
 
-**Analysis Date:** 2026-06-08
+**Analysis Date:** 2026-06-10
+
+## System Overview
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    Next.js App Router Layer                  │
+├──────────────────┬──────────────────┬───────────────────────┤
+│   `/app/` pages  │   `/actions/`    │  `/lib/` services     │
+│  `page.tsx`      │  Server actions  │  Data layer, utilities│
+└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
+         │                  │                     │
+         ▼                  ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Data Layer (Prisma)                       │
+│         `src/lib/prisma.ts`                                  │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  PostgreSQL Database                                         │
+│  `prisma/schema.prisma`                                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Component Responsibilities
+
+| Component | Responsibility | File |
+|-----------|----------------|------|
+| **Authentication** | NextAuth credentials provider with rate limiting | `src/lib/auth.ts` |
+| **Authorization** | User role checks (ADMIN/VIEWER) | `src/lib/authorization.ts` |
+| **Data Service** | Database queries and filtering | `src/lib/data-service.ts` |
+| **PDF Processing** | Text extraction via pdfjs/pdf-parse/OCR | `src/lib/pdf-service.ts` |
+| **AI Service** | Article parsing and change analysis with LLM | `src/lib/ai-service.ts` |
+| **Storage** | MinIO file storage integration | `src/lib/storage.ts` |
+| **Diff Engine** | Verbatim text comparison for article changes | `src/lib/diff-engine.ts` |
+| **Validations** | Zod schemas for input validation | `src/lib/validations.ts` |
 
 ## Pattern Overview
 
-**Overall:** Full-stack Next.js Application using App Router (React Server Components, Server Actions, and API Route Handlers).
+**Overall:** Layered Architecture with Server-First Rendering
 
 **Key Characteristics:**
-- **Hybrid Rendering:** React Server Components (RSC) for page loading and rendering, Client Components only when browser APIs or state are needed.
-- **Server Actions:** Secure business logic mutations triggered directly from client-side elements.
-- **Object Storage + Relational DB:** MinIO stores actual PDF files, while PostgreSQL stores structured regulation metadata, versions, parsed articles, and modifications.
-- **Stateless Requests:** Stateless session handling via NextAuth JWT callbacks.
+- **App Router pattern**: Server Components by default, Client Components only for interactivity
+- **Server Actions pattern**: Form submissions and mutations via `actions/` directory
+- **Streaming responses**: Upload processing via Server-Sent Events (SSE)
+- **Direct database access**: Prisma used throughout app code
+- **Type-safe API routes**: `next/server` with typed request/response
 
 ## Layers
 
-**Routing & View Layer (`src/app/**`):**
-- **Purpose:** Renders UI layouts, handles client interactions, and implements API routes.
-- **Contains:** Next.js pages, layouts, custom CSS, client components, and API routes (`src/app/api/**`).
-- **Used by:** End-user web browsers.
+### Presentation Layer
+- **Purpose**: UI rendering, user interaction, state management
+- **Location**: `src/app/`, `src/components/`
+- **Contains**: Page components, layout wrappers, UI components (shadcn/ui), hooks
+- **Depends on**: Actions, API routes, hooks
+- **Used by**: Browser
 
-**Server Actions Layer (`src/actions/**`):**
-- **Purpose:** Serve as controller endpoints to handle business logic mutations and database writes.
-- **Contains:** `regulations.ts` (regulation metadata and version management), `users.ts` (bootstrap admin and user listing).
-- **Depends on:** Data Access Layer (Prisma client) and Services Layer.
-- **Used by:** Client Components inside the Routing & View Layer.
+### Business Logic Layer
+- **Purpose**: Server-side operations, validation, authorization
+- **Location**: `src/actions/`, `src/lib/`
+- **Contains**: Server actions, data services, utility functions, validation schemas
+- **Depends on**: Prisma, external services (MinIO, LLM)
+- **Used by**: API routes, Client components (via actions)
 
-**Service Layer (`src/lib/**`):**
-- **Purpose:** Implement specialized functional utilities and logic.
-- **Contains:**
-  - `ai-service.ts`: Article structure extraction and analysis using LLM APIs.
-  - `ocr-service.ts`: Image text extraction using Vision LLM.
-  - `pdf-service.ts`: Digital text extraction and page splitting utilities.
-  - `diff-engine.ts`: Word-level Longest Common Subsequence (LCS) comparison.
-  - `storage.ts`: Wrapper for uploading, downloading, and deleting files in MinIO.
-- **Depends on:** Native Node.js services, database client, and external service clients (minio, openai).
+### Data Layer
+- **Purpose**: Database abstraction and queries
+- **Location**: `src/lib/prisma.ts`, `prisma/`
+- **Contains**: Prisma client singleton, schema definitions
+- **Depends on**: PostgreSQL (via pg pool)
+- **Used by**: Data services, API routes, actions
 
-**Data Access / ORM Layer (`prisma/**` & `src/lib/prisma.ts`):**
-- **Purpose:** Manages the database schema, handles pooling, and exports the database client.
-- **Contains:** `schema.prisma`, migrations, and the Prisma client singleton (`prisma.ts`).
-- **Used by:** Server Actions Layer and API routes.
+### Infrastructure Layer
+- **Purpose**: External service integration
+- **Location**: `src/lib/pdf-service.ts`, `src/lib/ai-service.ts`, `src/lib/storage.ts`
+- **Contains**: PDF extraction, AI/LLM calls, MinIO client
+- **Depends on**: External APIs (OpenAI, Google Vision, MinIO)
 
 ## Data Flow
 
-**PDF Processing and Parsing Flow:**
-1. Administrator uploads a regulation PDF from the client UI.
-2. Request goes to the upload API route (`src/app/api/upload/route.ts`).
-3. The file is uploaded to the MinIO `puu-documents` bucket via `src/lib/storage.ts`.
-4. The backend attempts digital extraction via `src/lib/pdf-service.ts` using `pdfjs-dist` or `pdf-parse`.
-5. If the PDF is a scanned document (character count is low), it falls back to `src/lib/ocr-service.ts` to perform Vision-based OCR.
-6. The resulting text is parsed into structured articles (e.g., Pasal 1, Pasal 2) by the LLM in `src/lib/ai-service.ts`.
-7. Articles and version details are saved to PostgreSQL.
+### Primary Request Path
 
-**Regulation Version Comparison Flow:**
-1. User requests a comparison between two versions of a regulation in the UI.
-2. The comparison route (`src/app/compare/page.tsx`) retrieves the article lists for both versions.
-3. The backend runs `src/lib/diff-engine.ts` (`compareTexts`) to calculate word-by-word differences (additions/deletions).
-4. Highlights are formatted into HTML diff parts and returned to the client to render green/red highlighting.
+1. **Incoming Request** → Next.js App Router route handler (`src/app/api/*/route.ts`)
+2. **Authorization Check** → `getCurrentUser()` from `src/lib/authorization.ts`
+3. **Business Logic** → Server action or data service function
+4. **Database Query** → Prisma client from `src/lib/prisma.ts`
+5. **Response** → `NextResponse.json` with data or error
 
-**State Management:**
-- Relational state: Stored in PostgreSQL, accessed via Prisma client.
-- File state: Stored in MinIO object storage.
-- Session state: Handled by NextAuth client and server sessions using JWTs.
+### Upload Flow (Server-Sent Events)
+
+1. **Client Upload** → `POST /api/upload` (`src/app/api/upload/route.ts`)
+2. **Validation** → Zod schema validation
+3. **Text Extraction** → `smartExtractPdfText()` in `src/lib/pdf-service.ts`
+   - Fallback chain: pdfjs → pdf-parse → OCR (Google Vision)
+4. **Article Parsing** → `parseArticlesFromText()` in `src/lib/ai-service.ts`
+5. **Database Transaction** → Create regulation, version, and articles atomically
+6. **MinIO Upload** → Store original PDF file
+7. **Progress Updates** → SSE stream with `{ type: 'progress' }` messages
+8. **Success Response** → `{ type: 'success', data: {...} }`
+
+### Comparison Flow
+
+1. **Matrix View** → `MatrixComparisonView` in `src/components/comparison/MatrixComparisonView.tsx`
+2. **Version Collection** → Fetch all versions for a regulation
+3. **Article Alignment** → Match articles by number across versions
+4. **Diff Calculation** → `compareTexts()` from `src/lib/diff-engine.ts`
+5. **Status Determination** → `same`, `modified`, `new`, `inherited`
+6. **Rendering** → Highlight changes with color-coded badges
 
 ## Key Abstractions
 
-**ActionResult<T>:**
-- **Purpose:** Standardized container return type for Server Actions to ensure predictable success/error payloads.
-- **Interface:** `{ success: boolean; data?: T; error?: string }`
+**Regulation**:
+- Purpose: Represents a subject area (e.g., "Jaminan Kesehatan") with multiple versions
+- Examples: `prisma/schema.prisma#L23`, `src/lib/data-service.ts#L12`
+- Pattern: Aggregate root with one-to-many relation to `RegulationVersion`
 
-**Storage Client (`src/lib/storage.ts`):**
-- **Purpose:** Static client wrapper exposing MinIO operations (`uploadFile`, `getFileStream`, `deleteFile`) with automatic bucket creation.
+**RegulationVersion**:
+- Purpose: A specific iteration of a regulation (e.g., "Perpres No. 82 Tahun 2018")
+- Examples: `prisma/schema.prisma#L39`, `src/lib/ai-service.ts#L161`
+- Pattern: Self-referential for amends relationship
 
-**Diff Engine (`src/lib/diff-engine.ts`):**
-- **Purpose:** Tokenizes text, finds the Longest Common Subsequence, and merges identical differences.
+**Article**:
+- Purpose: Individual pasal within a regulation version
+- Examples: `prisma/schema.prisma#L75`, `src/lib/diff-engine.ts#L4`
+- Pattern: Child of version with status tracking
+
+**Diff Result**:
+- Purpose: Verbatim comparison of article text
+- Examples: `src/lib/diff-engine.ts#L9`
+- Pattern: Word-by-word LCS algorithm with equal/insert/delete parts
 
 ## Entry Points
 
-**API Handlers:**
-- Location: `src/app/api/**/route.ts`
-- Triggers: HTTP requests from client features or third parties.
-- Responsibilities: Handle CSRF/NextAuth credentials, regulation retrieval, and uploads.
+**App Entry Point**:
+- Location: `src/app/page.tsx`
+- Triggers: Root route `/`
+- Responsibilities: Renders landing page with auth check
 
-**Server Actions:**
-- Location: `src/actions/regulations.ts`
-- Triggers: Interactive component forms.
-- Responsibilities: DB writes, revalidating cache paths.
+**Layout Entry Point**:
+- Location: `src/app/layout.tsx`
+- Triggers: All routes
+- Responsibilities: Wraps app with ThemeProvider, AppShell, auth-based navigation
+
+**API Routes**:
+- `src/app/api/auth/[...nextauth]/route.ts`: NextAuth handlers
+- `src/app/api/regulations/route.ts`: GET list of regulations
+- `src/app/api/regulations/[id]/route.ts`: GET single regulation with all versions
+- `src/app/api/upload/route.ts`: POST new regulation with streaming SSE response
+
+## Architectural Constraints
+
+- **Threading:** Single-threaded Node.js event loop; no worker threads
+- **Global state:** Prisma client uses global singleton pattern in `src/lib/prisma.ts#L17`
+- **Circular imports:** None detected; dependency flow: UI → Actions → Lib → Prisma
+- **Authentication:** JWT-based session strategy with credentials provider
+- **Styling:** Tailwind CSS v4 with custom config; component libraries use inline styles where needed
+
+## Anti-Patterns
+
+### No Database Abstraction Layer
+
+**What happens:** App code calls `prisma.*` directly in API routes and server actions.
+
+**Why it's wrong:** This tightly couples business logic to database schema. Changing the schema requires updates across many files.
+
+**Do this instead:** Create a repository pattern in `src/repositories/` that abstracts Prisma calls:
+```typescript
+// src/repositories/regulationRepository.ts
+export async function findById(id: string) {
+  return prisma.regulation.findUnique({ where: { id } });
+}
+```
+Reference: `src/lib/data-service.ts` provides partial abstraction but is incomplete.
+
+### Large File Sizes
+
+**What happens:** Some files exceed 400+ lines (e.g., `src/actions/regulations.ts:489`, `src/app/api/upload/route.ts:355`).
+
+**Why it's wrong:** Multi-responsibility files are harder to test and maintain.
+
+**Do this instead:** Split by concern:
+- `src/actions/regulation-actions.ts` (CRUD)
+- `src/actions/version-actions.ts` (version management)
+- `src/actions/article-actions.ts` (article management)
 
 ## Error Handling
 
-**Strategy:**
-- Wrap database, network, and LLM calls in standard `try/catch` blocks.
-- Log error specifics to standard error for debugging.
-- Return structured error strings in `ActionResult` or standard JSON response statuses (e.g. `401 Unauthorized`, `403 Forbidden`, `500 Server Error`).
+**Strategy:** Try-catch with user-friendly messages; console.error for debugging.
+
+**Patterns:**
+- API routes return `NextResponse.json({ success: false, error: message }, { status })`
+- Server actions return `{ success: boolean, data?: T, error?: string }`
+- Database errors logged with context
 
 ## Cross-Cutting Concerns
 
-**Logging:**
-- Console output (`console.log`, `console.error`).
+**Logging:** Custom `logger` in `src/lib/logger.ts` with level filtering and timestamp formatting.
 
-**Validation:**
-- Zod schemas in `src/lib/validations.ts` parse, coerce, and check request parameters and form inputs.
+**Validation:** Zod schemas in `src/lib/validations.ts`; used in API routes and server actions.
 
-**Authentication:**
-- Managed via `src/lib/auth.ts` and `src/lib/authorization.ts` to retrieve the current user session and check user roles.
+**Authentication:** NextAuth credentials provider with rate limiting via `LRUCache` in `src/lib/auth.ts#L15`.
+
+**Authorization:** Role-based access control (ADMIN/VIEWER) with `getCurrentUser()` and `isAdminRole()`.
 
 ---
 
-*Architecture analysis: 2026-06-08*
-*Update when major patterns change*
+*Architecture analysis: 2026-06-10*

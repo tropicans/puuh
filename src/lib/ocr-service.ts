@@ -51,7 +51,22 @@ export async function performOCR(imageBuffer: Buffer): Promise<string> {
         throw new Error(`Vision API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    let data: { choices?: { message?: { content?: string } }[] };
+    try {
+        data = JSON.parse(rawText);
+    } catch {
+        const lastBrace = rawText.lastIndexOf('}');
+        if (lastBrace > 0) {
+            try {
+                data = JSON.parse(rawText.substring(0, lastBrace + 1));
+            } catch {
+                throw new Error(`Failed to parse Vision API response: ${rawText.substring(0, 200)}`);
+            }
+        } else {
+            throw new Error(`Failed to parse Vision API response: ${rawText.substring(0, 200)}`);
+        }
+    }
     return data.choices?.[0]?.message?.content || '';
 }
 
@@ -122,7 +137,22 @@ async function extractChunkWithVision(pdfBuffer: Buffer, chunkIndex: number): Pr
             throw new Error(`Vision API error: ${response.status} - ${errorDetail}`);
         }
 
-        const data = await response.json();
+        const rawText = await response.text();
+        let data: { choices?: { message?: { content?: string } }[] };
+        try {
+            data = JSON.parse(rawText);
+        } catch {
+            const lastBrace = rawText.lastIndexOf('}');
+            if (lastBrace > 0) {
+                try {
+                    data = JSON.parse(rawText.substring(0, lastBrace + 1));
+                } catch {
+                    throw new Error(`Failed to parse Vision API response: ${rawText.substring(0, 200)}`);
+                }
+            } else {
+                throw new Error(`Failed to parse Vision API response: ${rawText.substring(0, 200)}`);
+            }
+        }
         const text = data.choices?.[0]?.message?.content || '';
         console.log(`Chunk ${chunkIndex + 1} Result: ${text.length} chars`);
         return text;
@@ -226,13 +256,16 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
                     const chunkText = await extractChunkWithVision(chunkBuffer, i / PAGES_PER_CHUNK);
                     fullText += chunkText + '\n\n';
                     success = true;
-                } catch (e) {
+                } catch (e: any) {
                     console.error(`Chunk error (retry ${retries}):`, e);
                     if (onProgress) onProgress(`Chunk ${currentChunk} gagal, retry ${retries + 1}...`);
-                    // If chunk too large, maybe needed single page? (complex)
-                    // For now just retry
-                    retries++;
-                    await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+                    // 400 = bad request (format not supported), don't retry
+                    if (e.message?.includes('400') || e.message?.includes('Improperly formed')) {
+                        success = true; // skip this chunk, it won't work
+                    } else {
+                        retries++;
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
                 }
             }
         }
