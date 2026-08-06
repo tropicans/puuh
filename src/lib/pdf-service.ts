@@ -89,10 +89,63 @@ export async function smartExtractPdfText(
     onProgress?: (msg: string) => void
 ): Promise<{
     text: string;
-    method: 'pdfjs' | 'pdf-parse' | 'ocr';
+    method: 'pdfjs' | 'pdf-parse' | 'ocr' | 'docling';
     numPages?: number;
 }> {
-    // Method 1: Try pdfjs-dist first
+    // Method 1: Try Docling API first
+    try {
+        if (onProgress) onProgress('Mencoba membaca teks menggunakan Docling...');
+
+        const baseUrl = process.env.DOCLING_API_URL || 'http://localhost:5001';
+        const endpoint = `${baseUrl.replace(/\/$/, '')}/v1/convert/file`;
+
+        const formData = new FormData();
+        const blob = new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' });
+        formData.append('files', blob, 'document.pdf');
+        formData.append('options', JSON.stringify({ to_formats: ['md'] }));
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData,
+            signal: AbortSignal.timeout(15000), // D-01: 15s timeout
+        });
+
+        if (!response.ok) {
+            // D-12: Log the full error response body
+            const errorText = await response.text();
+            throw new Error(`Docling API returned ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json() as {
+            status: string;
+            document?: {
+                md_content?: string;
+            };
+        };
+
+        if (data.status === 'success' && data.document?.md_content) {
+            const mdText = data.document.md_content;
+            if (onProgress) {
+                onProgress(`Teks berhasil diekstrak (docling): ${mdText.length} karakter`);
+            }
+            return {
+                text: cleanPdfText(mdText),
+                method: 'docling'
+            };
+        } else {
+            throw new Error(`Docling conversion status: ${data.status}`);
+        }
+    } catch (e) {
+        // D-04: Log detailed error in server console
+        console.error('Docling extraction failed, initiating fallback:', e);
+
+        // D-11: Notify client about the fallback
+        if (onProgress) {
+            onProgress('Metode Docling gagal/timeout. Beralih ke pembacaan digital alternatif...');
+        }
+    }
+
+    // Method 2: Try pdfjs-dist
     try {
         if (onProgress) onProgress('Mencoba membaca teks digital...');
         const result = await extractTextFromPdf(pdfBuffer);
@@ -108,17 +161,34 @@ export async function smartExtractPdfText(
         console.error('pdfjs failed:', e);
     }
 
-    // Method 2: Try pdf-parse
+    // Method 3: Try pdf-parse
     try {
         if (onProgress) onProgress('Metode 1 gagal/timeout, mencoba metode alternatif...');
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require('pdf-parse');
-        const data = await pdfParse(pdfBuffer);
-        if (data.text && data.text.length > 200) {
+        const pdfParseModule = await import('pdf-parse');
+        
+        let text = '';
+        let numPages = 0;
+        
+        if (typeof pdfParseModule.PDFParse === 'function') {
+            const parser = new pdfParseModule.PDFParse({ data: pdfBuffer });
+            const result = await parser.getText();
+            text = result.text;
+            numPages = result.pages?.length || 0;
+        } else {
+            const mod = pdfParseModule as unknown as { default?: unknown };
+            const pdfParseFn = (mod.default || mod) as (
+                buf: Buffer
+            ) => Promise<{ text: string; numpages?: number }>;
+            const data = await pdfParseFn(pdfBuffer);
+            text = data.text;
+            numPages = data.numpages || 0;
+        }
+
+        if (text && text.length > 200) {
             return {
-                text: cleanPdfText(data.text), // Clean logic is hoisted or we duplicate/move the function function to top level scope if needed, but here it assumes it's available
+                text: cleanPdfText(text),
                 method: 'pdf-parse',
-                numPages: data.numpages
+                numPages
             };
         }
         console.log('pdf-parse also got little text');
@@ -126,7 +196,7 @@ export async function smartExtractPdfText(
         console.error('pdf-parse failed:', e);
     }
 
-    // Method 3: Vision OCR (imported dynamically to avoid circular deps)
+    // Method 4: Vision OCR (imported dynamically to avoid circular deps)
     console.log('Trying Vision OCR for scanned PDF...');
     if (onProgress) onProgress('PDF terdeteksi sebagai scan/gambar. Beralih ke Vision OCR (ini mungkin memakan waktu)...');
 

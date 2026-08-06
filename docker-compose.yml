@@ -27,11 +27,14 @@ services:
       - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@test.com}
       - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-password123456}
       - BOOTSTRAP_SEED_TOKEN=${BOOTSTRAP_SEED_TOKEN:-puu-seed}
+      - DOCLING_API_URL=http://docling-serve:5001
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
+      docling-serve:
+        condition: service_started
 
   postgres:
     image: postgres:15-alpine
@@ -79,6 +82,21 @@ services:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c " /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin}; /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME:-puu-documents}; /usr/bin/mc anonymous set download myminio/${MINIO_BUCKET_NAME:-puu-documents}; exit 0; "
+
+  docling-serve:
+    image: quay.io/docling-project/docling-serve-cpu:v1.29.0
+    container_name: puu-tracker-docling
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - DOCLING_SERVE_ENABLE_UI=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   postgres_data:

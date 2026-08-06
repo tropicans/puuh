@@ -9,15 +9,15 @@ Requirements for the v1.0 milestone. Each maps to roadmap phases.
 
 ### Infrastructure & Setup
 
-- [ ] **INF-01**: Menambahkan service `docling-serve` (CPU-based) ke dalam `docker-compose.yml` agar berjalan di jaringan internal Docker.
-- [ ] **INF-02**: Mendefinisikan environment variable `DOCLING_API_URL` pada service `app` untuk mengarah ke endpoint `docling-serve`.
-- [ ] **INF-03**: Menambahkan pemeriksaan status/kesehatan (*health check*) untuk service `docling-serve` agar Next.js tahu kapan service siap digunakan.
+- [x] **INF-01**: Menambahkan service `docling-serve` (CPU-based) ke dalam `docker-compose.yml` agar berjalan di jaringan internal Docker.
+- [x] **INF-02**: Mendefinisikan environment variable `DOCLING_API_URL` pada service `app` untuk mengarah ke endpoint `docling-serve`.
+- [x] **INF-03**: Menambahkan pemeriksaan status/kesehatan (*health check*) untuk service `docling-serve` agar Next.js tahu kapan service siap digunakan.
 
 ### Layout-Aware PDF Parser
 
-- [ ] **EXT-01**: Mengintegrasikan API client pada Next.js backend (menggunakan `docling-sdk` atau direct HTTP fetch) untuk mengirimkan PDF ke service Docling.
-- [ ] **EXT-02**: Melakukan ekstraksi teks layout-aware (pemisahan kolom, penanganan paragraf terstruktur).
-- [ ] **EXT-03**: Implementasi mekanisme *fallback* otomatis ke engine ekstraksi lama (`pdfjs` -> `pdf-parse` -> `ocr-service`) jika service Docling tidak dapat diakses atau gagal memproses PDF.
+- [x] **EXT-01**: Mengintegrasikan API client pada Next.js backend (menggunakan `docling-sdk` atau direct HTTP fetch) untuk mengirimkan PDF ke service Docling.
+- [x] **EXT-02**: Melakukan ekstraksi teks layout-aware (pemisahan kolom, penanganan paragraf terstruktur).
+- [x] **EXT-03**: Implementasi mekanisme *fallback* otomatis ke engine ekstraksi lama (`pdfjs` -> `pdf-parse` -> `ocr-service`) jika service Docling tidak dapat diakses atau gagal memproses PDF.
 
 ### Table & Markdown Extraction
 
@@ -53,21 +53,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INF-01 | Phase 1 | Pending |
-| INF-02 | Phase 1 | Pending |
-| INF-03 | Phase 1 | Pending |
-| EXT-01 | Phase 2 | Pending |
-| EXT-02 | Phase 2 | Pending |
-| EXT-03 | Phase 2 | Pending |
+| INF-01 | Phase 1 | Validated |
+| INF-02 | Phase 1 | Validated |
+| INF-03 | Phase 1 | Validated |
+| EXT-01 | Phase 2 | Complete |
+| EXT-02 | Phase 2 | Complete |
+| EXT-03 | Phase 2 | Complete |
 | TAB-01 | Phase 3 | Pending |
 | TAB-02 | Phase 3 | Pending |
 | AI-01 | Phase 4 | Pending |
 | UI-01 | Phase 4 | Pending |
+| OCR-01 | Deferred | Pending |
+| PERF-01 | Deferred | Pending |
 
 **Coverage:**
+
 - v1 requirements: 10 total
+- v2 requirements: 2 total
 - Mapped to phases: 10
-- Unmapped: 0 ✓
+- Unmapped: 2 ✓
 
 ---
 *Requirements defined: 2026-08-06*

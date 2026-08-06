@@ -12,7 +12,7 @@ Perjalanan integrasi Docling untuk meningkatkan akurasi ekstraksi struktur pasal
 - Decimal phases (2.1, 2.2): Urgent insertions
 
 - [x] **Phase 1: Infrastruktur & Integrasi Docker** - Menyiapkan container `docling-serve` dan environment variables.
-- [ ] **Phase 2: Core PDF Service Integration** - Membangun API client Docling dengan penanganan kegagalan (*fallback*) otomatis.
+- [x] **Phase 2: Core PDF Service Integration** - Membangun API client Docling dengan penanganan kegagalan (*fallback*) otomatis. (completed 2026-08-06)
 - [ ] **Phase 3: Pemrosesan Tabel & Markdown** - Menangani konversi tabel ke format Markdown terstruktur dan pembersihan teks.
 - [ ] **Phase 4: LLM & UI Integration** - Menyuplai Markdown hasil Docling ke LLM parser pasal dan menampilkan indikator ekstraksi di frontend.
 
@@ -48,7 +48,7 @@ Plans:
 **Plans**: 1 plan
 Plans:
 
-- [ ] 02-01: Implementasi Docling client adapter dan logika fallback otomatis di pdf-service.ts.
+- [x] 02-01: Implementasi Docling client adapter dan logika fallback otomatis di pdf-service.ts.
 
 ### Phase 3: Pemrosesan Tabel & Markdown
 
@@ -90,6 +90,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastruktur & Integrasi Docker | 1/1 | Complete    | 2026-08-06 |
-| 2. Core PDF Service Integration | 0/1 | Not started | - |
+| 2. Core PDF Service Integration | 1/1 | Complete    | 2026-08-06 |
 | 3. Pemrosesan Tabel & Markdown | 0/1 | Not started | - |
 | 4. LLM & UI Integration | 0/1 | Not started | - |
