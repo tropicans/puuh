@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { fetchFromBackend } from '@/lib/api';
 
 export async function GET() {
-    try {
-        await prisma.$queryRaw`SELECT 1`;
-        return NextResponse.json({ status: 'ok' });
-    } catch {
-        return NextResponse.json({ status: 'error' }, { status: 500 });
+    const res = await fetchFromBackend<any>('/api/db-status', { method: 'GET' });
+    if (!res.success) {
+        return NextResponse.json({ success: false, error: res.error }, { status: res.status || 500 });
     }
+    return NextResponse.json(res.data);
 }

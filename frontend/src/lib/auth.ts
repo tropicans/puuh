@@ -1,7 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
-import prisma from "@/lib/prisma";
 import { z } from "zod";
 import { LRUCache } from "lru-cache";
 
@@ -44,34 +42,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     return null;
                 }
 
-                // Find user
-                const user = await prisma.user.findUnique({
-                    where: { email },
-                });
+                // Call Express backend
+                try {
+                    const response = await fetch(`${process.env.BACKEND_URL || 'http://localhost:3007'}/api/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
 
-                if (!user) {
+                    if (!response.ok) {
+                        attempts[0] += 1;
+                        loginRateLimit.set(rateLimitKey, attempts);
+                        return null;
+                    }
+
+                    const resData = await response.json();
+                    if (!resData || !resData.success || !resData.user) {
+                        attempts[0] += 1;
+                        loginRateLimit.set(rateLimitKey, attempts);
+                        return null;
+                    }
+
+                    // Successful login — clear rate limit
+                    loginRateLimit.delete(rateLimitKey);
+
+                    return {
+                        id: resData.user.id,
+                        email: resData.user.email,
+                        name: resData.user.name,
+                        role: resData.user.role,
+                    };
+                } catch (error) {
+                    console.error('Login request to backend failed:', error);
                     attempts[0] += 1;
                     loginRateLimit.set(rateLimitKey, attempts);
                     return null;
                 }
-
-                // Verify password
-                const isValid = await compare(password, user.password);
-                if (!isValid) {
-                    attempts[0] += 1;
-                    loginRateLimit.set(rateLimitKey, attempts);
-                    return null;
-                }
-
-                // Successful login — clear rate limit
-                loginRateLimit.delete(rateLimitKey);
-
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                };
             },
         }),
     ],

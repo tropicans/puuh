@@ -1,33 +1,10 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/authorization';
+import { fetchFromBackend } from '@/lib/api';
 
 export async function GET() {
-    try {
-        const user = await getCurrentUser();
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const regulations = await prisma.regulation.findMany({
-            include: {
-                type: true,
-                versions: {
-                    orderBy: { year: 'desc' },
-                    include: {
-                        _count: { select: { articles: true } }
-                    }
-                }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
-
-        return NextResponse.json({ regulations });
-    } catch (error) {
-        console.error('Error fetching regulations:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch regulations' },
-            { status: 500 }
-        );
+    const res = await fetchFromBackend<any>('/api/regulations', { method: 'GET' });
+    if (!res.success) {
+        return NextResponse.json({ error: res.error }, { status: res.status || 500 });
     }
+    return NextResponse.json(res.data);
 }

@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { storage } from '../lib/storage';
 import { smartExtractPdfText } from '../lib/pdf-service';
 import { parseArticlesFromText } from '../lib/ai-service';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const upload = multer({
@@ -20,7 +21,7 @@ const uploadSchema = z.object({
   existingRegulationId: z.string().optional().nullable(),
 });
 
-router.post('/', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/', authMiddleware('ADMIN'), upload.single('file'), async (req: Request, res: Response) => {
   const file = req.file;
   if (!file) {
     return res.status(400).json({ success: false, message: 'File harus diupload.' });

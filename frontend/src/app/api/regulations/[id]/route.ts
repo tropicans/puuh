@@ -1,55 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/authorization';
+import { fetchFromBackend } from '@/lib/api';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const user = await getCurrentUser();
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { id } = await params;
-
-        const regulation = await prisma.regulation.findUnique({
-            where: { id },
-            include: {
-                type: true,
-                versions: {
-                    orderBy: { year: 'asc' },
-                    include: {
-                        articles: {
-                            orderBy: { orderIndex: 'asc' }
-                        }
-                    }
-                },
-                judicialReviews: {
-                    include: {
-                        impacts: {
-                            orderBy: { articleNumber: 'asc' }
-                        }
-                    },
-                    orderBy: [{ decisionDate: 'desc' }, { createdAt: 'desc' }]
-                }
-            }
-        });
-
-        if (!regulation) {
-            return NextResponse.json(
-                { error: 'Regulation not found' },
-                { status: 404 }
-            );
-        }
-
-        return NextResponse.json({ regulation });
-    } catch (error) {
-        console.error('Error fetching regulation:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch regulation' },
-            { status: 500 }
-        );
+    const { id } = await params;
+    const res = await fetchFromBackend<any>('/api/regulations/' + id, { method: 'GET' });
+    if (!res.success) {
+        return NextResponse.json({ error: res.error }, { status: res.status || 500 });
     }
+    return NextResponse.json(res.data);
 }

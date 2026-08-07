@@ -35,7 +35,7 @@ async function getSessionRole(req: NextRequest): Promise<string | null> {
   }
 }
 
-export async function proxy(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-pathname', pathname);
