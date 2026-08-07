@@ -57,7 +57,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 10-01: Refactoring API upload backend agar asinkron, paralelisasi halaman Vision OCR (menggunakan `p-limit`), dan integrasi halaman unggah dokumen di frontend agar melakukan polling status tugas.
+- [x] 10-01: Refactoring API upload backend agar asinkron, paralelisasi halaman Vision OCR (menggunakan `p-limit`), dan integrasi halaman unggah dokumen di frontend agar melakukan polling status tugas.
 
 **Success Criteria:**
 1. Request upload PDF segera mengembalikan status `202 Accepted` dengan `taskId` dalam milidetik.
@@ -74,7 +74,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 11-01: Perbarui parser LLM dengan Structured Outputs (Response Format JSON Schema) dan implementasi modul pemecah teks (chunking) berjenjang per halaman/bab untuk dokumen berukuran besar.
+- [x] 11-01: Perbarui parser LLM dengan Structured Outputs (Response Format JSON Schema) dan implementasi modul pemecah teks (chunking) berjenjang per halaman/bab untuk dokumen berukuran besar.
 
 **Success Criteria:**
 1. Model AI merespons dalam struktur JSON valid yang sesuai dengan skema Zod `Article` secara konsisten tanpa kegagalan format JSON.
@@ -129,7 +129,7 @@ Plans:
 | 7. Integrasi Frontend & Autentikasi/Otorisasi | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 8. Orkestrasi Docker, Pengujian & Smoke Test | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 9. Background Task Queue & Database Schema Migration | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
-| 10. Asynchronous PDF Processing & Frontend Integration | v3.0 | 0/1 | ⏳ Planned | — |
-| 11. LLM Structured Outputs & Advanced Article Structuring | v3.0 | 0/1 | ⏳ Planned | — |
+| 10. Asynchronous PDF Processing & Frontend Integration | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
+| 11. LLM Structured Outputs & Advanced Article Structuring | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 12. Asynchronous Judicial Review Sync & AI Amar Analyzer | v3.0 | 0/1 | ⏳ Planned | — |
 | 13. Kustomisasi Docling OCR, Caching & Refactoring TypeScript | v3.0 | 0/1 | ⏳ Planned | — |
