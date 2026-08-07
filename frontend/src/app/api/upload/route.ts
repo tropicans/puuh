@@ -116,24 +116,15 @@ export async function POST(request: NextRequest) {
             }
         });
 
+        const data = await response.json();
         if (!response.ok) {
-            let errorMsg = `HTTP Error ${response.status}`;
-            try {
-                const errData = await response.json();
-                errorMsg = errData.error || errData.message || errorMsg;
-            } catch {
-                // ignore
-            }
-            return NextResponse.json({ success: false, message: errorMsg }, { status: response.status });
+            return NextResponse.json(
+                { success: false, message: data.message || data.error || `HTTP Error ${response.status}` },
+                { status: response.status }
+            );
         }
 
-        return new Response(response.body, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-            },
-        });
+        return NextResponse.json(data, { status: 202 });
 
     } catch (error) {
         console.error('Upload init error:', error);

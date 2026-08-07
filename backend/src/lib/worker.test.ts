@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { prisma } from './prisma';
-import { processNextTask, startWorker, stopWorker } from './worker';
+import { processNextTask, startWorker, stopWorker, taskHandlers } from './worker';
 import { TaskStatus, TaskType } from '@prisma/client';
 
 vi.mock('./prisma', () => {
@@ -21,12 +21,16 @@ vi.mock('./prisma', () => {
 });
 
 describe('Background Worker Engine', () => {
+  let originalUploadPdfHandler: any;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    originalUploadPdfHandler = taskHandlers.UPLOAD_PDF;
   });
 
   afterEach(() => {
     stopWorker();
+    taskHandlers.UPLOAD_PDF = originalUploadPdfHandler;
   });
 
   it('should skip processing if no pending task is found', async () => {
@@ -39,6 +43,11 @@ describe('Background Worker Engine', () => {
   });
 
   it('should process a pending task successfully', async () => {
+    taskHandlers.UPLOAD_PDF = vi.fn().mockResolvedValue({
+      message: 'UPLOAD_PDF stub executed successfully',
+      payload: { filename: 'test.pdf' },
+    });
+
     const mockTask = {
       id: 'task-123',
       type: TaskType.UPLOAD_PDF,
@@ -79,6 +88,8 @@ describe('Background Worker Engine', () => {
   });
 
   it('should handle errors and update task status to FAILED', async () => {
+    taskHandlers.UPLOAD_PDF = vi.fn().mockRejectedValue(new Error('Mock handler execution failure'));
+
     const mockTask = {
       id: 'task-456',
       type: TaskType.UPLOAD_PDF,
@@ -92,11 +103,7 @@ describe('Background Worker Engine', () => {
     };
 
     vi.mocked(prisma.processTask.findFirst).mockResolvedValueOnce(mockTask);
-    
-    // First update (to PROCESSING) succeeds, second update (to SUCCESS) fails
-    vi.mocked(prisma.processTask.update)
-      .mockResolvedValueOnce({} as any)
-      .mockRejectedValueOnce(new Error('Mock handler execution failure'));
+    vi.mocked(prisma.processTask.update).mockResolvedValue({} as any);
 
     await processNextTask();
 

@@ -2,6 +2,7 @@
  * OCR Service using LLM Vision Models
  */
 import config from '../config/index';
+import pLimit from 'p-limit';
 
 const LLM_BASE_URL = config.OPENAI_BASE_URL;
 const LLM_API_KEY = config.OPENAI_API_KEY;
@@ -130,14 +131,18 @@ async function extractChunkWithVision(pdfBuffer: Buffer, chunkIndex: number): Pr
 
         console.log(`Chunk ${chunkIndex + 1}: converted to ${pngFiles.length} page image(s), running OCR...`);
 
-        // OCR each page image
-        let fullText = '';
-        for (const pngFile of pngFiles) {
-            const pngBuffer = await fs.promises.readFile(pngFile);
-            const pageText = await performOCR(pngBuffer);
-            fullText += pageText + '\n';
-            await fs.promises.unlink(pngFile).catch(() => {});
-        }
+        // OCR each page image in parallel with a concurrency limit of 3
+        const limit = pLimit(3);
+        const ocrPromises = pngFiles.map((pngFile) =>
+            limit(async () => {
+                const pngBuffer = await fs.promises.readFile(pngFile);
+                const pageText = await performOCR(pngBuffer);
+                await fs.promises.unlink(pngFile).catch(() => {});
+                return pageText;
+            })
+        );
+        const results = await Promise.all(ocrPromises);
+        const fullText = results.join('\n');
 
         console.log(`Chunk ${chunkIndex + 1} Result: ${fullText.length} chars`);
         return fullText;

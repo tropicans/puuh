@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBanner } from '@/components/common/StatusBanner';
@@ -79,8 +79,20 @@ function DropZone({ file, onFileSelect }: { file: File | null; onFileSelect: (f:
 
 function UploadContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const amendsId = searchParams.get('amends');
     const existingTitle = searchParams.get('title');
+
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Clean up polling interval on unmount
+    useEffect(() => {
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
+    }, []);
 
     const [mode, setMode] = useState<UploadMode>('auto');
     const [formData, setFormData] = useState({
@@ -213,50 +225,68 @@ function UploadContent() {
         try {
             const res = await fetch('/api/upload', { method: 'POST', body: form });
 
-            if (!res.body) throw new Error('No response stream');
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Gagal mengupload file.');
+            }
 
-            // Handle Streaming Response
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let finalResult = null;
+            const { taskId } = data;
+            setStatusMessage('Upload berhasil. Mengantre pemrosesan...');
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (!line.trim()) continue;
+            // Polling task status every 2 seconds
+            await new Promise<void>((resolve, reject) => {
+                const interval = setInterval(async () => {
                     try {
-                        const data = JSON.parse(line);
+                        const taskRes = await fetch(`/api/tasks/${taskId}`);
+                        if (!taskRes.ok) {
+                            clearInterval(interval);
+                            reject(new Error('Gagal mendapatkan status pemrosesan.'));
+                            return;
+                        }
+                        const taskData = await taskRes.json();
+                        if (!taskData.success || !taskData.task) {
+                            clearInterval(interval);
+                            reject(new Error(taskData.error || 'Tugas tidak ditemukan.'));
+                            return;
+                        }
 
-                        if (data.type === 'progress') {
-                            setStatusMessage(data.message);
-                        } else if (data.type === 'success') {
-                            finalResult = data.data;
+                        const task = taskData.task;
+                        if (task.status === 'PENDING') {
+                            setStatusMessage('Tugas mengantre...');
+                        } else if (task.status === 'PROCESSING') {
+                            const progressStr = task.progress ? `[${task.progress}%] ` : '';
+                            const stepMsg = task.result && typeof task.result === 'object' && 'message' in task.result
+                                ? (task.result as any).message
+                                : 'Memproses dokumen...';
+                            setStatusMessage(`${progressStr}${stepMsg}`);
+                        } else if (task.status === 'SUCCESS') {
+                            clearInterval(interval);
+                            const finalResult = task.result;
                             setResult({
                                 success: true,
-                                message: data.data.message,
-                                articlesCount: data.data.parsedArticles
+                                message: finalResult?.message || 'Dokumen berhasil diproses.',
+                                articlesCount: finalResult?.parsedArticles ?? 0
                             });
-                        } else if (data.type === 'error') {
-                            throw new Error(data.message);
-                        }
-                    } catch (e) {
-                        // Ignore parsing errors for partial chunks or errors
-                        if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
-                            // potential real error handling if needed
-                        }
-                    }
-                }
-            }
+                            setFile(null);
+                            setFormData({ ...formData, number: '', year: '', title: '' });
+                            resolve();
 
-            if (finalResult) {
-                setFile(null);
-                setFormData({ ...formData, number: '', year: '', title: '' });
-            }
+                            if (finalResult?.regulationId) {
+                                setTimeout(() => {
+                                    router.push(`/regulations/${finalResult.regulationId}`);
+                                }, 1500);
+                            }
+                        } else if (task.status === 'FAILED') {
+                            clearInterval(interval);
+                            reject(new Error(task.error || 'Pemrosesan dokumen gagal.'));
+                        }
+                    } catch (err) {
+                        clearInterval(interval);
+                        reject(err);
+                    }
+                }, 2000);
+                pollIntervalRef.current = interval;
+            });
 
         } catch (error) {
             setResult({ success: false, message: error instanceof Error ? error.message : 'Terjadi kesalahan' });
