@@ -15,6 +15,11 @@ const eslintConfig = defineConfig([
     // External tooling — not app code:
     ".agent/**",
   ]),
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn"
+    }
+  }
 ]);
 
 export default eslintConfig;

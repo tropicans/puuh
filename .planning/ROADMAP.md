@@ -27,7 +27,7 @@ Full details: [.planning/milestones/v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.m
 **Plans**: 1 plan
 
 Plans:
-- [ ] 05-01: Reorganisasi struktur direktori monorepo, inisialisasi Express backend, dan set up workspace/npm scripts.
+- [x] 05-01: Reorganisasi struktur direktori monorepo, inisialisasi Express backend, dan set up workspace/npm scripts.
 
 **Success Criteria:**
 1. Semua kode Next.js dipindahkan ke `frontend/` dan berhasil dibuild (`npm run build`).
@@ -96,7 +96,7 @@ Plans:
 | 2. Core PDF Service Integration | v1.0 | 1/1 | ✅ Shipped | 2026-08-06 |
 | 3. Pemrosesan Tabel & Markdown | v1.0 | 1/1 | ✅ Shipped | 2026-08-06 |
 | 4. LLM & UI Integration | v1.0 | 1/1 | ✅ Shipped | 2026-08-06 |
-| 5. Reorganisasi Direktori & Inisialisasi Monorepo | v2.0 | 0/1 | 🚧 In Progress | — |
+| 5. Reorganisasi Direktori & Inisialisasi Monorepo | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 6. Migrasi Database & Core Services | v2.0 | 0/1 | 🚧 In Progress | — |
 | 7. Integrasi Frontend & Autentikasi/Otorisasi | v2.0 | 0/1 | 🚧 In Progress | — |
 | 8. Orkestrasi Docker, Pengujian & Smoke Test | v2.0 | 0/1 | 🚧 In Progress | — |
