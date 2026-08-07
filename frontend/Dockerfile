@@ -25,8 +25,8 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Install wget for healthcheck
-RUN apk add --no-cache wget
+# Install wget for healthcheck and poppler for PDF→PNG conversion (Vision OCR)
+RUN apk add --no-cache wget poppler-utils
 
 COPY --from=builder --chown=nextjs:nodejs /app/frontend/public ./frontend/public
 

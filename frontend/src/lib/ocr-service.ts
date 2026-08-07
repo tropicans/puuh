@@ -4,7 +4,7 @@
 
 const LLM_BASE_URL = process.env.OPENAI_BASE_URL;
 const LLM_API_KEY = process.env.OPENAI_API_KEY;
-const VISION_MODEL = 'kr/claude-sonnet-4';
+const VISION_MODEL = process.env.VISION_MODEL || process.env.NEXT_PUBLIC_VISION_MODEL || 'glm-cn/glm-5.2';
 
 /**
  * Perform OCR on an image using LLM Vision
@@ -83,81 +83,66 @@ function detectImageType(buffer: Buffer): string {
 }
 
 /**
- * Extract text from small PDF chunk using Vision OCR
+ * Extract text from a PDF chunk by converting pages to PNG via pdftoppm, then OCR each page
  */
 async function extractChunkWithVision(pdfBuffer: Buffer, chunkIndex: number): Promise<string> {
     console.log(`Processing Chunk ${chunkIndex + 1} (${(pdfBuffer.length / 1024).toFixed(1)} KB)...`);
 
+    const os = await import('os');
+    const fs = await import('fs');
+    const path = await import('path');
+    const { execFile } = await import('child_process');
+    const { promisify } = await import('util');
+    const execFileAsync = promisify(execFile);
+
+    const uniqueId = `${Date.now()}-${chunkIndex}`;
+    const tmpDir = os.tmpdir();
+    const tmpPdf = path.join(tmpDir, `ocr-chunk-${uniqueId}.pdf`);
+    const tmpPrefix = path.join(tmpDir, `ocr-page-${uniqueId}`);
+
     try {
-        const base64Pdf = pdfBuffer.toString('base64');
-        const dataUrl = `data:application/pdf;base64,${base64Pdf}`;
+        // Write PDF buffer to temp file
+        await fs.promises.writeFile(tmpPdf, pdfBuffer);
 
-        const response = await fetch(`${LLM_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${LLM_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: VISION_MODEL,
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            {
-                                type: 'text',
-                                text: 'Extract ALL text from this PDF document. Output only the full text content found.'
-                            },
-                            {
-                                type: 'image_url',
-                                image_url: {
-                                    url: dataUrl
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens: 8000,
-                temperature: 0.1,
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorDetail = errorText;
-            try {
-                const parsed = JSON.parse(errorText);
-                errorDetail = parsed.error?.message || errorText;
-            } catch {
-                // Not JSON
-            }
-            if (response.status === 413 || errorDetail.includes('too large')) {
-                throw new Error('CHUNK_TOO_LARGE');
-            }
-            throw new Error(`Vision API error: ${response.status} - ${errorDetail}`);
-        }
-
-        const rawText = await response.text();
-        let data: { choices?: { message?: { content?: string } }[] };
+        // Convert PDF pages to PNG using pdftoppm (150 DPI = good quality/size balance)
         try {
-            data = JSON.parse(rawText);
-        } catch {
-            const lastBrace = rawText.lastIndexOf('}');
-            if (lastBrace > 0) {
-                try {
-                    data = JSON.parse(rawText.substring(0, lastBrace + 1));
-                } catch {
-                    throw new Error(`Failed to parse Vision API response: ${rawText.substring(0, 200)}`);
-                }
-            } else {
-                throw new Error(`Failed to parse Vision API response: ${rawText.substring(0, 200)}`);
+            await execFileAsync('pdftoppm', ['-png', '-r', '150', tmpPdf, tmpPrefix]);
+        } catch (e) {
+            const err = e as NodeJS.ErrnoException;
+            if (err.code === 'ENOENT') {
+                throw new Error('pdftoppm not found - poppler-utils not installed');
             }
+            throw e;
         }
-        const text = data.choices?.[0]?.message?.content || '';
-        console.log(`Chunk ${chunkIndex + 1} Result: ${text.length} chars`);
-        return text;
-    } catch (error) {
-        throw error;
+
+        // Find all generated PNG files (pdftoppm naming: prefix-1.png, prefix-2.png, ...)
+        const allFiles = await fs.promises.readdir(tmpDir);
+        const prefixBase = path.basename(tmpPrefix);
+        const pngFiles = allFiles
+            .filter(f => f.startsWith(prefixBase) && (f.endsWith('.png') || f.endsWith('.ppm')))
+            .sort()
+            .map(f => path.join(tmpDir, f));
+
+        if (pngFiles.length === 0) {
+            throw new Error('pdftoppm produced no output files');
+        }
+
+        console.log(`Chunk ${chunkIndex + 1}: converted to ${pngFiles.length} page image(s), running OCR...`);
+
+        // OCR each page image
+        let fullText = '';
+        for (const pngFile of pngFiles) {
+            const pngBuffer = await fs.promises.readFile(pngFile);
+            const pageText = await performOCR(pngBuffer);
+            fullText += pageText + '\n';
+            await fs.promises.unlink(pngFile).catch(() => {});
+        }
+
+        console.log(`Chunk ${chunkIndex + 1} Result: ${fullText.length} chars`);
+        return fullText;
+
+    } finally {
+        await fs.promises.unlink(tmpPdf).catch(() => {});
     }
 }
 
@@ -256,11 +241,12 @@ export async function extractTextWithVision(pdfBuffer: Buffer, onProgress?: (msg
                     const chunkText = await extractChunkWithVision(chunkBuffer, i / PAGES_PER_CHUNK);
                     fullText += chunkText + '\n\n';
                     success = true;
-                } catch (e: any) {
-                    console.error(`Chunk error (retry ${retries}):`, e);
+                } catch (e) {
+                    const err = e as Error;
+                    console.error(`Chunk error (retry ${retries}):`, err);
                     if (onProgress) onProgress(`Chunk ${currentChunk} gagal, retry ${retries + 1}...`);
                     // 400 = bad request (format not supported), don't retry
-                    if (e.message?.includes('400') || e.message?.includes('Improperly formed')) {
+                    if (err.message?.includes('400') || err.message?.includes('Improperly formed')) {
                         success = true; // skip this chunk, it won't work
                     } else {
                         retries++;

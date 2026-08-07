@@ -30,9 +30,9 @@ COPY --from=builder /app/node_modules/@prisma/client /app/node_modules/@prisma/c
 FROM base AS runner
 ENV NODE_ENV production
 
-# Install wget for healthcheck
+# Install wget for healthcheck and poppler for PDF→PNG conversion (Vision OCR)
 USER root
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget poppler-utils
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
