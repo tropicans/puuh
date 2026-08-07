@@ -67,7 +67,7 @@ Plans:
 
 Plans:
 
-- [ ] 07-01: Pembaruan API calls di frontend, modifikasi NextAuth credentials provider untuk memanggil backend, dan pengiriman konteks user via custom headers.
+- [x] 07-01: Pembaruan API calls di frontend, modifikasi NextAuth credentials provider untuk memanggil backend, dan pengiriman konteks user via custom headers.
 
 **Success Criteria:**
 
@@ -106,5 +106,5 @@ Plans:
 | 4. LLM & UI Integration | v1.0 | 1/1 | ✅ Shipped | 2026-08-06 |
 | 5. Reorganisasi Direktori & Inisialisasi Monorepo | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 6. Migrasi Database & Core Services | v2.0 | 1/1 | Complete    | 2026-08-07 |
-| 7. Integrasi Frontend & Autentikasi/Otorisasi | v2.0 | 0/1 | 🚧 In Progress | — |
+| 7. Integrasi Frontend & Autentikasi/Otorisasi | v2.0 | 1/1 | ✅ Complete | 2026-08-07 |
 | 8. Orkestrasi Docker, Pengujian & Smoke Test | v2.0 | 0/1 | 🚧 In Progress | — |
