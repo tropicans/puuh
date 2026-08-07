@@ -26,8 +26,8 @@ Requirements for the v1.0 milestone. Each maps to roadmap phases.
 
 ### Downstream LLM & UI Integration
 
-- [ ] **AI-01**: Menyuplai teks Markdown hasil Docling ke modul parser pasal berbasis AI (`parseArticlesFromText`) untuk meningkatkan akurasi identifikasi pasal, ayat, dan list hierarkis.
-- [ ] **UI-01**: Menampilkan informasi metode ekstraksi ("docling") pada halaman log upload / admin untuk visibilitas penelusuran.
+- [x] **AI-01**: Menyuplai teks Markdown hasil Docling ke modul parser pasal berbasis AI (`parseArticlesFromText`) untuk meningkatkan akurasi identifikasi pasal, ayat, dan list hierarkis.
+- [x] **UI-01**: Menampilkan informasi metode ekstraksi ("docling") pada halaman log upload / admin untuk visibilitas penelusuran.
 
 ## v2 Requirements
 
@@ -61,8 +61,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXT-03 | Phase 2 | Complete |
 | TAB-01 | Phase 3 | Complete |
 | TAB-02 | Phase 3 | Complete |
-| AI-01 | Phase 4 | Pending |
-| UI-01 | Phase 4 | Pending |
+| AI-01 | Phase 4 | Complete |
+| UI-01 | Phase 4 | Complete |
 | OCR-01 | Deferred | Pending |
 | PERF-01 | Deferred | Pending |
 
@@ -75,4 +75,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-08-06*
-*Last updated: 2026-08-06 after initial definition*
+*Last updated: 2026-08-07 after Phase 4 completion — AI-01 and UI-01 marked complete*
