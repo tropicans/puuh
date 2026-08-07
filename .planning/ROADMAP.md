@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Integrasi Docling** — Phases 1–4 (shipped 2026-08-07)
-- 🚧 **v2.0 Pemisahan Service Frontend dan Backend** — Phases 5–8 (in progress)
+- ✅ **v2.0 Pemisahan Service Frontend dan Backend** — Phases 5–8 (shipped 2026-08-07)
 
 ## Phases
 
@@ -86,7 +86,7 @@ Plans:
 
 Plans:
 
-- [ ] 08-01: Update docker-compose.yml, penanganan environment variables, dan pelaksanaan testing/smoke flow.
+- [x] 08-01: Update docker-compose.yml, penanganan environment variables, dan pelaksanaan testing/smoke flow.
 
 **Success Criteria:**
 
@@ -107,4 +107,4 @@ Plans:
 | 5. Reorganisasi Direktori & Inisialisasi Monorepo | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 6. Migrasi Database & Core Services | v2.0 | 1/1 | Complete    | 2026-08-07 |
 | 7. Integrasi Frontend & Autentikasi/Otorisasi | v2.0 | 1/1 | ✅ Complete | 2026-08-07 |
-| 8. Orkestrasi Docker, Pengujian & Smoke Test | v2.0 | 0/1 | 🚧 In Progress | — |
+| 8. Orkestrasi Docker, Pengujian & Smoke Test | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |

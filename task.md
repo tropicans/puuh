@@ -1,0 +1,15 @@
+- `[x]` Create backend Dockerfile and dockerignore configuration
+  - `[x]` Create [backend/Dockerfile](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/backend/Dockerfile)
+  - `[x]` Create [backend/.dockerignore](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/backend/.dockerignore)
+- `[x]` Create frontend dockerignore configuration
+  - `[x]` Create [frontend/.dockerignore](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/frontend/.dockerignore)
+- `[x]` Update backend source configurations
+  - `[x]` Fix start script in [backend/package.json](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/backend/package.json)
+  - `[x]` Update database seeder in [backend/prisma/seed.ts](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/backend/prisma/seed.ts)
+- `[x]` Modify frontend Dockerfile
+  - `[x]` Update [frontend/Dockerfile](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/frontend/Dockerfile)
+- `[x]` Update Docker compose orchestration
+  - `[x]` Update [docker-compose.yml](file:///c:/Users/yudhiar/Downloads/oprek/Dev/puuh/docker-compose.yml)
+- `[x]` Verification and Smoke Testing
+  - `[x]` Build and run containers via Docker Compose
+  - `[x]` Run smoke tests against the Docker environment

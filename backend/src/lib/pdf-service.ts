@@ -1,15 +1,21 @@
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { cleanPdfText, cleanMarkdownText } from '../utils/text';
 import config from '../config/index';
 
-type PdfDocument = Awaited<ReturnType<typeof pdfjsLib.getDocument>['promise']>;
+let pdfjsLib: any = null;
 
-// Configure worker for Node.js
-if (typeof window === 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const workerPort = require('pdfjs-dist/legacy/build/pdf.worker.mjs');
-    pdfjsLib.GlobalWorkerOptions.workerPort = workerPort;
+async function initPdfJs() {
+    if (!pdfjsLib) {
+        pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+        if (typeof window === 'undefined') {
+            // @ts-ignore
+            const workerPort = await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+            pdfjsLib.GlobalWorkerOptions.workerPort = workerPort;
+        }
+    }
+    return pdfjsLib;
 }
+
+type PdfDocument = any;
 
 /**
  * Extract text from PDF using pdfjs-dist
@@ -21,18 +27,19 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<{
     isScanned: boolean;
 }> {
     try {
+        const pdfjs = await initPdfJs();
         // Convert Buffer to Uint8Array
         const uint8Array = new Uint8Array(pdfBuffer);
 
         // Load PDF document
-        const loadingTask = pdfjsLib.getDocument({
+        const loadingTask = pdfjs.getDocument({
             data: uint8Array,
             useSystemFonts: true,
             disableFontFace: true,
         });
 
         // Timeout wrapper for pdf loading
-        const timeoutPromise = new Promise<PdfDocument>((_, reject) => {
+        const timeoutPromise = new Promise<any>((_, reject) => {
             setTimeout(() => reject(new Error('PDFJS_TIMEOUT')), 5000);
         });
 
@@ -56,7 +63,7 @@ export async function extractTextFromPdf(pdfBuffer: Buffer): Promise<{
 
                 // Combine text items
                 const pageText = textContent.items
-                    .map((item) => ('str' in item ? item.str : ''))
+                    .map((item: any) => ('str' in item ? item.str : ''))
                     .join(' ');
 
                 fullText += pageText + '\n\n';

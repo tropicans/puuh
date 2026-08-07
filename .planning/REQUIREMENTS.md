@@ -1,7 +1,7 @@
 # Requirements: v2.0 — Pemisahan Service Frontend dan Backend
 
 **Milestone:** v2.0
-**Status:** In Progress (Defining requirements)
+**Status:** Complete
 
 ---
 
@@ -9,41 +9,41 @@
 
 ### 1. Struktur & Konfigurasi Monorepo (MONO)
 
-- [ ] **MONO-01**: Pindahkan seluruh kode Next.js (frontend) saat ini ke dalam direktori `frontend/` di root proyek.
-- [ ] **MONO-02**: Inisialisasi proyek Express.js + TypeScript baru di dalam direktori `backend/`.
-- [ ] **MONO-03**: Konfigurasi monorepo di root directory (misal menggunakan npm workspaces atau script delegation di root `package.json`) untuk menjalankan command dev, build, lint, dan test secara terkoordinasi.
-- [ ] **MONO-04**: Tentukan dan implementasikan strategi sharing tipe data (Types/Interfaces) antara frontend dan backend (misal via direct path import atau shared type declaration).
+- [x] **MONO-01**: Pindahkan seluruh kode Next.js (frontend) saat ini ke dalam direktori `frontend/` di root proyek.
+- [x] **MONO-02**: Inisialisasi proyek Express.js + TypeScript baru di dalam direktori `backend/`.
+- [x] **MONO-03**: Konfigurasi monorepo di root directory (misal menggunakan npm workspaces atau script delegation di root `package.json`) untuk menjalankan command dev, build, lint, dan test secara terkoordinasi.
+- [x] **MONO-04**: Tentukan dan implementasikan strategi sharing tipe data (Types/Interfaces) antara frontend dan backend (misal via direct path import atau shared type declaration).
 
 ### 2. Backend Service & REST API (API)
 
 - [x] **API-01**: Migrasikan Prisma (schema, client, seed, dan migrasi) ke direktori `backend/`.
 - [x] **API-02**: Migrasikan integrasi Minio Object Storage ke direktori `backend/`.
 - [x] **API-03**: Migrasikan logic PDF Extraction & LLM Parsing (Docling client, fallback pdfjs, OCR, OpenAI) ke direktori `backend/`.
-- [ ] **API-04**: Implementasikan REST API endpoint berbasis Express untuk melayani seluruh request data, perbandingan regulasi, pencarian, dan history.
+- [x] **API-04**: Implementasikan REST API endpoint berbasis Express untuk melayani seluruh request data, perbandingan regulasi, pencarian, dan history.
 - [x] **API-05**: Implementasikan file upload middleware (seperti `multer`) di Express backend untuk menerima file PDF secara multi-part dari frontend dan mengunggahnya ke Minio.
 - [x] **API-06**: Konfigurasikan CORS middleware di Express backend untuk memperbolehkan komunikasi aman dengan Next.js frontend (khususnya untuk pemanggilan client-side).
 
 ### 3. Integrasi Frontend (FE)
 
-- [ ] **FE-01**: Hubungkan halaman UI Next.js untuk memanggil Express API backend alih-alih menggunakan Prisma atau service internal secara langsung.
-- [ ] **FE-02**: Hubungkan upload form di frontend agar mengirimkan file PDF ke endpoint Express backend menggunakan format `multipart/form-data`.
-- [ ] **FE-03**: Pastikan seluruh halaman client-side dan server-side rendering Next.js memproses response dari backend API secara defensif dan aman.
+- [x] **FE-01**: Hubungkan halaman UI Next.js untuk memanggil Express API backend alih-alih menggunakan Prisma atau service internal secara langsung.
+- [x] **FE-02**: Hubungkan upload form di frontend agar mengirimkan file PDF ke endpoint Express backend menggunakan format `multipart/form-data`.
+- [x] **FE-03**: Pastikan seluruh halaman client-side dan server-side rendering Next.js memproses response dari backend API secara defensif dan aman.
 
 ### 4. Autentikasi & Otorisasi (AUTH)
 
-- [ ] **AUTH-01**: Perbarui NextAuth credentials provider di frontend agar melakukan verifikasi kredensial (login) via API call ke Express backend.
-- [ ] **AUTH-02**: Desain dan implementasikan mekanisme pengiriman konteks user (seperti `X-User-Id` and `X-User-Role` headers) secara aman dari Next.js frontend (bertindak sebagai BFF) ke Express backend untuk otorisasi endpoint.
+- [x] **AUTH-01**: Perbarui NextAuth credentials provider di frontend agar melakukan verifikasi kredensial (login) via API call ke Express backend.
+- [x] **AUTH-02**: Desain dan implementasikan mekanisme pengiriman konteks user (seperti `X-User-Id` and `X-User-Role` headers) secara aman dari Next.js frontend (bertindak sebagai BFF) ke Express backend untuk otorisasi endpoint.
 
 ### 5. Docker & Infrastruktur (OPS)
 
-- [ ] **OPS-01**: Perbarui `docker-compose.yml` untuk mendefinisikan kontainer terpisah: `frontend` (Next.js) dan `backend` (Express.js).
-- [ ] **OPS-02**: Hubungkan networking antar-kontainer (frontend berkomunikasi ke backend, backend berkomunikasi ke postgres, minio, dan docling-serve).
-- [ ] **OPS-03**: Konfigurasi file `.env` terpisah untuk frontend dan backend untuk menampung konfigurasi masing-masing service baik di Docker maupun lokal.
+- [x] **OPS-01**: Perbarui `docker-compose.yml` untuk mendefinisikan kontainer terpisah: `frontend` (Next.js) dan `backend` (Express.js).
+- [x] **OPS-02**: Hubungkan networking antar-kontainer (frontend berkomunikasi ke backend, backend berkomunikasi ke postgres, minio, dan docling-serve).
+- [x] **OPS-03**: Konfigurasi file `.env` terpisah untuk frontend dan backend untuk menampung konfigurasi masing-masing service baik di Docker maupun lokal.
 
 ### 6. Pengujian & Kualitas (QA)
 
-- [ ] **QA-01**: Konfigurasikan unit testing (Vitest) secara terpisah di folder `frontend/` dan `backend/` untuk memvalidasi masing-masing komponen.
-- [ ] **QA-02**: Jalankan smoke testing end-to-end untuk memastikan alur regulasi (Upload -> Extract -> LLM Parse -> Diff -> View) tetap bekerja sempurna setelah pemisahan.
+- [x] **QA-01**: Konfigurasikan unit testing (Vitest) secara terpisah di folder `frontend/` dan `backend/` untuk memvalidasi masing-masing komponen.
+- [x] **QA-02**: Jalankan smoke testing end-to-end untuk memastikan alur regulasi (Upload -> Extract -> LLM Parse -> Diff -> View) tetap bekerja sempurna setelah pemisahan.
 
 ---
 
@@ -58,26 +58,26 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MONO-01     | Phase 5 | Pending |
-| MONO-02     | Phase 5 | Pending |
-| MONO-03     | Phase 5 | Pending |
-| MONO-04     | Phase 5 | Pending |
+| MONO-01     | Phase 5 | Complete |
+| MONO-02     | Phase 5 | Complete |
+| MONO-03     | Phase 5 | Complete |
+| MONO-04     | Phase 5 | Complete |
 | API-01      | Phase 6 | Complete |
 | API-02      | Phase 6 | Complete |
 | API-03      | Phase 6 | Complete |
-| API-04      | Phase 6 | Pending |
+| API-04      | Phase 7 | Complete |
 | API-05      | Phase 6 | Complete |
 | API-06      | Phase 6 | Complete |
-| FE-01       | Phase 7 | Pending |
-| FE-02       | Phase 7 | Pending |
-| FE-03       | Phase 7 | Pending |
-| AUTH-01     | Phase 7 | Pending |
-| AUTH-02     | Phase 7 | Pending |
-| OPS-01      | Phase 8 | Pending |
-| OPS-02      | Phase 8 | Pending |
-| OPS-03      | Phase 8 | Pending |
-| QA-01       | Phase 8 | Pending |
-| QA-02       | Phase 8 | Pending |
+| FE-01       | Phase 7 | Complete |
+| FE-02       | Phase 7 | Complete |
+| FE-03       | Phase 7 | Complete |
+| AUTH-01     | Phase 7 | Complete |
+| AUTH-02     | Phase 7 | Complete |
+| OPS-01      | Phase 8 | Complete |
+| OPS-02      | Phase 8 | Complete |
+| OPS-03      | Phase 8 | Complete |
+| QA-01       | Phase 8 | Complete |
+| QA-02       | Phase 8 | Complete |
 
 ---
 
