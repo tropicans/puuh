@@ -11,13 +11,7 @@
     "smoke": "node scripts/smoke-flow.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate": "npx prisma migrate dev",
-    "db:push": "npx prisma db push",
-    "db:seed": "npx prisma db seed",
-    "db:studio": "npx prisma studio"
-  },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
+    "db:generate": "npx prisma generate --schema=../backend/prisma/schema.prisma"
   },
   "dependencies": {
     "@opengsd/gsd-core": "github:open-gsd/gsd-core",
