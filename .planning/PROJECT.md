@@ -17,6 +17,16 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 - `extractionMethod` column in DB tracks which engine processed each version
 - Visual Docling/Fallback badges on Version Timeline page
 
+## Current Milestone: v2.0 Pemisahan Service Frontend dan Backend
+
+**Goal:** Memisahkan aplikasi monolitik Next.js menjadi frontend terpisah (Next.js) dan backend API terpisah (Express + TypeScript) dalam satu repositori (monorepo).
+
+**Target features:**
+- Struktur folder baru `frontend/` dan `backend/`.
+- Migrasi database (Prisma), file storage (Minio), dan service extraction (Docling/LLM) ke backend Express.
+- Integrasi API frontend-backend untuk data flow dan upload dokumen.
+- Konfigurasi docker-compose baru untuk mengorkestrasi seluruh service secara lokal.
+
 ## Requirements
 
 ### Validated
@@ -34,7 +44,7 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ### Active
 
-*(none — all v1 requirements shipped; next milestone requirements to be defined via `/gsd-new-milestone`)*
+*(none — v2.0 requirements to be defined in REQUIREMENTS.md)*
 
 ### Out of Scope
 
@@ -67,10 +77,27 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ## Constraints
 
-- **Tech Stack**: Next.js App Router (React 19) + Prisma + PostgreSQL
-- **Infrastructure**: Runs in Docker/docker-compose locally; Next.js on port `3006`, Docling on port `5001`
+- **Tech Stack**: Next.js App Router (React 19) + Prisma + PostgreSQL (Backend: Express.js + TypeScript)
+- **Infrastructure**: Runs in Docker/docker-compose locally; Next.js on port `3006`, Express Backend on port `3007`, Docling on port `5001`
 - **Runtime**: Docling model (PyTorch) requires significant RAM/CPU — must be isolated from web server
 - **Language**: Indonesian legal document corpus — all prompt engineering must be Indonesian-aware
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-08-07 after v1.0 milestone (Integrasi Docling)*
+*Last updated: 2026-08-07 after starting v2.0 milestone (Pemisahan Service Frontend dan Backend)*
