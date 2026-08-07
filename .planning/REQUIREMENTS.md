@@ -16,12 +16,12 @@
 
 ### 2. Backend Service & REST API (API)
 
-- [ ] **API-01**: Migrasikan Prisma (schema, client, seed, dan migrasi) ke direktori `backend/`.
-- [ ] **API-02**: Migrasikan integrasi Minio Object Storage ke direktori `backend/`.
-- [ ] **API-03**: Migrasikan logic PDF Extraction & LLM Parsing (Docling client, fallback pdfjs, OCR, OpenAI) ke direktori `backend/`.
+- [x] **API-01**: Migrasikan Prisma (schema, client, seed, dan migrasi) ke direktori `backend/`.
+- [x] **API-02**: Migrasikan integrasi Minio Object Storage ke direktori `backend/`.
+- [x] **API-03**: Migrasikan logic PDF Extraction & LLM Parsing (Docling client, fallback pdfjs, OCR, OpenAI) ke direktori `backend/`.
 - [ ] **API-04**: Implementasikan REST API endpoint berbasis Express untuk melayani seluruh request data, perbandingan regulasi, pencarian, dan history.
-- [ ] **API-05**: Implementasikan file upload middleware (seperti `multer`) di Express backend untuk menerima file PDF secara multi-part dari frontend dan mengunggahnya ke Minio.
-- [ ] **API-06**: Konfigurasikan CORS middleware di Express backend untuk memperbolehkan komunikasi aman dengan Next.js frontend (khususnya untuk pemanggilan client-side).
+- [x] **API-05**: Implementasikan file upload middleware (seperti `multer`) di Express backend untuk menerima file PDF secara multi-part dari frontend dan mengunggahnya ke Minio.
+- [x] **API-06**: Konfigurasikan CORS middleware di Express backend untuk memperbolehkan komunikasi aman dengan Next.js frontend (khususnya untuk pemanggilan client-side).
 
 ### 3. Integrasi Frontend (FE)
 
@@ -62,12 +62,12 @@
 | MONO-02     | Phase 5 | Pending |
 | MONO-03     | Phase 5 | Pending |
 | MONO-04     | Phase 5 | Pending |
-| API-01      | Phase 6 | Pending |
-| API-02      | Phase 6 | Pending |
-| API-03      | Phase 6 | Pending |
+| API-01      | Phase 6 | Complete |
+| API-02      | Phase 6 | Complete |
+| API-03      | Phase 6 | Complete |
 | API-04      | Phase 6 | Pending |
-| API-05      | Phase 6 | Pending |
-| API-06      | Phase 6 | Pending |
+| API-05      | Phase 6 | Complete |
+| API-06      | Phase 6 | Complete |
 | FE-01       | Phase 7 | Pending |
 | FE-02       | Phase 7 | Pending |
 | FE-03       | Phase 7 | Pending |

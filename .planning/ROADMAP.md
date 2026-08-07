@@ -27,9 +27,11 @@ Full details: [.planning/milestones/v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.m
 **Plans**: 1 plan
 
 Plans:
+
 - [x] 05-01: Reorganisasi struktur direktori monorepo, inisialisasi Express backend, dan set up workspace/npm scripts.
 
 **Success Criteria:**
+
 1. Semua kode Next.js dipindahkan ke `frontend/` dan berhasil dibuild (`npm run build`).
 2. Boilerplate Express + TypeScript berada di `backend/` dan berhasil di-compile tanpa error.
 3. Script root `npm run dev` dapat menjalankan frontend dan backend secara simultan (atau terpisah via prefix).
@@ -45,9 +47,11 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: Migrasi Prisma, Minio, PDF/OCR/Docling/LLM parser services ke Express, dan implementasi endpoint API upload & processing.
+
+- [x] 06-01: Migrasi Prisma, Minio, PDF/OCR/Docling/LLM parser services ke Express, dan implementasi endpoint API upload & processing.
 
 **Success Criteria:**
+
 1. Database postgres terhubung ke backend Express via Prisma client. Migrasi database dan seeding dapat dijalankan dari folder `backend/`.
 2. Endpoint API upload (`/api/upload`) menerima file multi-part (menggunakan multer), mengunggahnya ke Minio, dan memicu ekstraksi Docling/fallback.
 3. Seluruh unit tests untuk `pdf-service` dan `ai-service` berhasil dipindahkan ke backend dan pass.
@@ -62,9 +66,11 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
+
 - [ ] 07-01: Pembaruan API calls di frontend, modifikasi NextAuth credentials provider untuk memanggil backend, dan pengiriman konteks user via custom headers.
 
 **Success Criteria:**
+
 1. Halaman web Next.js dapat menampilkan data regulasi, versi, pasal, dan diff yang diambil dari API Express backend.
 2. Login pengguna di frontend Next.js berhasil memvalidasi kredensial ke Express backend.
 3. API Calls ke backend mengirimkan headers `X-User-Id` dan `X-User-Role` untuk membatasi aksi admin (seperti upload/seed).
@@ -79,9 +85,11 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
+
 - [ ] 08-01: Update docker-compose.yml, penanganan environment variables, dan pelaksanaan testing/smoke flow.
 
 **Success Criteria:**
+
 1. Perintah `docker compose up --build` berhasil membangun kontainer `frontend` dan `backend` yang terpisah, serta terhubung dengan `postgres`, `minio`, dan `docling-serve`.
 2. Smoke-test script (`scripts/smoke-flow.mjs`) berjalan sukses dan membuktikan alur upload & parse regulasi berhasil 100% tanpa error di docker environment.
 3. Pengguna dapat membuka `http://localhost:3006`, login, upload PDF, dan melihat hasil ekstraksi pasal/tabel dengan benar.
@@ -97,6 +105,6 @@ Plans:
 | 3. Pemrosesan Tabel & Markdown | v1.0 | 1/1 | ✅ Shipped | 2026-08-06 |
 | 4. LLM & UI Integration | v1.0 | 1/1 | ✅ Shipped | 2026-08-06 |
 | 5. Reorganisasi Direktori & Inisialisasi Monorepo | v2.0 | 1/1 | ✅ Shipped | 2026-08-07 |
-| 6. Migrasi Database & Core Services | v2.0 | 0/1 | 🚧 In Progress | — |
+| 6. Migrasi Database & Core Services | v2.0 | 1/1 | Complete    | 2026-08-07 |
 | 7. Integrasi Frontend & Autentikasi/Otorisasi | v2.0 | 0/1 | 🚧 In Progress | — |
 | 8. Orkestrasi Docker, Pengujian & Smoke Test | v2.0 | 0/1 | 🚧 In Progress | — |
