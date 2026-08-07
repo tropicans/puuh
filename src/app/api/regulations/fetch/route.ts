@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
                         year: regInfo.year,
                         fullTitle,
                         rawText: fetchResult.rawText,
+                        extractionMethod: fetchResult.extractionMethod,
                         status: 'ACTIVE'
                     }
                 });

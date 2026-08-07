@@ -10,6 +10,7 @@ interface VersionItem {
     fullTitle: string;
     effectiveDate: Date | string | null;
     status: string;
+    extractionMethod?: string | null;
     articles?: unknown[];
 }
 
@@ -93,11 +94,27 @@ export function VersionTimeline({
                                 <div className="text-foreground font-semibold text-sm">
                                     No. {version.number}/{version.year}
                                 </div>
-                                <Badge
-                                    className={`${getStatusColor(version.status)} border mt-1 text-xs`}
-                                >
-                                    {getStatusLabel(version.status)}
-                                </Badge>
+                                <div className="flex flex-col items-center gap-1 mt-1">
+                                    <Badge
+                                        className={`${getStatusColor(version.status)} border text-xs`}
+                                    >
+                                        {getStatusLabel(version.status)}
+                                    </Badge>
+                                    {version.extractionMethod && (
+                                        <Badge
+                                            variant="outline"
+                                            className={
+                                                version.extractionMethod === 'docling'
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] py-0 px-1.5 font-medium'
+                                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] py-0 px-1.5 font-medium'
+                                            }
+                                        >
+                                            {version.extractionMethod === 'docling'
+                                                ? 'Docling'
+                                                : `Fallback: ${version.extractionMethod.toUpperCase()}`}
+                                        </Badge>
+                                    )}
+                                </div>
                                 {version.effectiveDate && (
                                     <div className="mt-1 text-xs text-muted-foreground">
                                         {formatDate(toDateString(version.effectiveDate) || '')}

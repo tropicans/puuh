@@ -27,6 +27,7 @@ interface RegulationVersion {
     status: 'active' | 'amended' | 'revoked';
     effectiveDate: string;
     pdfPath?: string;
+    extractionMethod?: string | null;
     articles: Article[];
 }
 
@@ -96,6 +97,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
                         status: string;
                         effectiveDate: string | null;
                         pdfPath: string | null;
+                        extractionMethod: string | null;
                         articles: Array<{
                             id: string;
                             articleNumber: string;
@@ -110,6 +112,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
                         status: v.status.toLowerCase() as 'active' | 'amended' | 'revoked',
                         effectiveDate: v.effectiveDate || '',
                         pdfPath: v.pdfPath || undefined,
+                        extractionMethod: v.extractionMethod || null,
                         articles: v.articles.map((a) => ({
                             id: a.id,
                             number: a.articleNumber,

@@ -296,6 +296,7 @@ export async function POST(request: NextRequest) {
                                 year: parseInt(year),
                                 fullTitle,
                                 rawText: dbRawText,
+                                extractionMethod,
                                 status: 'ACTIVE',
                                 amendsId: previousVersion?.id,
                                 originalFileUrl // Store MinIO URL

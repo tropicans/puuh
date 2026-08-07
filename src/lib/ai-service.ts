@@ -88,9 +88,11 @@ Aturan Keras:
 1. EKSTRAK SEMUA PASAL. Jangan ada yang terlewat.
 2. Jangan merangkum. Salin verbatim (kata per kata).
 3. Tangkap juga pasal sisipan (contoh: Pasal 6A, Pasal 103A).
-4. Jika teks adalah "Perubahan", hanya ekstrak pasal yang disebutkan berubah/ditambah.
+4. Jika teks adalah peraturan "Perubahan" (amandemen), Anda hanya boleh mengekstrak pasal-pasal yang memuat teks perubahan baru atau pasal yang diubah. Abaikan teks rujukan lama/sebelumnya yang disertakan dalam dokumen tetapi tidak mengalami perubahan baru.
 5. Abaikan header/footer halaman.
-6. Pastikan nomor pasal lengkap (misal: "Pasal 1", bukan hanya "1").`
+6. Pastikan nomor pasal lengkap (misal: "Pasal 1", bukan hanya "1").
+7. **Aturan Keras tentang Tabel:** Jika terdapat tabel di dalam teks (format Markdown Table dari Docling), Anda dilarang merangkum, mengubah, atau menyederhanakan tabel tersebut. Salin tabel Markdown tersebut APA ADANYA secara lengkap di dalam field "content" pasal terkait.
+8. **Aturan Keras tentang List:** Pertahankan format list Markdown asli. Dilarang menggabungkan list hierarkis menjadi satu paragraf tunggal. Anda wajib mempertahankan indentasi list dan simbol penandanya (seperti "- a.", "  - 1.", dll) agar struktur hierarkinya tetap terjaga.`
             },
             {
                 role: 'user',
@@ -103,9 +105,21 @@ Aturan Keras:
         if (jsonMatch) {
             const aiArticles = JSON.parse(jsonMatch[0]) as ParsedArticle[];
 
+            // Validation: Compare the count of "Pasal" occurrences in rawText vs. aiArticles.length
+            const originalPasalCount = (rawText.match(/\bPasal\s+\d+/gi) || []).length;
+
+            // If the discrepancy is significant, fallback to regex.
+            // A discrepancy is significant if the AI articles length is extremely low compared to original count (under-parsing/truncation).
+            // Since some "Pasal <number>" are references (e.g. "sebagaimana dimaksud dalam Pasal 3"), originalPasalCount can be slightly larger.
+            // But if AI parses less than 60% of original occurrences, or the absolute difference is greater than 3 (and original count is not trivial), trigger fallback.
+            const isSignificantDiscrepancy = originalPasalCount >= 3 && (
+                aiArticles.length < originalPasalCount * 0.6 ||
+                (originalPasalCount - aiArticles.length) > 3
+            );
+
             // Validation: IF AI returns very few articles but text is long, suspect truncation
-            if (rawText.length > 5000 && aiArticles.length < 3) {
-                console.log('AI parsed too few articles, falling back to regex');
+            if ((rawText.length > 5000 && aiArticles.length < 3) || isSignificantDiscrepancy) {
+                console.log(`AI parsed too few articles (${aiArticles.length} parsed vs. ${originalPasalCount} occurrences in text), falling back to regex`);
                 return parseArticlesWithRegex(rawText);
             }
             return aiArticles;
