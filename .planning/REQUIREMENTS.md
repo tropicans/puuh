@@ -58,26 +58,26 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MONO-01     | TBD   | Pending |
-| MONO-02     | TBD   | Pending |
-| MONO-03     | TBD   | Pending |
-| MONO-04     | TBD   | Pending |
-| API-01      | TBD   | Pending |
-| API-02      | TBD   | Pending |
-| API-03      | TBD   | Pending |
-| API-04      | TBD   | Pending |
-| API-05      | TBD   | Pending |
-| API-06      | TBD   | Pending |
-| FE-01       | TBD   | Pending |
-| FE-02       | TBD   | Pending |
-| FE-03       | TBD   | Pending |
-| AUTH-01     | TBD   | Pending |
-| AUTH-02     | TBD   | Pending |
-| OPS-01      | TBD   | Pending |
-| OPS-02      | TBD   | Pending |
-| OPS-03      | TBD   | Pending |
-| QA-01       | TBD   | Pending |
-| QA-02       | TBD   | Pending |
+| MONO-01     | Phase 5 | Pending |
+| MONO-02     | Phase 5 | Pending |
+| MONO-03     | Phase 5 | Pending |
+| MONO-04     | Phase 5 | Pending |
+| API-01      | Phase 6 | Pending |
+| API-02      | Phase 6 | Pending |
+| API-03      | Phase 6 | Pending |
+| API-04      | Phase 6 | Pending |
+| API-05      | Phase 6 | Pending |
+| API-06      | Phase 6 | Pending |
+| FE-01       | Phase 7 | Pending |
+| FE-02       | Phase 7 | Pending |
+| FE-03       | Phase 7 | Pending |
+| AUTH-01     | Phase 7 | Pending |
+| AUTH-02     | Phase 7 | Pending |
+| OPS-01      | Phase 8 | Pending |
+| OPS-02      | Phase 8 | Pending |
+| OPS-03      | Phase 8 | Pending |
+| QA-01       | Phase 8 | Pending |
+| QA-02       | Phase 8 | Pending |
 
 ---
 
