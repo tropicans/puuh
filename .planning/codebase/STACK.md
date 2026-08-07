@@ -1,109 +1,80 @@
 # Technology Stack
 
-**Analysis Date:** 2026-06-10
+**Analysis Date:** 2026-08-07
 
 ## Languages
 
 **Primary:**
-- TypeScript 5.x - All application code (`.ts`, `.tsx`, `.mts`)
-- SQL (PostgreSQL) - Database queries via Prisma
+- TypeScript 5.x - Frontend and backend application code
+- JavaScript (ESM) - Smoke test script (`scripts/smoke-flow.mjs`) and Docker execution scripts
 
 **Secondary:**
-- JavaScript (ESNext) - Next.js runtime and configuration files (`.mjs`)
-- Docker Compose (YAML) - Container orchestration
+- HTML5 / CSS3 (Tailwind CSS v4) - Frontend styling
+- SQL - Prisma PostgreSQL migrations
 
 ## Runtime
 
 **Environment:**
-- Node.js 20.x - Server runtime
-- Next.js 16.1.6 - React framework with App Router
+- Node.js v22.22.3 (via NVM)
+- Docker/Docker Compose - Containerized local orchestrator running on Node:20-alpine base images
 
 **Package Manager:**
-- npm 10.x - Package management
-- Lockfile: `package-lock.json` (present)
+- npm 10.9.8
+- Lockfile: `package-lock.json` present in root workspace
 
 ## Frameworks
 
 **Core:**
-- Next.js 16.1.6 - React framework with App Router, server actions, and API routes
-- React 19.2.3 - UI library
+- Next.js 16.1.6 (React 19.2.3) - Frontend UI and BFF layer
+- Express.js 4.19.2 - Backend REST API service
 
 **Testing:**
-- Vitest 4.1.8 - Test runner with globals enabled
-- TypeScript - Type checking in test environment
+- Vitest 4.1.8 - Separate unit testing runner configured for `frontend/` and `backend/`
 
 **Build/Dev:**
-- Next.js build system - Automatic bundling and optimization
-- ESLint 9 - Code linting with `eslint-config-next`
-- Tailwind CSS 4 - Utility-first CSS framework
-- PostCSS `@tailwindcss/postcss` - CSS processing
+- TypeScript Compiler (tsc)
+- tsx - TypeScript execution and watch tool for development backend
+- Tailwind CSS v4 - CSS compiler setup in frontend
+- Esbuild - Used implicitly via Vitest and Next.js Turbopack
 
 ## Key Dependencies
 
 **Critical:**
-- `@prisma/client` 7.3.0 - ORM for PostgreSQL database operations
-- `prisma` 7.3.0 - Database migration and schema management
-- `next-auth` 5.0.0-beta.30 - Authentication system with JWT sessions
-- `bcryptjs` 3.0.3 - Password hashing for user credentials
-- `zod` 4.3.6 - Runtime type validation for forms and APIs
+- @prisma/client 7.3.0 - Database ORM mapping PostgreSQL schemas
+- next-auth 5.0.0-beta.30 - Authentication handler in frontend BFF
+- bcryptjs 3.0.3 - Password hashing on database seeding and backend auth endpoints
+- multer 1.4.5-lts.1 - Multipart form data parsing in backend Express uploads
+- minio 8.0.6 - Object storage client in backend Express
 
 **Infrastructure:**
-- `pg` 8.18.0 - PostgreSQL client pool
-- `@prisma/adapter-pg` 7.3.0 - Prisma adapter for Node.js pg pool
-- `minio` 8.0.6 - MinIO client for object storage
-- `next` 16.1.6 - Framework core
-
-**UI/UX:**
-- `@radix-ui/react-*` - Accessible component primitives (tabs, slot, separator, scroll-area)
-- `class-variance-authority` 0.7.1 - Class name variance management
-- `clsx` 2.1.1 - Conditional class name utility
-- `tailwind-merge` 3.4.0 - Tailwind class merging
-- `framer-motion` 12.34.0 - Animation library
-- `lucide-react` 0.563.0 - Icon library
-- `next-themes` 0.4.6 - Dark/light theme support
-
-**PDF & OCR:**
-- `pdfjs-dist` 4.0.379 - PDF parsing in browser
-- `pdf-parse` 2.4.5 - PDF text extraction
-- `pdf-lib` 1.17.1 - PDF manipulation (splitting chunks)
-- `sharp` 0.34.5 - Image processing
-
-**LLM Integration:**
-- `openai` 6.17.0 - OpenAI client library (used for custom proxy)
-- Custom LLM proxy at `https://sembilan.kelazz.my.id/v1`
+- dotenv 17.2.3 - Environment configurations loading
+- cors 2.8.5 - Express CORS handler
+- openai 6.17.0 - OpenAI GPT models API integration
+- pdfjs-dist 4.0.379 / pdf-parse 2.4.5 / pdf-lib 1.17.1 - PDF parsing utilities (fallbacks)
+- docling-serve (Docker image: `quay.io/docling-project/docling-serve-cpu:v1.29.0`) - Layout-aware PDF extraction microservice
 
 ## Configuration
 
 **Environment:**
-- `.env` file in root directory
-- `dotenv` 17.2.3 - Environment variable loading
-- Key configs required:
-  - `DATABASE_URL` - PostgreSQL connection string
-  - `AUTH_SECRET` - NextAuth secret
-  - `OPENAI_API_KEY`, `OPENAI_BASE_URL` - LLM provider
-  - `GOOGLE_VISION_API_KEY` - OCR service
-  - `MINIO_*` - Object storage credentials
+- Backend configuration via `backend/.env` (DB URLs, MinIO configs, OpenAI keys, port)
+- Frontend configuration via `frontend/.env` (NextAuth secrets, BFF URL mapping)
+- Prisma client configuration in `backend/prisma/schema.prisma`
 
 **Build:**
-- `next.config.ts` - Next.js configuration
-- `tsconfig.json` - TypeScript compiler options
-- `vitest.config.ts` - Test runner configuration
-- `eslint.config.mjs` - ESLint rules
+- Root `package.json` with workspace configuration
+- `frontend/tsconfig.json` and `backend/tsconfig.json` - Compiler configurations
+- `frontend/vitest.config.ts` and `backend/vitest.config.ts` - Test configurations
 
 ## Platform Requirements
 
 **Development:**
-- Node.js 20.x
-- PostgreSQL 15+ (port 5433 locally, 5432 in Docker)
-- MinIO (port 9000 locally, 9000 in Docker)
-- npm or yarn
+- macOS, Linux, or Windows (tested on Windows PowerShell environment)
+- Docker Desktop installed and running for containerized services (Postgres, MinIO, Docling-serve)
 
 **Production:**
-- Node.js 20.x runtime
-- PostgreSQL 15+ (Docker container)
-- MinIO object storage (Docker container)
-- Standalone output mode (`output: "standalone"` in Next.js config)
+- Managed via multi-container Docker Compose. Production Dockerfiles use alpine images with non-root user setups (`node` user) for backend security.
 
 ---
 
-*Stack analysis: 2026-06-10*
+*Stack analysis: 2026-08-07*
+*Update after major dependency changes*

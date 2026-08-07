@@ -1,101 +1,74 @@
 # External Integrations
 
-**Analysis Date:** 2026-06-10
+**Analysis Date:** 2026-08-07
 
 ## APIs & External Services
 
-**LLM / AI Services:**
-- Custom LLM Proxy (`https://sembilan.kelazz.my.id/v1`) - OpenAI-compatible API for AI-powered text processing
-  - SDK/Client: Direct `fetch()` calls to `/chat/completions` endpoint
-  - Auth: `Authorization: Bearer ${OPENAI_API_KEY}` header
-  - Uses: Article parsing, change analysis, version summaries
+**AI / LLM Processing:**
+- OpenAI API - Used to parse Indonesian legal clauses (pasal) from raw Markdown texts, validate them with heuristics, and identify versions/diffs of amendments.
+  - SDK/Client: `openai` npm package v6.x
+  - Auth: API key in `OPENAI_API_KEY` env var
+  - Models: Dynamic model name loaded from server-side environment variables (e.g. `OPENAI_MODEL`)
 
-**Google Vision API:**
-- OCR for scanned PDFs (alternative to LLM-based OCR)
-  - SDK/Client: Direct `fetch()` calls
-  - Auth: API key as query parameter or header
-  - Uses: Text extraction from image-based PDF documents
+**PDF Layout Extraction:**
+- Docling Microservice - Layout-aware PDF extraction microservice running in an isolated CPU container (`docling-serve`).
+  - SDK/Client: REST API via `fetch` HTTP calls in backend
+  - Auth: Connected over local Docker network endpoint (`DOCLING_API_URL` env var, usually `http://docling-serve:5001/api/v1/convert`)
+
+**Document AI (OCR & Fallback):**
+- Fallback OCR Service - Used when PDF layout extraction via Docling is unavailable or fails. Uses cloud API for image/scan text extraction.
+  - SDK/Client: OpenAI Chat Completions client using vision capabilities
+  - Auth: Reuses the same `OPENAI_API_KEY` credentials
+  - Models: Defaults to custom vision model configured via `OPENAI_MODEL` or fallback model string
 
 ## Data Storage
 
 **Databases:**
-- PostgreSQL 15 (via Docker)
-  - Connection: `DATABASE_URL` env var (e.g., `postgresql://puu_admin:puu123@localhost:5434/puu_tracker?schema=public`)
-  - Client: Prisma ORM with `@prisma/adapter-pg` + Node.js `pg` pool
-  - Schema: `prisma/schema.prisma` - defines Regulation, RegulationVersion, Article, JudicialReviewCase models
+- PostgreSQL - Relational database storing regulation versions, articles, changes, judicial reviews, and user credentials.
+  - Connection: Connection string configured via `DATABASE_URL` env var
+  - Client: Prisma ORM v7.3.0
+  - Migrations: Managed sequentially in `backend/prisma/migrations/` and run during start up by `db-migrate` docker service
 
 **File Storage:**
-- MinIO (self-hosted S3-compatible object storage)
-  - SDK/Client: `minio` npm package
-  - Connection: `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
-  - Bucket: `puu-documents`
-  - Uses: Storing original PDF files for regulation versions
+- MinIO Object Storage - S3-compliant object storage used to store the original uploaded PDF files of regulations.
+  - SDK/Client: `minio` npm package v8.x
+  - Auth: Credentials loaded via `MINIO_ACCESS_KEY` and `MINIO_SECRET_KEY` env vars
+  - Connection: API endpoint configured via `MINIO_ENDPOINT` and `MINIO_PORT` env vars
+  - Buckets: `puu-documents` bucket created automatically if missing
 
 **Caching:**
-- LRU Cache (`lru-cache` 11.2.5) - In-memory caching for rate limiting and temporary data
+- LRU Cache - Local client/session-level rate-limiting cache on the frontend BFF layer.
+  - Client: `lru-cache` npm package v11.x
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- Custom (NextAuth.js credentials provider)
-  - Implementation: `src/lib/auth.ts`
-  - Approach: Email/password with bcryptjs hashing, JWT session strategy
-  - Rate limiting: 5 failed attempts per 15 minutes per email+IP
-  - Role-based access: ADMIN, VIEWER roles
+- NextAuth (Auth.js) - Handles sessions, user credentials, JWT parsing, and login pages.
+  - Implementation: credentials-provider configured in `frontend/src/lib/auth.ts`
+  - Auth validation: Frontend BFF redirects login credentials verification calls (`POST /api/auth/login`) to the Express.js backend.
+  - Token storage: `httpOnly` secure cookies managed by NextAuth
+  - Authorization propagation: Frontend BFF server actions propagate authenticated user identifiers using `X-User-Id` and `X-User-Role` headers to Express endpoints.
 
 ## Monitoring & Observability
 
-**Error Tracking:**
-- None - Custom console-based logging in `src/lib/logger.ts`
-
 **Logs:**
-- Approach: Structured console logging with levels (debug, info, warn, error)
-  - Timestamps in ISO format
-  - Meta object support for JSON serialization
-  - Log level controlled via `LOG_LEVEL` env var or NODE_ENV
+- Console Logger - Structured stdout logging setup in Express backend.
+  - Client: Winston-like custom formatter in `backend/src/utils/logger.ts`
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Docker Compose (app, postgres, minio services)
-- Local development: `npm run dev` on port 3006
-- Production: Standalone Next.js output (`npm run start`)
-
-**CI Pipeline:**
-- None detected
+- Docker Compose - Multi-container stack orchestration running locally.
+  - Orchestrates: `app` (port 3006), `backend` (port 3007), `db-migrate`, `postgres` (port 5434), `minio` (ports 9002/9003), and `docling-serve` (port 5001).
 
 ## Environment Configuration
 
-**Required env vars:**
-- `DATABASE_URL` - PostgreSQL connection string
-- `AUTH_SECRET` - NextAuth session signing secret
-- `NEXTAUTH_URL` - Auth callback URL
-- `OPENAI_API_KEY` - LLM provider API key
-- `OPENAI_BASE_URL` - LLM provider base URL
-- `OPENAI_MODEL` - Model name for LLM calls
-- `GOOGLE_VISION_API_KEY` - OCR service key
-- `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` - Storage credentials
-- `MINIO_BUCKET_NAME` - Storage bucket
-- `BOOTSTRAP_SEED_TOKEN` - One-time admin initialization token
-- `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` - Initial admin account
-
-**Secrets location:**
-- `.env` file (root directory) - Never committed to git
-- Docker Compose passes secrets via environment variables
-
-## Webhooks & Callbacks
-
-**Incoming:**
-- NextAuth callback route: `/api/auth/[...nextauth]`
-- Seed endpoint: `/api/seed` (requires bootstrap token)
-- Regulation fetch: `/api/regulations/fetch`
-- Upload endpoints: `/api/upload`, `/api/versions/[id]/reupload`
-
-**Outgoing:**
-- LLM API: `POST /chat/completions` to custom proxy
-- MinIO: Object storage operations (PUT, GET, DELETE)
-- PostgreSQL: Direct queries via Prisma
+**Development:**
+- Required Env Vars (Frontend): `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `BACKEND_URL`
+- Required Env Vars (Backend): `DATABASE_URL`, `MINIO_ENDPOINT`, `MINIO_PORT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_USE_SSL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `PORT`
+- Secrets Location: `.env` file in `frontend/` and `backend/` (gitignored).
 
 ---
 
-*Integration audit: 2026-06-10*
+*Integration audit: 2026-08-07*
+*Update when adding/removing external services*

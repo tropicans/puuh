@@ -1,210 +1,118 @@
-<!-- refreshed: 2026-06-10 -->
 # Architecture
 
-**Analysis Date:** 2026-06-10
-
-## System Overview
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    Next.js App Router Layer                  │
-├──────────────────┬──────────────────┬───────────────────────┤
-│   `/app/` pages  │   `/actions/`    │  `/lib/` services     │
-│  `page.tsx`      │  Server actions  │  Data layer, utilities│
-└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
-         │                  │                     │
-         ▼                  ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Data Layer (Prisma)                       │
-│         `src/lib/prisma.ts`                                  │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PostgreSQL Database                                         │
-│  `prisma/schema.prisma`                                      │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Component Responsibilities
-
-| Component | Responsibility | File |
-|-----------|----------------|------|
-| **Authentication** | NextAuth credentials provider with rate limiting | `src/lib/auth.ts` |
-| **Authorization** | User role checks (ADMIN/VIEWER) | `src/lib/authorization.ts` |
-| **Data Service** | Database queries and filtering | `src/lib/data-service.ts` |
-| **PDF Processing** | Text extraction via pdfjs/pdf-parse/OCR | `src/lib/pdf-service.ts` |
-| **AI Service** | Article parsing and change analysis with LLM | `src/lib/ai-service.ts` |
-| **Storage** | MinIO file storage integration | `src/lib/storage.ts` |
-| **Diff Engine** | Verbatim text comparison for article changes | `src/lib/diff-engine.ts` |
-| **Validations** | Zod schemas for input validation | `src/lib/validations.ts` |
+**Analysis Date:** 2026-08-07
 
 ## Pattern Overview
 
-**Overall:** Layered Architecture with Server-First Rendering
+**Overall:** Decoupled Monorepo with BFF (Backend-For-Frontend) and REST API Pattern
 
 **Key Characteristics:**
-- **App Router pattern**: Server Components by default, Client Components only for interactivity
-- **Server Actions pattern**: Form submissions and mutations via `actions/` directory
-- **Streaming responses**: Upload processing via Server-Sent Events (SSE)
-- **Direct database access**: Prisma used throughout app code
-- **Type-safe API routes**: `next/server` with typed request/response
+- **Decoupled Architecture:** Next.js frontend is fully separated from Express.js backend.
+- **BFF Design Pattern:** Frontend Next.js acts as a thin proxy (BFF), forwarding user context and requests to backend REST API. It handles web rendering, route protection, and session cookie validation.
+- **Stateless REST backend:** Express.js API acts as a stateless backend executing business logic, ORM mappings, external AI integration, and file storage.
+- **Containerized Orchestration:** Multi-container docker stack managing separate services (app, backend, postgres, minio, docling-serve).
 
 ## Layers
 
-### Presentation Layer
-- **Purpose**: UI rendering, user interaction, state management
-- **Location**: `src/app/`, `src/components/`
-- **Contains**: Page components, layout wrappers, UI components (shadcn/ui), hooks
-- **Depends on**: Actions, API routes, hooks
-- **Used by**: Browser
+**Frontend Presentation Layer (`frontend/src/app/**`):**
+- Purpose: Render user interfaces (SSR and CSR) and manage routes.
+- Contains: React components, Next.js page layouts, Next.js CSS configurations.
+- Depends on: Frontend BFF Layer, shadcn UI components.
+- Used by: Browser clients.
 
-### Business Logic Layer
-- **Purpose**: Server-side operations, validation, authorization
-- **Location**: `src/actions/`, `src/lib/`
-- **Contains**: Server actions, data services, utility functions, validation schemas
-- **Depends on**: Prisma, external services (MinIO, LLM)
-- **Used by**: API routes, Client components (via actions)
+**Frontend BFF Layer (`frontend/src/actions/**`, `frontend/src/app/api/**`):**
+- Purpose: Proxy client requests, manage cookies and rate limits, and propagate user session contexts.
+- Contains: Next.js Server Actions, API route handlers, and custom middleware (`frontend/src/proxy.ts`).
+- Depends on: Backend API Client (`frontend/src/lib/api.ts`).
+- Used by: Frontend Presentation Layer.
 
-### Data Layer
-- **Purpose**: Database abstraction and queries
-- **Location**: `src/lib/prisma.ts`, `prisma/`
-- **Contains**: Prisma client singleton, schema definitions
-- **Depends on**: PostgreSQL (via pg pool)
-- **Used by**: Data services, API routes, actions
+**Backend REST Router Layer (`backend/src/routes/**`):**
+- Purpose: Expose RESTful JSON HTTP endpoints, validate HTTP parameters, and check route authentication.
+- Contains: Express.js routers and routes mapping endpoints (e.g. `/api/regulations`).
+- Depends on: Backend Core Service Layer.
+- Used by: Frontend BFF Layer (via HTTP).
 
-### Infrastructure Layer
-- **Purpose**: External service integration
-- **Location**: `src/lib/pdf-service.ts`, `src/lib/ai-service.ts`, `src/lib/storage.ts`
-- **Contains**: PDF extraction, AI/LLM calls, MinIO client
-- **Depends on**: External APIs (OpenAI, Google Vision, MinIO)
+**Backend Core Service Layer (`backend/src/lib/**`):**
+- Purpose: Handle core business logic (Docling extraction, LLM parsing, object storage interactions).
+- Contains: PDF service, LLM AI parsing service, MinIO storage client wrapper.
+- Depends on: Database ORM (Prisma client).
+- Used by: Backend REST Router Layer.
+
+**Data Access Layer (`backend/prisma/**`):**
+- Purpose: Define schemas and query the PostgreSQL database.
+- Contains: Prisma schema, migration scripts, and seeder.
+- Depends on: PostgreSQL database instance.
+- Used by: Backend Core Service Layer.
 
 ## Data Flow
 
-### Primary Request Path
+**PDF Regulation Upload Flow:**
 
-1. **Incoming Request** → Next.js App Router route handler (`src/app/api/*/route.ts`)
-2. **Authorization Check** → `getCurrentUser()` from `src/lib/authorization.ts`
-3. **Business Logic** → Server action or data service function
-4. **Database Query** → Prisma client from `src/lib/prisma.ts`
-5. **Response** → `NextResponse.json` with data or error
+1. User uploads a PDF file on the webpage form (`frontend/src/app/upload/page.tsx`).
+2. Browser client posts multipart data to the local BFF proxy route handler (`frontend/src/app/api/upload/route.ts`).
+3. BFF handler verifies NextAuth user session, forwards/pipes the multipart stream, and appends user context headers (`X-User-Id` & `X-User-Role`) to the backend.
+4. Backend REST route handler (`backend/src/routes/upload.ts`) receives multipart data via Multer middleware in memory.
+5. Backend calls PDF service (`backend/src/lib/pdf-service.ts`) to stream the file buffer to MinIO storage.
+6. PDF service triggers Docling layout extraction (`docling-serve` microservice). If Docling is down/fails, it automatically triggers fallback vision OCR.
+7. Extracted raw Markdown is sent to the LLM AI service (`backend/src/lib/ai-service.ts`) for structured article clause extraction.
+8. Parsed articles are saved into PostgreSQL via Prisma client, and extraction status is returned.
+9. BFF handler forwards the extraction progress updates via Server-Sent Events (SSE) to the browser UI.
 
-### Upload Flow (Server-Sent Events)
-
-1. **Client Upload** → `POST /api/upload` (`src/app/api/upload/route.ts`)
-2. **Validation** → Zod schema validation
-3. **Text Extraction** → `smartExtractPdfText()` in `src/lib/pdf-service.ts`
-   - Fallback chain: pdfjs → pdf-parse → OCR (Google Vision)
-4. **Article Parsing** → `parseArticlesFromText()` in `src/lib/ai-service.ts`
-5. **Database Transaction** → Create regulation, version, and articles atomically
-6. **MinIO Upload** → Store original PDF file
-7. **Progress Updates** → SSE stream with `{ type: 'progress' }` messages
-8. **Success Response** → `{ type: 'success', data: {...} }`
-
-### Comparison Flow
-
-1. **Matrix View** → `MatrixComparisonView` in `src/components/comparison/MatrixComparisonView.tsx`
-2. **Version Collection** → Fetch all versions for a regulation
-3. **Article Alignment** → Match articles by number across versions
-4. **Diff Calculation** → `compareTexts()` from `src/lib/diff-engine.ts`
-5. **Status Determination** → `same`, `modified`, `new`, `inherited`
-6. **Rendering** → Highlight changes with color-coded badges
+**State Management:**
+- Stateless BFF/API: Request contexts are generated dynamically per execution.
+- Session State: Maintained in encrypted NextAuth JWT cookies.
+- Database State: Stored persistently in PostgreSQL.
+- File State: Stored persistently in MinIO.
 
 ## Key Abstractions
 
-**Regulation**:
-- Purpose: Represents a subject area (e.g., "Jaminan Kesehatan") with multiple versions
-- Examples: `prisma/schema.prisma#L23`, `src/lib/data-service.ts#L12`
-- Pattern: Aggregate root with one-to-many relation to `RegulationVersion`
+**BFF Client Helper (`frontend/src/lib/api.ts`):**
+- Purpose: Provide standard HTTP client wrapper (`fetchFromBackend`) that handles URL resolving, JSON casting, and propagating user context headers.
+- Pattern: Modular Helper.
 
-**RegulationVersion**:
-- Purpose: A specific iteration of a regulation (e.g., "Perpres No. 82 Tahun 2018")
-- Examples: `prisma/schema.prisma#L39`, `src/lib/ai-service.ts#L161`
-- Pattern: Self-referential for amends relationship
+**Authentication Middleware (`backend/src/middleware/auth.ts`):**
+- Purpose: Check incoming request headers for authenticated user presence and validate permissions for administrative actions.
+- Pattern: Express Middleware.
 
-**Article**:
-- Purpose: Individual pasal within a regulation version
-- Examples: `prisma/schema.prisma#L75`, `src/lib/diff-engine.ts#L4`
-- Pattern: Child of version with status tracking
-
-**Diff Result**:
-- Purpose: Verbatim comparison of article text
-- Examples: `src/lib/diff-engine.ts#L9`
-- Pattern: Word-by-word LCS algorithm with equal/insert/delete parts
+**Database Client (`backend/src/lib/prisma.ts`):**
+- Purpose: Initialize and share a single PrismaClient connection pool instance.
+- Pattern: Singleton.
 
 ## Entry Points
 
-**App Entry Point**:
-- Location: `src/app/page.tsx`
-- Triggers: Root route `/`
-- Responsibilities: Renders landing page with auth check
+**Frontend Application:**
+- Location: `frontend/src/app/page.tsx` / `frontend/src/proxy.ts` (Next.js entry/middleware).
+- Invocation: User opens a browser to port 3006.
 
-**Layout Entry Point**:
-- Location: `src/app/layout.tsx`
-- Triggers: All routes
-- Responsibilities: Wraps app with ThemeProvider, AppShell, auth-based navigation
+**Backend Server:**
+- Location: `backend/src/server.ts`.
+- Invocation: `npm run dev` or docker running `node dist/server.js` listening on port 3007.
 
-**API Routes**:
-- `src/app/api/auth/[...nextauth]/route.ts`: NextAuth handlers
-- `src/app/api/regulations/route.ts`: GET list of regulations
-- `src/app/api/regulations/[id]/route.ts`: GET single regulation with all versions
-- `src/app/api/upload/route.ts`: POST new regulation with streaming SSE response
-
-## Architectural Constraints
-
-- **Threading:** Single-threaded Node.js event loop; no worker threads
-- **Global state:** Prisma client uses global singleton pattern in `src/lib/prisma.ts#L17`
-- **Circular imports:** None detected; dependency flow: UI → Actions → Lib → Prisma
-- **Authentication:** JWT-based session strategy with credentials provider
-- **Styling:** Tailwind CSS v4 with custom config; component libraries use inline styles where needed
-
-## Anti-Patterns
-
-### No Database Abstraction Layer
-
-**What happens:** App code calls `prisma.*` directly in API routes and server actions.
-
-**Why it's wrong:** This tightly couples business logic to database schema. Changing the schema requires updates across many files.
-
-**Do this instead:** Create a repository pattern in `src/repositories/` that abstracts Prisma calls:
-```typescript
-// src/repositories/regulationRepository.ts
-export async function findById(id: string) {
-  return prisma.regulation.findUnique({ where: { id } });
-}
-```
-Reference: `src/lib/data-service.ts` provides partial abstraction but is incomplete.
-
-### Large File Sizes
-
-**What happens:** Some files exceed 400+ lines (e.g., `src/actions/regulations.ts:489`, `src/app/api/upload/route.ts:355`).
-
-**Why it's wrong:** Multi-responsibility files are harder to test and maintain.
-
-**Do this instead:** Split by concern:
-- `src/actions/regulation-actions.ts` (CRUD)
-- `src/actions/version-actions.ts` (version management)
-- `src/actions/article-actions.ts` (article management)
+**Docker Compose migrations:**
+- Location: `db-migrate` service (executes `npx prisma migrate deploy` and `npx prisma db seed` on boot).
 
 ## Error Handling
 
-**Strategy:** Try-catch with user-friendly messages; console.error for debugging.
+**Strategy:** Fail-safe defensive programming with middleware catching.
 
 **Patterns:**
-- API routes return `NextResponse.json({ success: false, error: message }, { status })`
-- Server actions return `{ success: boolean, data?: T, error?: string }`
-- Database errors logged with context
+- Backend API endpoints wrap logic in standard `try/catch` blocks and use a centralized Express error logging structure. Returns standard JSON errors (`{ error: string }`) with appropriate HTTP statuses.
+- Frontend Server Actions capture backend HTTP error codes and return structured `{ success: false, error: string }` objects without raising exceptions to React components.
+- Frontend UI pages render defensive warning banners (`frontend/src/components/common/StatusBanner.tsx`) on API or network failures.
 
 ## Cross-Cutting Concerns
 
-**Logging:** Custom `logger` in `src/lib/logger.ts` with level filtering and timestamp formatting.
+**Logging:**
+- Backend Express uses custom logger formats in `backend/src/utils/logger.ts` outputting structured details to console.
 
-**Validation:** Zod schemas in `src/lib/validations.ts`; used in API routes and server actions.
+**Validation:**
+- Implements shared Zod validation schemas (`backend/src/utils/validations.ts`) for all REST route request bodies.
 
-**Authentication:** NextAuth credentials provider with rate limiting via `LRUCache` in `src/lib/auth.ts#L15`.
-
-**Authorization:** Role-based access control (ADMIN/VIEWER) with `getCurrentUser()` and `isAdminRole()`.
+**Authentication check:**
+- Next.js middleware `frontend/src/proxy.ts` performs route authorization checks on the web server level.
+- Backend routes check context headers using Express middleware (`backend/src/middleware/auth.ts`).
 
 ---
 
-*Architecture analysis: 2026-06-10*
+*Architecture analysis: 2026-08-07*
+*Update when major patterns change*
