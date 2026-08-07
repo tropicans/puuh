@@ -10,6 +10,13 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ## Current State
 
+**Shipped:** v2.0 — Pemisahan Service Frontend dan Backend (2026-08-07)
+- Decoupled Next.js application into a frontend and Express.js backend monorepo.
+- Backend handles Prisma/PostgreSQL, MinIO, and Docling PDF extraction services.
+- Frontend acts as a thin BFF proxy using Server Actions and API routing.
+- NextAuth credentials provider integrated with Express authentication API.
+- Multi-container Docker Compose setup with automated migrations (`db-migrate`).
+
 **Shipped:** v1.0 — Integrasi Docling (2026-08-07)
 - Docling microservice integrated via docker-compose with automatic fallback
 - Layout-aware PDF extraction producing structured Markdown for LLM parsing
@@ -17,20 +24,39 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 - `extractionMethod` column in DB tracks which engine processed each version
 - Visual Docling/Fallback badges on Version Timeline page
 
-## Current Milestone: v2.0 Pemisahan Service Frontend dan Backend
+## Next Milestone: v3.0 Optimasi, Cleanup & Fitur Lanjutan
 
-**Goal:** Memisahkan aplikasi monolitik Next.js menjadi frontend terpisah (Next.js) dan backend API terpisah (Express + TypeScript) dalam satu repositori (monorepo).
+**Goal:** Menyelesaikan hutang teknis, meningkatkan kinerja, dan menambahkan fungsionalitas kustomisasi ekstraksi.
 
 **Target features:**
-- Struktur folder baru `frontend/` dan `backend/`.
-- Migrasi database (Prisma), file storage (Minio), dan service extraction (Docling/LLM) ke backend Express.
-- Integrasi API frontend-backend untuk data flow dan upload dokumen.
-- Konfigurasi docker-compose baru untuk mengorkestrasi seluruh service secara lokal.
+- **OCR-01**: Dynamic Docling OCR toggle per PDF type.
+- **PERF-01**: Extraction result caching for repeated PDFs.
+- **Refactoring**: Membersihkan 39 lint warnings `no-explicit-any` di backend.
 
 ## Requirements
 
 ### Validated
 
+- ✓ **MONO-01**: Next.js source moved to `frontend/` — v2.0
+- ✓ **MONO-02**: Express.js + TS backend boilerplate in `backend/` — v2.0
+- ✓ **MONO-03**: Monorepo root script delegation & workspace config — v2.0
+- ✓ **MONO-04**: Shared TypeScript interfaces/types mapping — v2.0
+- ✓ **API-01**: Prisma schema & client migration to `backend/` — v2.0
+- ✓ **API-02**: MinIO storage integration in `backend/` — v2.0
+- ✓ **API-03**: PDF Extraction, LLM parser & OCR services in `backend/` — v2.0
+- ✓ **API-04**: Express REST API endpoints (CRUD/Auth) — v2.0
+- ✓ **API-05**: Multer multi-part upload middleware in backend — v2.0
+- ✓ **API-06**: CORS config for secure frontend-backend communication — v2.0
+- ✓ **FE-01**: Server actions delegating DB operations to backend API — v2.0
+- ✓ **FE-02**: File upload form streaming multi-part data via BFF — v2.0
+- ✓ **FE-03**: Defensive SSR and UI error banners handling API failure — v2.0
+- ✓ **AUTH-01**: NextAuth login credentials verified via Express API — v2.0
+- ✓ **AUTH-02**: User-context headers (`X-User-Id` & `X-User-Role`) propagation — v2.0
+- ✓ **OPS-01**: Decoupled `frontend` and `backend` services in Docker Compose — v2.0
+- ✓ **OPS-02**: Decoupled networking for inter-container routing — v2.0
+- ✓ **OPS-03**: Isolated `.env` files mapping per workspace — v2.0
+- ✓ **QA-01**: Separate unit tests runner setup (Vitest) — v2.0
+- ✓ **QA-02**: E2E smoke test script running in dockerized setup — v2.0
 - ✓ **INF-01**: `docling-serve` service in docker-compose — v1.0
 - ✓ **INF-02**: `DOCLING_API_URL` env var on `app` service — v1.0
 - ✓ **INF-03**: Health check for `docling-serve` — v1.0
@@ -44,23 +70,25 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ### Active
 
-*(none — v2.0 requirements to be defined in REQUIREMENTS.md)*
+*(none)*
 
 ### Out of Scope
 
 - Hosting Python/Docling engine directly in the Next.js container (deferred to isolated microservice — avoids image bloat, memory pressure)
 - Parsing documents in formats other than PDF (PUU regulations are 100% PDF)
-- Built-in Docling OCR toggle (OCR-01) — deferred to v2
-- Extraction result caching (PERF-01) — deferred to v2
+- Built-in Docling OCR toggle (OCR-01) — deferred to v3
+- Extraction result caching (PERF-01) — deferred to v3
 
 ## Context
 
-- Shipped v1.0 with Docling integration in 4 phases over 1 day (2026-08-06)
-- Tech stack: Next.js App Router (React 19) + Prisma + PostgreSQL + docling-serve (Docker)
-- Docling runs as a CPU-only microservice on port `5001` inside docker-compose network
-- Fallback chain: Docling → pdfjs → pdf-parse → ocr-service; each level prepends a warning banner to rawText
-- LLM heuristic: compares `Pasal` keyword count in raw text to parsed article count; falls back to regex if discrepancy detected
-- Known technical debt: OCR-01 (dynamic OCR toggle) and PERF-01 (extraction caching) deferred
+- Shipped v2.0 with Monorepo separation and BFF pattern in 4 phases (2026-08-07)
+- Shipped v1.0 with Docling integration in 4 phases over 1 day (2026-08-06 → 2026-08-07)
+- Monorepo structured with `workspaces` in root `package.json` utilizing `concurrently`
+- Express backend running on port `3007`, frontend Next.js running on port `3006` (BFF BFF)
+- NextAuth credential validation proxied via backend REST API; route authorization protected in Next.js middleware
+- Multi-container environment managed by docker-compose containing: `app` (frontend), `backend`, `db-migrate`, `postgres`, `minio`, `docling-serve`
+- Automated database migration and seeding executing in `db-migrate` one-shot container before backend starts
+- Technical debt: OCR-01 (dynamic OCR toggle) and PERF-01 (extraction caching) deferred to v3.0
 
 ## Key Decisions
 
@@ -74,10 +102,14 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 | Heuristic Pasal-count validation | Silent LLM under-parsing is the main accuracy risk | ✓ Good — catches partial parses |
 | `extractionMethod` DB column | Enables UI tracing, analytics, and future per-method QA | ✓ Good — backfilled via migration |
 | Squash amendment-only parsing in LLM prompt | Perubahan regulations should not re-extract unchanged articles | ✓ Good — reduces noise |
+| BFF (Backend-for-Frontend) architecture | Next.js API/actions act as thin proxy, frontend coordinates cookies/auth, backend handles business logic and DB | ✓ Good — scalable structure |
+| Stateless authorization context | Frontend propagates `X-User-Id` and `X-User-Role` headers to Express | ✓ Good — keeps API secure and simple |
+| One-shot DB-migrate Docker container | Sequentially runs migrations and seeds before backend starts to prevent race condition | ✓ Good — reliable container bootstrap |
+| Public Frontend Healthcheck | Shifted Next.js container healthcheck to `/login` instead of `/api/db-status` | ✓ Good — prevents false unhealthy status reporting |
 
 ## Constraints
 
-- **Tech Stack**: Next.js App Router (React 19) + Prisma + PostgreSQL (Backend: Express.js + TypeScript)
+- **Tech Stack**: Next.js App Router (React 19) + Express.js + TypeScript + Prisma + PostgreSQL
 - **Infrastructure**: Runs in Docker/docker-compose locally; Next.js on port `3006`, Express Backend on port `3007`, Docling on port `5001`
 - **Runtime**: Docling model (PyTorch) requires significant RAM/CPU — must be isolated from web server
 - **Language**: Indonesian legal document corpus — all prompt engineering must be Indonesian-aware
@@ -100,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-07 after starting v2.0 milestone (Pemisahan Service Frontend dan Backend)*
+*Last updated: 2026-08-07 after completing v2.0 milestone (Pemisahan Service Frontend dan Backend)*
