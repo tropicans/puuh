@@ -19,6 +19,7 @@ const uploadSchema = z.object({
   year: z.string().regex(/^\d{4}$/, 'Tahun harus 4 digit angka'),
   title: z.string().optional(),
   existingRegulationId: z.string().optional().nullable(),
+  ocrMode: z.enum(['AUTO', 'FORCE', 'SKIP']).optional().default('AUTO'),
 });
 
 router.post('/', authMiddleware('ADMIN'), upload.single('file'), async (req: Request, res: Response) => {
@@ -44,7 +45,7 @@ router.post('/', authMiddleware('ADMIN'), upload.single('file'), async (req: Req
     return res.status(400).json({ success: false, message: `Validation Error: ${errorMsg}` });
   }
 
-  const { regulationType, number, year } = result.data;
+  const { regulationType, number, year, ocrMode } = result.data;
   let title = result.data.title;
   const existingRegulationId = result.data.existingRegulationId;
 
@@ -79,7 +80,8 @@ router.post('/', authMiddleware('ADMIN'), upload.single('file'), async (req: Req
           number,
           year,
           title,
-          existingRegulationId
+          existingRegulationId,
+          ocrMode
         }
       }
     });

@@ -48,6 +48,8 @@ model RegulationVersion {
   originalFileUrl String?     // URL file di Object Storage (MinIO)
   rawText       String?       @db.Text // Teks hasil parsing
   extractionMethod String?     // Metode ekstraksi yang digunakan (docling, pdfjs, dll)
+  pdfMd5Hash    String?       // MD5 hash dari file PDF asli (untuk cache dedup)
+  ocrMode       OcrMode       @default(AUTO) // Mode OCR yang digunakan saat ekstraksi
   articles      Article[]
   status        VersionStatus @default(ACTIVE)
   deletedAt     DateTime?
@@ -64,12 +66,20 @@ model RegulationVersion {
   @@index([year])
   @@index([regulationId, status])
   @@index([status])
+  @@index([pdfMd5Hash])
 }
 
 enum VersionStatus {
   ACTIVE  // Masih berlaku
   AMENDED // Sudah diamandemen (sebagian berlaku)
   REVOKED // Dicabut seluruhnya
+}
+
+// Mode OCR yang digunakan saat ekstraksi dokumen
+enum OcrMode {
+  AUTO   // Default: Docling → pdfjs → pdf-parse → Vision OCR (fallback)
+  FORCE  // Langsung pakai Vision OCR tanpa mencoba metode lain
+  SKIP   // Tidak pernah pakai Vision OCR; gagal jika semua non-OCR methods tidak cukup
 }
 
 // Pasal individual

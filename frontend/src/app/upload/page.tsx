@@ -8,6 +8,7 @@ import { StatusBanner } from '@/components/common/StatusBanner';
 import { useAsyncAction } from '@/hooks/useAsyncAction';
 
 type UploadMode = 'auto' | 'url' | 'manual';
+type OcrMode = 'AUTO' | 'FORCE' | 'SKIP';
 
 function DropZone({ file, onFileSelect }: { file: File | null; onFileSelect: (f: File | null) => void }) {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +96,7 @@ function UploadContent() {
     }, []);
 
     const [mode, setMode] = useState<UploadMode>('auto');
+    const [ocrMode, setOcrMode] = useState<OcrMode>('AUTO');
     const [formData, setFormData] = useState({
         type: 'Perpres',
         number: '',
@@ -217,6 +219,7 @@ function UploadContent() {
         form.append('title', formData.title || `${formData.type} ${formData.number}/${formData.year}`);
         form.append('number', formData.number);
         form.append('year', formData.year);
+        form.append('ocrMode', ocrMode);
 
         if (amendsId) {
             form.append('existingRegulationId', amendsId);
@@ -410,7 +413,32 @@ function UploadContent() {
                         </div>
 
                         {mode === 'manual' && (
-                            <DropZone file={file} onFileSelect={setFile} />
+                            <>
+                                <DropZone file={file} onFileSelect={setFile} />
+
+                                {/* OCR Mode Selector — OCR-01 */}
+                                <div>
+                                    <label htmlFor="upload-ocr-mode" className="mb-2 block text-sm font-medium text-muted-foreground">
+                                        Mode Ekstraksi Teks
+                                    </label>
+                                    <select
+                                        id="upload-ocr-mode"
+                                        value={ocrMode}
+                                        onChange={(e) => setOcrMode(e.target.value as OcrMode)}
+                                        className="w-full rounded-lg border border-border/70 bg-background p-3 text-foreground focus:ring-2 focus:ring-primary"
+                                        aria-label="Mode Ekstraksi Teks"
+                                    >
+                                        <option value="AUTO">🔄 Auto — Docling → pdfjs → OCR (default)</option>
+                                        <option value="FORCE">🔬 Force OCR — langsung Vision OCR (PDF scan)</option>
+                                        <option value="SKIP">⚡ Skip OCR — hanya teks digital, tidak ada OCR</option>
+                                    </select>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {ocrMode === 'FORCE' && '⚠️ Force OCR cocok untuk PDF yang hanya berupa gambar/scan.'}
+                                        {ocrMode === 'SKIP' && '⚡ Skip OCR akan gagal jika PDF tidak memiliki teks digital.'}
+                                        {ocrMode === 'AUTO' && 'Mode Auto mencoba semua metode secara berurutan.'}
+                                    </p>
+                                </div>
+                            </>
                         )}
 
                         <Button

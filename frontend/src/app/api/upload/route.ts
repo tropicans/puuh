@@ -98,6 +98,12 @@ export async function POST(request: NextRequest) {
         backendFormData.append('regulationType', result.data.regulationType);
         backendFormData.append('number', result.data.number);
         backendFormData.append('year', result.data.year);
+        // Forward ocrMode (default AUTO if not provided)
+        const ocrModeRaw = formData.get('ocrMode');
+        const ocrMode = typeof ocrModeRaw === 'string' && ['AUTO', 'FORCE', 'SKIP'].includes(ocrModeRaw)
+            ? ocrModeRaw
+            : 'AUTO';
+        backendFormData.append('ocrMode', ocrMode);
         if (result.data.title) {
             backendFormData.append('title', result.data.title);
         }

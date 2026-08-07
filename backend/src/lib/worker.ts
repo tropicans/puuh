@@ -1,33 +1,70 @@
 import { prisma } from './prisma';
 import { logger } from '../utils/logger';
-import { ProcessTask, TaskStatus, TaskType } from '@prisma/client';
+import { ProcessTask, TaskStatus, TaskType, Prisma } from '@prisma/client';
 import { storage } from './storage';
-import { smartExtractPdfText } from './pdf-service';
+import { smartExtractPdfText, OcrMode } from './pdf-service';
 import { parseArticlesFromText, analyzeJudicialReviewAmar } from './ai-service';
 import { searchJudicialReviews, ScrapedDecision } from './judicial-review-search';
 import { normalizeArticleNumber } from './judicial-review';
+import { computeMd5, findCachedVersion } from './pdf-cache';
+
+// ─── Typed Payload Interfaces ────────────────────────────────────────────────
+
+interface UploadPdfPayload {
+  storagePath: string;
+  originalFileUrl: string | null;
+  regulationType: string;
+  number: string;
+  year: string;
+  title: string;
+  existingRegulationId?: string | null;
+  ocrMode?: OcrMode;
+}
+
+interface SyncJrPayload {
+  regulationId: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  const chunks: any[] = [];
+  const chunks: Buffer[] = [];
   return new Promise((resolve, reject) => {
-    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
     stream.on('error', (err) => reject(err));
     stream.on('end', () => resolve(Buffer.concat(chunks)));
   });
 }
 
+function assertUploadPayload(payload: unknown): UploadPdfPayload {
+  if (!payload || typeof payload !== 'object') throw new Error('Invalid task payload');
+  const p = payload as Record<string, unknown>;
+  if (!p.storagePath) throw new Error('Missing storagePath in payload');
+  if (!p.regulationType) throw new Error('Missing regulationType in payload');
+  if (!p.number) throw new Error('Missing number in payload');
+  if (!p.year) throw new Error('Missing year in payload');
+  return p as unknown as UploadPdfPayload;
+}
+
+function assertSyncJrPayload(payload: unknown): SyncJrPayload {
+  if (!payload || typeof payload !== 'object') throw new Error('Invalid task payload');
+  const p = payload as Record<string, unknown>;
+  if (!p.regulationId) throw new Error('Missing regulationId in payload');
+  return p as unknown as SyncJrPayload;
+}
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
 let workerInterval: NodeJS.Timeout | null = null;
 let isProcessing = false;
 
+// ─── Task Handlers ───────────────────────────────────────────────────────────
+
 // Task registry for extensible execution
-export type TaskHandler = (task: ProcessTask) => Promise<any>;
+export type TaskHandler = (task: ProcessTask) => Promise<unknown>;
 export const taskHandlers: Record<TaskType, TaskHandler> = {
   UPLOAD_PDF: async (task: ProcessTask) => {
     logger.info(`Starting UPLOAD_PDF processing for task ${task.id}`);
-    if (!task.payload || typeof task.payload !== 'object') {
-      throw new Error('Invalid task payload');
-    }
-
     const {
       storagePath,
       originalFileUrl,
@@ -35,12 +72,9 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
       number,
       year,
       title,
-      existingRegulationId
-    } = task.payload as any;
-
-    if (!storagePath) {
-      throw new Error('Missing storagePath in payload');
-    }
+      existingRegulationId,
+      ocrMode = 'AUTO'
+    } = assertUploadPayload(task.payload);
 
     // Helper to update progress and result message
     const onProgress = async (msg: string) => {
@@ -48,7 +82,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
       let progress = 30;
       if (msg.includes('Docling')) progress = 30;
       else if (msg.includes('digital')) progress = 40;
-      else if (msg.includes('Vision OCR')) progress = 50;
+      else if (msg.includes('Vision OCR') || msg.includes('FORCE')) progress = 50;
       else if (msg.includes('Chunk')) {
         const match = msg.match(/Chunk OCR (\d+) dari (\d+)/);
         if (match) {
@@ -74,12 +108,29 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
     const fileStream = await storage.getFileStream(storagePath);
     const pdfBuffer = await streamToBuffer(fileStream);
 
+    // ── PERF-01: MD5 cache dedup ──────────────────────────────────────────
+    const md5Hash = computeMd5(pdfBuffer);
+    const cached = await findCachedVersion(md5Hash);
+    if (cached && cached.rawText) {
+      logger.info(`Cache hit for MD5 ${md5Hash} → version ${cached.id}. Skipping extraction.`);
+      await onProgress('File PDF identik ditemukan di cache. Menggunakan hasil ekstraksi sebelumnya...');
+      return {
+        success: true,
+        message: `Dokumen sudah ada (cache hit). Menggunakan teks dari versi sebelumnya (${cached.fullTitle}).`,
+        regulationId: cached.regulationId,
+        versionId: cached.id,
+        parsedArticles: 0,
+        textLength: cached.rawText.length,
+        fromCache: true
+      };
+    }
+
     // Smart PDF text extraction
     let rawText = '';
     let extractionMethod = '';
 
     try {
-      const extractResult = await smartExtractPdfText(pdfBuffer, onProgress);
+      const extractResult = await smartExtractPdfText(pdfBuffer, onProgress, ocrMode);
       rawText = extractResult.text;
       extractionMethod = extractResult.method;
     } catch (extractError) {
@@ -88,7 +139,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
     }
 
     if (!rawText || rawText.trim().length < 100) {
-      throw new Error(`Gagal membaca teks (hanya ${rawText?.length || 0} karakter). PDF mungkin terproteksi atau gambar buram.`);
+      throw new Error(`Gagal membaca teks (hanya ${rawText?.length ?? 0} karakter). PDF mungkin terproteksi atau gambar buram.`);
     }
 
     await onProgress(`Teks terekstrak (${extractionMethod}): ${rawText.length} karakter. Menjalankan parsing pasal...`);
@@ -109,13 +160,13 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
       regType = await prisma.regulationType.create({
         data: {
           shortName: regulationType,
-          name: typeNames[regulationType] || regulationType
+          name: typeNames[regulationType] ?? regulationType
         }
       });
     }
 
     // Get or create regulation
-    let regulation;
+    let regulation = null;
     if (existingRegulationId) {
       regulation = await prisma.regulation.findUnique({ where: { id: existingRegulationId } });
     }
@@ -191,7 +242,9 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
       dbRawText = `[PERINGATAN: Dokumen ini diproses menggunakan metode fallback (${extractionMethod}). Struktur tabel mungkin tidak terurai dengan sempurna.]\n\n${rawText}`;
     }
 
-    const version = await prisma.$transaction(async (tx: any) => {
+    const currentRegulation = regulation;
+
+    const version = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (previousVersion) {
         await tx.regulationVersion.update({
           where: { id: previousVersion.id },
@@ -201,7 +254,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
 
       const createdVersion = await tx.regulationVersion.create({
         data: {
-          regulationId: regulation!.id,
+          regulationId: currentRegulation.id,
           number,
           year: parseInt(year),
           fullTitle,
@@ -209,7 +262,9 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
           extractionMethod,
           status: 'ACTIVE',
           amendsId: previousVersion?.id,
-          originalFileUrl
+          originalFileUrl,
+          pdfMd5Hash: md5Hash,
+          ocrMode
         }
       });
 
@@ -219,7 +274,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
             versionId: createdVersion.id,
             articleNumber: article.number,
             content: article.content,
-            status: 'ACTIVE',
+            status: 'ACTIVE' as const,
             orderIndex: index
           }))
         });
@@ -231,7 +286,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
     return {
       success: true,
       message: `${fullTitle} berhasil diproses`,
-      regulationId: regulation!.id,
+      regulationId: currentRegulation.id,
       versionId: version.id,
       parsedArticles: uniqueArticles.length,
       textLength: rawText.length
@@ -239,14 +294,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
   },
   SYNC_JR: async (task: ProcessTask) => {
     logger.info(`Starting SYNC_JR processing for task ${task.id}`);
-    if (!task.payload || typeof task.payload !== 'object') {
-      throw new Error('Invalid task payload');
-    }
-
-    const { regulationId } = task.payload as any;
-    if (!regulationId) {
-      throw new Error('Missing regulationId in payload');
-    }
+    const { regulationId } = assertSyncJrPayload(task.payload);
 
     // Helper to update progress and result message
     const onProgress = async (progress: number, msg: string) => {
@@ -344,7 +392,7 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
 
     await onProgress(95, 'Menyimpan hasil ke database...');
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       for (const candidate of analyzedCandidates) {
         const existing = await tx.judicialReviewCase.findFirst({
           where: {
@@ -365,12 +413,12 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
               outcome: candidate.outcome,
               impacts: {
                 deleteMany: {},
-                create: candidate.impacts.map((impact: any) => ({
+                create: candidate.impacts.map((impact) => ({
                   articleNumber: impact.articleNumber,
-                  articleId: articleLookup.get(normalizeArticleNumber(impact.articleNumber)) || null,
+                  articleId: articleLookup.get(normalizeArticleNumber(impact.articleNumber)) ?? null,
                   disposition: impact.disposition,
-                  notes: impact.notes || null,
-                  amarExcerpt: impact.amarExcerpt || null
+                  notes: 'notes' in impact ? (impact.notes as string | null) : null,
+                  amarExcerpt: impact.amarExcerpt ?? null
                 }))
               }
             }
@@ -388,12 +436,12 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
               rawText: candidate.rawText,
               outcome: candidate.outcome,
               impacts: {
-                create: candidate.impacts.map((impact: any) => ({
+                create: candidate.impacts.map((impact) => ({
                   articleNumber: impact.articleNumber,
-                  articleId: articleLookup.get(normalizeArticleNumber(impact.articleNumber)) || null,
+                  articleId: articleLookup.get(normalizeArticleNumber(impact.articleNumber)) ?? null,
                   disposition: impact.disposition,
-                  notes: impact.notes || null,
-                  amarExcerpt: impact.amarExcerpt || null
+                  notes: 'notes' in impact ? (impact.notes as string | null) : null,
+                  amarExcerpt: impact.amarExcerpt ?? null
                 }))
               }
             }
@@ -412,6 +460,8 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
     };
   }
 };
+
+// ─── Worker Loop ─────────────────────────────────────────────────────────────
 
 /**
  * Polls the database for the next PENDING task, marks it as PROCESSING,
@@ -462,22 +512,23 @@ export async function processNextTask(): Promise<void> {
       data: {
         status: TaskStatus.SUCCESS,
         progress: 100,
-        result: result ?? null,
+        result: (result as Prisma.InputJsonValue) ?? Prisma.DbNull,
       },
     });
 
     logger.info(`Task ${task.id} completed successfully`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error executing background task:', error);
-    
+
     // Attempt to mark the current task as FAILED
     if (activeTaskId) {
       try {
+        const message = error instanceof Error ? error.message : String(error);
         await prisma.processTask.update({
           where: { id: activeTaskId },
           data: {
             status: TaskStatus.FAILED,
-            error: error?.message || String(error),
+            error: message,
           },
         });
       } catch (updateError) {
