@@ -10,6 +10,18 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ## Current State
 
+**Shipped:** v3.0 — Optimasi, Cleanup & Fitur Lanjutan (2026-08-07)
+- Implemented a lightweight background task queue using a PostgreSQL-backed polling worker.
+- Restructured PDF processing and sync routes to execute asynchronously (using `202 Accepted` flow).
+- Integrated OpenAI Structured Outputs with Zod validation schemas for deterministic article extraction.
+- Introduced hierarchical chunking for large document parsing to avoid heuristic token limitation/regex fallback.
+- Parallelized Vision OCR page extraction with `p-limit` concurrency mapping.
+- Added random User-Agent headers to protect Judicial Review scraping against IP blocking.
+- Integrated LLM-based analysis of MK/MA "Amar Putusan" to map article/ayat dispositions.
+- Added OCR selection configuration (`AUTO`, `FORCE`, `SKIP`) in the admin interface and backend.
+- Developed MD5 hash caching to eliminate redundant extraction of duplicate PDF documents.
+- Refactored Express backend to achieve strict TypeScript compliance and clean up warning types.
+
 **Shipped:** v2.0 — Pemisahan Service Frontend dan Backend (2026-08-07)
 - Decoupled Next.js application into a frontend and Express.js backend monorepo.
 - Backend handles Prisma/PostgreSQL, MinIO, and Docling PDF extraction services.
@@ -24,24 +36,26 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 - `extractionMethod` column in DB tracks which engine processed each version
 - Visual Docling/Fallback badges on Version Timeline page
 
-## Next Milestone: v3.0 Optimasi, Cleanup & Fitur Lanjutan
+## Next Milestone: Planning Next Milestone
 
-**Goal:** Mengimplementasikan optimasi performa, akurasi, dan skalabilitas untuk pemrosesan PDF secara asinkron, parsing pasal berbasis LLM Structured Outputs, dan sinkronisasi JR yang andal.
-
-**Target features:**
-- **ASYNC-01**: Background task queue untuk pemrosesan PDF dan sinkronisasi Judicial Review.
-- **STRUC-01**: Penggunaan LLM Structured Outputs (JSON Schema/Response Format) untuk ekstraksi pasal.
-- **CHUNK-01**: Chunked LLM parsing untuk dokumen besar untuk mengurangi ketergantungan pada regex fallback.
-- **PAR-01**: Paralelisasi pemrosesan halaman dalam Vision OCR.
-- **JR-01**: Integrasi API pencarian resmi/resiliensi scraping dan LLM mapping untuk dampak uji materi.
-- **OCR-01**: Dynamic Docling OCR toggle per PDF type.
-- **PERF-01**: Extraction result caching untuk dokumen PDF berulang.
-- **Refactoring**: Membersihkan lint warnings `no-explicit-any` di backend.
+**Goal:** To be determined in planning of next milestone.
 
 ## Requirements
 
 ### Validated
 
+- ✓ **ASYNC-01**: Database model `ProcessTask` for background task queue tracking — v3.0
+- ✓ **ASYNC-02**: Integrated lightweight background task queue worker in Express backend — v3.0
+- ✓ **ASYNC-03**: Authenticated REST API endpoint `GET /api/tasks/:id` for progress tracking — v3.0
+- ✓ **ASYNC-04**: Frontend polling integration and progress UI in manual regulation upload page — v3.0
+- ✓ **STRUC-01**: OpenAI Structured Outputs (Response Format Zod schema) for deterministic article parsing — v3.0
+- ✓ **CHUNK-01**: Hierarchical chunking logic for large documents (>20,000 chars) before merging — v3.0
+- ✓ **PAR-01**: Page-parallelized Vision OCR execution restricted by `p-limit` — v3.0
+- ✓ **JR-01**: Anti-blocking scrapers with random User-Agent rotation for MK/MA query resilience — v3.0
+- ✓ **JR-02**: LLM Amar Putusan parser determining precise legal dispositions of tested articles — v3.0
+- ✓ **OCR-01**: OCR Mode selection (`AUTO`/`FORCE`/`SKIP`) in UI admin and backend — v3.0
+- ✓ **PERF-01**: MD5 hash caching of PDF extraction to prevent redundant processing — v3.0
+- ✓ **CLEAN-01**: TypeScript strict typing compliance refactoring (removed unsafe `any` types) — v3.0
 - ✓ **MONO-01**: Next.js source moved to `frontend/` — v2.0
 - ✓ **MONO-02**: Express.js + TS backend boilerplate in `backend/` — v2.0
 - ✓ **MONO-03**: Monorepo root script delegation & workspace config — v2.0
@@ -75,32 +89,23 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ### Active
 
-- **ASYNC-01**: Background task queue untuk pemrosesan PDF dan sinkronisasi Judicial Review.
-- **STRUC-01**: Penggunaan LLM Structured Outputs untuk ekstraksi pasal.
-- **CHUNK-01**: Chunked LLM parsing untuk dokumen besar.
-- **PAR-01**: Paralelisasi pemrosesan halaman dalam Vision OCR.
-- **JR-01**: Integrasi API pencarian resmi/resiliensi scraping dan LLM mapping untuk dampak uji materi.
-- **OCR-01**: Dynamic Docling OCR toggle per PDF type.
-- **PERF-01**: Extraction result caching untuk dokumen PDF berulang.
-- **Refactoring**: Membersihkan lint warnings `no-explicit-any` di backend.
+*(None yet - planning next milestone)*
 
 ### Out of Scope
 
 - Hosting Python/Docling engine directly in the Next.js container (deferred to isolated microservice — avoids image bloat, memory pressure)
 - Parsing documents in formats other than PDF (PUU regulations are 100% PDF)
-- Built-in Docling OCR toggle (OCR-01) — deferred to v3
-- Extraction result caching (PERF-01) — deferred to v3
 
 ## Context
 
+- Shipped v3.0 with process flow optimization, structured LLM parser, robust sync, caching, and clean typescript compilation in 5 phases (2026-08-07).
 - Shipped v2.0 with Monorepo separation and BFF pattern in 4 phases (2026-08-07)
 - Shipped v1.0 with Docling integration in 4 phases over 1 day (2026-08-06 → 2026-08-07)
 - Monorepo structured with `workspaces` in root `package.json` utilizing `concurrently`
-- Express backend running on port `3007`, frontend Next.js running on port `3006` (BFF BFF)
+- Express backend running on port `3007`, frontend Next.js running on port `3006` (BFF pattern)
 - NextAuth credential validation proxied via backend REST API; route authorization protected in Next.js middleware
 - Multi-container environment managed by docker-compose containing: `app` (frontend), `backend`, `db-migrate`, `postgres`, `minio`, `docling-serve`
 - Automated database migration and seeding executing in `db-migrate` one-shot container before backend starts
-- Technical debt: OCR-01 (dynamic OCR toggle) and PERF-01 (extraction caching) deferred to v3.0
 
 ## Key Decisions
 
@@ -118,6 +123,12 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 | Stateless authorization context | Frontend propagates `X-User-Id` and `X-User-Role` headers to Express | ✓ Good — keeps API secure and simple |
 | One-shot DB-migrate Docker container | Sequentially runs migrations and seeds before backend starts to prevent race condition | ✓ Good — reliable container bootstrap |
 | Public Frontend Healthcheck | Shifted Next.js container healthcheck to `/login` instead of `/api/db-status` | ✓ Good — prevents false unhealthy status reporting |
+| Background worker polling interval | Lightweight interval polling allows simple stateless concurrency control without message broker dependency | ✓ Good — keeps monorepo simple |
+| Structured Outputs via Zod schema | Ensures API-level validation and type compliance of extracted articles | ✓ Good — highly accurate |
+| Hierarchical chunking on page breaks | Preserves context bounds and prevents token truncation for large laws (>20k characters) | ✓ Good — zero parsing loss |
+| MD5 hashing cache key | Enables fast deduplication of identical PDF files at upload time | ✓ Good — saves API costs |
+| OCR mode field mapping | Storing explicit OCR mode selections enables fine-grained control when re-processing | ✓ Good — user-controllable |
+| Typed Prisma transaction context | Replacing dynamic client params with explicit generic transaction clients | ✓ Good — type-safe db ops |
 
 ## Constraints
 
@@ -144,4 +155,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-07 after completing v2.0 milestone (Pemisahan Service Frontend dan Backend)*
+*Last updated: 2026-08-07 after completing v3.0 milestone (Optimasi, Cleanup & Fitur Lanjutan)*

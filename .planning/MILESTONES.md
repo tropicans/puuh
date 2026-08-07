@@ -1,5 +1,19 @@
 # Milestones
 
+## v3.0 Optimasi, Cleanup & Fitur Lanjutan (Shipped: 2026-08-07)
+
+**Phases completed:** 5 phases, 5 plans, 0 tasks
+
+**Key accomplishments:**
+
+- 2026-08-07
+- 2026-08-07
+- 2026-08-07
+- 2026-08-07
+- 2026-08-07
+
+---
+
 ## v2.0 — Pemisahan Service Frontend dan Backend
 
 **Shipped:** 2026-08-07
