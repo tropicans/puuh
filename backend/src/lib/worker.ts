@@ -3,7 +3,9 @@ import { logger } from '../utils/logger';
 import { ProcessTask, TaskStatus, TaskType } from '@prisma/client';
 import { storage } from './storage';
 import { smartExtractPdfText } from './pdf-service';
-import { parseArticlesFromText } from './ai-service';
+import { parseArticlesFromText, analyzeJudicialReviewAmar } from './ai-service';
+import { searchJudicialReviews, ScrapedDecision } from './judicial-review-search';
+import { normalizeArticleNumber } from './judicial-review';
 
 async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: any[] = [];
@@ -236,8 +238,178 @@ export const taskHandlers: Record<TaskType, TaskHandler> = {
     };
   },
   SYNC_JR: async (task: ProcessTask) => {
-    logger.info(`Running SYNC_JR placeholder for task ${task.id}`);
-    return { message: 'SYNC_JR stub executed successfully', payload: task.payload };
+    logger.info(`Starting SYNC_JR processing for task ${task.id}`);
+    if (!task.payload || typeof task.payload !== 'object') {
+      throw new Error('Invalid task payload');
+    }
+
+    const { regulationId } = task.payload as any;
+    if (!regulationId) {
+      throw new Error('Missing regulationId in payload');
+    }
+
+    // Helper to update progress and result message
+    const onProgress = async (progress: number, msg: string) => {
+      logger.info(`Task ${task.id} progress update: ${progress}% - ${msg}`);
+      await prisma.processTask.update({
+        where: { id: task.id },
+        data: {
+          progress,
+          result: { message: msg }
+        }
+      });
+    };
+
+    await onProgress(20, 'Mencari informasi regulasi di database...');
+
+    const regulation = await prisma.regulation.findUnique({
+      where: { id: regulationId },
+      include: {
+        type: true,
+        versions: {
+          orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
+          include: {
+            articles: {
+              select: { id: true, articleNumber: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!regulation) {
+      throw new Error('Regulation not found');
+    }
+
+    await onProgress(30, `Mencari putusan judicial review di MK/MA untuk ${regulation.title}...`);
+
+    const latestVersion = regulation.versions[0];
+    const candidates = await searchJudicialReviews({
+      regulationType: regulation.type.shortName,
+      regulationTitle: regulation.title,
+      number: latestVersion?.number,
+      year: latestVersion?.year
+    });
+
+    if (!candidates.length) {
+      return {
+        success: true,
+        message: 'Tidak ditemukan kandidat putusan JR dari pencarian otomatis.',
+        synced: 0,
+        created: 0,
+        updated: 0
+      };
+    }
+
+    await onProgress(60, `Ditemukan ${candidates.length} kandidat putusan. Menganalisis amar putusan menggunakan AI...`);
+
+    const articleLookup = new Map<string, string>();
+    const allArticleNumbers: string[] = [];
+    for (const version of regulation.versions) {
+      for (const article of version.articles) {
+        const key = normalizeArticleNumber(article.articleNumber);
+        if (!articleLookup.has(key)) {
+          articleLookup.set(key, article.id);
+        }
+        if (!allArticleNumbers.includes(article.articleNumber)) {
+          allArticleNumbers.push(article.articleNumber);
+        }
+      }
+    }
+
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    // Process each candidate and run LLM analysis
+    const analyzedCandidates: ScrapedDecision[] = [];
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      await onProgress(
+        Math.round(60 + (i / candidates.length) * 30),
+        `Menganalisis putusan ${i + 1}/${candidates.length}: ${candidate.decisionNumber}...`
+      );
+
+      try {
+        const analysis = await analyzeJudicialReviewAmar(candidate.amarText, allArticleNumbers);
+        analyzedCandidates.push({
+          ...candidate,
+          outcome: analysis.outcome,
+          impacts: analysis.impacts
+        });
+      } catch (err) {
+        logger.error(`AI analysis failed for decision ${candidate.decisionNumber}, using heuristics fallback`, err);
+        analyzedCandidates.push(candidate);
+      }
+    }
+
+    await onProgress(95, 'Menyimpan hasil ke database...');
+
+    await prisma.$transaction(async (tx: any) => {
+      for (const candidate of analyzedCandidates) {
+        const existing = await tx.judicialReviewCase.findFirst({
+          where: {
+            forum: candidate.forum,
+            decisionNumber: candidate.decisionNumber
+          }
+        });
+
+        if (existing) {
+          await tx.judicialReviewCase.update({
+            where: { id: existing.id },
+            data: {
+              regulationId,
+              decisionDate: candidate.decisionDate,
+              amarText: candidate.amarText,
+              sourceUrl: candidate.sourceUrl,
+              rawText: candidate.rawText,
+              outcome: candidate.outcome,
+              impacts: {
+                deleteMany: {},
+                create: candidate.impacts.map((impact: any) => ({
+                  articleNumber: impact.articleNumber,
+                  articleId: articleLookup.get(normalizeArticleNumber(impact.articleNumber)) || null,
+                  disposition: impact.disposition,
+                  notes: impact.notes || null,
+                  amarExcerpt: impact.amarExcerpt || null
+                }))
+              }
+            }
+          });
+          updatedCount += 1;
+        } else {
+          await tx.judicialReviewCase.create({
+            data: {
+              regulationId,
+              forum: candidate.forum,
+              decisionNumber: candidate.decisionNumber,
+              decisionDate: candidate.decisionDate,
+              amarText: candidate.amarText,
+              sourceUrl: candidate.sourceUrl,
+              rawText: candidate.rawText,
+              outcome: candidate.outcome,
+              impacts: {
+                create: candidate.impacts.map((impact: any) => ({
+                  articleNumber: impact.articleNumber,
+                  articleId: articleLookup.get(normalizeArticleNumber(impact.articleNumber)) || null,
+                  disposition: impact.disposition,
+                  notes: impact.notes || null,
+                  amarExcerpt: impact.amarExcerpt || null
+                }))
+              }
+            }
+          });
+          createdCount += 1;
+        }
+      }
+    });
+
+    return {
+      success: true,
+      message: `Berhasil menyinkronkan ${candidates.length} putusan judicial review.`,
+      synced: candidates.length,
+      created: createdCount,
+      updated: updatedCount
+    };
   }
 };
 

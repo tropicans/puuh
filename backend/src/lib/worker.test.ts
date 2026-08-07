@@ -116,4 +116,48 @@ describe('Background Worker Engine', () => {
       },
     });
   });
+
+  it('should process a pending SYNC_JR task successfully', async () => {
+    taskHandlers.SYNC_JR = vi.fn().mockResolvedValue({
+      message: 'SYNC_JR executed successfully',
+      synced: 1,
+    });
+
+    const mockTask = {
+      id: 'task-jr-123',
+      type: TaskType.SYNC_JR,
+      status: TaskStatus.PENDING,
+      progress: 0,
+      payload: { regulationId: 'reg-123' },
+      result: null,
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    vi.mocked(prisma.processTask.findFirst).mockResolvedValueOnce(mockTask);
+    vi.mocked(prisma.processTask.update).mockResolvedValue({} as any);
+
+    await processNextTask();
+
+    expect(prisma.processTask.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.processTask.update).toHaveBeenCalledTimes(2);
+
+    expect(prisma.processTask.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 'task-jr-123' },
+      data: {
+        status: TaskStatus.PROCESSING,
+        progress: 10,
+      },
+    });
+
+    expect(prisma.processTask.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'task-jr-123' },
+      data: {
+        status: TaskStatus.SUCCESS,
+        progress: 100,
+        result: { message: 'SYNC_JR executed successfully', synced: 1 },
+      },
+    });
+  });
 });

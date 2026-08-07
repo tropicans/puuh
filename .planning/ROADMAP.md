@@ -90,7 +90,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 12-01: Refactor JR sync menjadi background task, penanganan resiliensi scraping putusan MK/MA, dan implementasi modul LLM untuk menganalisis amar putusan secara cerdas guna memetakan dampak pasal.
+- [x] 12-01: Refactor JR sync menjadi background task, penanganan resiliensi scraping putusan MK/MA, dan implementasi modul LLM untuk menganalisis amar putusan secara cerdas guna memetakan dampak pasal.
 
 **Success Criteria:**
 1. Tombol sinkronisasi JR bekerja secara asinkron di latar belakang tanpa risiko timeout.
@@ -131,5 +131,5 @@ Plans:
 | 9. Background Task Queue & Database Schema Migration | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 10. Asynchronous PDF Processing & Frontend Integration | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 11. LLM Structured Outputs & Advanced Article Structuring | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
-| 12. Asynchronous Judicial Review Sync & AI Amar Analyzer | v3.0 | 0/1 | ⏳ Planned | — |
+| 12. Asynchronous Judicial Review Sync & AI Amar Analyzer | v3.0 | 1/1 | ✅ Shipped | 2026-08-07 |
 | 13. Kustomisasi Docling OCR, Caching & Refactoring TypeScript | v3.0 | 0/1 | ⏳ Planned | — |

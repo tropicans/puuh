@@ -1,5 +1,6 @@
 // AI Service untuk parsing dan analisis peraturan
 import config from '../config/index';
+import { inferOutcomeFromAmar, buildImpactsFromAmar } from './judicial-review';
 
 const MODEL = config.OPENAI_MODEL;
 
@@ -436,6 +437,118 @@ export async function testLLMConnection(): Promise<{ success: boolean; model: st
             success: false,
             model: MODEL,
             error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+export interface JRAnalysisResult {
+    outcome: 'GRANTED' | 'PARTIALLY_GRANTED' | 'REJECTED' | 'INADMISSIBLE' | 'WITHDRAWN' | 'OTHER';
+    impacts: {
+        articleNumber: string;
+        disposition: 'INVALIDATED' | 'UPHELD' | 'CONDITIONALLY_VALID' | 'CONDITIONALLY_INVALID' | 'NO_DIRECT_EFFECT';
+        notes: string;
+        amarExcerpt: string;
+    }[];
+}
+
+/**
+ * Menganalisis teks Amar Putusan MK/MA menggunakan OpenAI Structured Outputs
+ * untuk mendeteksi outcome putusan dan pasal-pasal yang terdampak secara presisi.
+ */
+export async function analyzeJudicialReviewAmar(
+    amarText: string,
+    articleList: string[]
+): Promise<JRAnalysisResult> {
+    const responseSchema = {
+        type: 'json_schema',
+        json_schema: {
+            name: 'judicial_review_analysis',
+            strict: true,
+            schema: {
+                type: 'object',
+                properties: {
+                    outcome: {
+                        type: 'string',
+                        enum: ['GRANTED', 'PARTIALLY_GRANTED', 'REJECTED', 'INADMISSIBLE', 'WITHDRAWN', 'OTHER']
+                    },
+                    impacts: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                articleNumber: { type: 'string' },
+                                disposition: {
+                                    type: 'string',
+                                    enum: ['INVALIDATED', 'UPHELD', 'CONDITIONALLY_VALID', 'CONDITIONALLY_INVALID', 'NO_DIRECT_EFFECT']
+                                },
+                                notes: { type: 'string' },
+                                amarExcerpt: { type: 'string' }
+                            },
+                            required: ['articleNumber', 'disposition', 'notes', 'amarExcerpt'],
+                            additionalProperties: false
+                        }
+                    }
+                },
+                required: ['outcome', 'impacts'],
+                additionalProperties: false
+            }
+        }
+    };
+
+    const prompt = `Anda adalah asisten hukum Indonesia yang ahli dalam menganalisis putusan Judicial Review (Mahkamah Konstitusi/Mahkamah Agung).
+Tugas Anda adalah membaca teks "Amar Putusan" berikut, menentukan "Outcome" putusan secara keseluruhan, serta memetakan dampak putusan terhadap pasal-pasal tertentu.
+
+Berikut daftar pasal yang ada dalam peraturan terkait:
+${articleList.map(a => `- ${a}`).join('\n')}
+
+Aturan Analisis:
+1. **Outcome Putusan**:
+   - GRANTED (Kabul): Jika permohonan dikabulkan untuk seluruhnya.
+   - PARTIALLY_GRANTED (Kabul Sebagian): Jika permohonan dikabulkan sebagian.
+   - REJECTED (Tolak): Jika permohonan ditolak seluruhnya.
+   - INADMISSIBLE (Tidak dapat diterima): Jika permohonan dinyatakan tidak dapat diterima (N.O.).
+   - WITHDRAWN (Ditarik): Jika pemohon menarik kembali permohonannya.
+   - OTHER: Status lain jika tidak masuk kategori di atas.
+
+2. **Dampak (Impacts) per Pasal**:
+   Hanya cantumkan pasal yang disebutkan langsung dalam amar putusan yang terpengaruh/diuji.
+   Untuk setiap pasal terdampak, tentukan disposisinya:
+   - INVALIDATED: Pasal dinyatakan bertentangan dengan UUD/peraturan lebih tinggi dan tidak mempunyai kekuatan hukum mengikat (batal/dihapus/tidak berlaku).
+   - UPHELD: Pasal dinyatakan tidak bertentangan dan tetap berlaku (biasanya jika outcome adalah REJECTED/INADMISSIBLE).
+   - CONDITIONALLY_VALID: Pasal dinyatakan konstitusional bersyarat (berlaku sepanjang ditafsirkan sesuai amar putusan).
+   - CONDITIONALLY_INVALID: Pasal dinyatakan inkonstitusional bersyarat (tidak berlaku sepanjang tidak ditafsirkan sesuai amar putusan).
+   - NO_DIRECT_EFFECT: Diuji atau disebut, tapi tidak ada perubahan status keberlakuan langsung.
+
+3. **Field Pendukung**:
+   - 'notes': Penjelasan ringkas mengapa pasal tersebut mendapat disposisi tersebut berdasarkan isi amar.
+   - 'amarExcerpt': Kutipan kalimat/klausa verbatim dari teks amar yang secara spesifik membahas pasal tersebut (maksimal 2-3 kalimat).
+
+Amar Putusan:
+"""
+${amarText}
+"""`;
+
+    try {
+        const content = await callLLM([
+            { role: 'system', content: 'Anda adalah ahli hukum tata negara Indonesia.' },
+            { role: 'user', content: prompt }
+        ], 3000, 0, responseSchema);
+
+        const parsed = JSON.parse(content);
+        return parsed as JRAnalysisResult;
+    } catch (error) {
+        console.error('Error analyzing judicial review with LLM:', error);
+        // Fallback to heuristic parsing if LLM fails
+        const outcome = inferOutcomeFromAmar(amarText);
+        const heuristicImpacts = buildImpactsFromAmar(amarText, outcome);
+        return {
+            outcome,
+            impacts: heuristicImpacts.map(imp => ({
+                articleNumber: imp.articleNumber,
+                disposition: imp.disposition,
+                notes: 'Parsed using heuristics fallback due to AI failure.',
+                amarExcerpt: imp.amarExcerpt || ''
+            }))
         };
     }
 }

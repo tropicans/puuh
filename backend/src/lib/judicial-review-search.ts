@@ -15,7 +15,7 @@ type SearchInput = {
     forum?: JudicialForum;
 };
 
-type ScrapedDecision = {
+export type ScrapedDecision = {
     forum: JudicialForum;
     decisionNumber: string;
     decisionDate?: Date;
@@ -30,13 +30,67 @@ type ScrapedDecision = {
     }>;
 };
 
+const USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
+    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1'
+];
+
+function getRandomUserAgent(): string {
+    return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+function getRequestHeaders(urlStr: string): Record<string, string> {
+    let host = '';
+    try {
+        host = new URL(urlStr).hostname;
+    } catch {
+        // ignore
+    }
+
+    const headers: Record<string, string> = {
+        'User-Agent': getRandomUserAgent(),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'Sec-Ch-Ua-Mobile': urlStr.includes('Mobile') ? '?1' : '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0'
+    };
+
+    if (host) {
+        headers['Host'] = host;
+    }
+
+    return headers;
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function fetchWithTimeout(url: string, timeoutMs = 15000, init?: RequestInit): Promise<Response | null> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+    // Random delay to avoid hitting rate limits (500ms to 1500ms)
+    await delay(500 + Math.random() * 1000);
+
     try {
+        const headers = {
+            ...getRequestHeaders(url),
+            ...(init?.headers || {})
+        };
+
         const response = await fetch(url, {
             ...init,
+            headers,
             signal: controller.signal
         });
         return response;
@@ -162,11 +216,7 @@ function extractDecisionDate(cleanText: string): Date | undefined {
 
 async function searchUrls(query: string): Promise<string[]> {
     const url = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-    const response = await fetchWithTimeout(url, 12000, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; PUUTrackerBot/1.0)'
-        }
-    });
+    const response = await fetchWithTimeout(url, 12000);
 
     if (!response || !response.ok) {
         return [];
@@ -178,11 +228,7 @@ async function searchUrls(query: string): Promise<string[]> {
 
 async function scrapeDecisionDetail(url: string, forum: JudicialForum): Promise<ScrapedDecision | null> {
     try {
-        const response = await fetchWithTimeout(url, 15000, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; PUUTrackerBot/1.0)'
-            }
-        });
+        const response = await fetchWithTimeout(url, 15000);
         if (!response || !response.ok) {
             return null;
         }

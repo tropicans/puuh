@@ -8,21 +8,21 @@
 ## v3 Requirements
 
 ### 1. Asynchronous Background Processing (ASYNC)
-- [ ] **ASYNC-01**: Implementasikan model database `ProcessTask` untuk melacak tugas latar belakang (upload/ekstraksi PDF dan sinkronisasi JR).
-- [ ] **ASYNC-02**: Buat background worker terintegrasi (ringan, berbasis interval polling) di backend Express untuk memproses antrean `ProcessTask`.
-- [ ] **ASYNC-03**: Sediakan endpoint API `GET /api/tasks/:id` untuk memantau status (`PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`), progress, error, dan hasil dari tugas.
-- [ ] **ASYNC-04**: Hubungkan frontend upload page dan sync button untuk mengirim tugas secara asinkron, menampilkan indikator progress real-time berbasis polling, dan memvalidasi hasil saat selesai.
+- [x] **ASYNC-01**: Implementasikan model database `ProcessTask` untuk melacak tugas latar belakang (upload/ekstraksi PDF dan sinkronisasi JR).
+- [x] **ASYNC-02**: Buat background worker terintegrasi (ringan, berbasis interval polling) di backend Express untuk memproses antrean `ProcessTask`.
+- [x] **ASYNC-03**: Sediakan endpoint API `GET /api/tasks/:id` untuk memantau status (`PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`), progress, error, dan hasil dari tugas.
+- [x] **ASYNC-04**: Hubungkan frontend upload page dan sync button untuk mengirim tugas secara asinkron, menampilkan indikator progress real-time berbasis polling, dan memvalidasi hasil saat selesai.
 
 ### 2. LLM Structured Outputs & Advanced Article Structuring (STRUC & CHUNK)
-- [ ] **STRUC-01**: Gunakan fitur Structured Outputs dari OpenAI/LLM SDK (JSON Schema/Response Format) untuk ekstraksi pasal agar data selalu valid sesuai skema JSON tanpa bergantung pada pencarian regex mentah.
-- [ ] **CHUNK-01**: Implementasikan chunking berjenjang (seperti memproses per halaman atau bab) untuk dokumen besar (> 20.000 karakter) sebelum digabungkan kembali, guna meminimalkan penggunaan fallback Regex yang kurang akurat.
+- [x] **STRUC-01**: Gunakan fitur Structured Outputs dari OpenAI/LLM SDK (JSON Schema/Response Format) untuk ekstraksi pasal agar data selalu valid sesuai skema JSON tanpa bergantung pada pencarian regex mentah.
+- [x] **CHUNK-01**: Implementasikan chunking berjenjang (seperti memproses per halaman atau bab) untuk dokumen besar (> 20.000 karakter) sebelum digabungkan kembali, guna meminimalkan penggunaan fallback Regex yang kurang akurat.
 
 ### 3. Paralelisasi Vision OCR (PAR)
-- [ ] **PAR-01**: Konfigurasikan pemanggilan API Vision OCR secara paralel menggunakan pembatas konkurensi (seperti `p-limit`) untuk memproses halaman PDF hasil pindai secara simultan tanpa melebihi batas batas laju API (*rate limits*).
+- [x] **PAR-01**: Konfigurasikan pemanggilan API Vision OCR secara paralel menggunakan pembatas konkurensi (seperti `p-limit`) untuk memproses halaman PDF hasil pindai secara simultan tanpa melebihi batas batas laju API (*rate limits*).
 
 ### 4. Sinkronisasi Judicial Review yang Resilien & Cerdas (JR)
-- [ ] **JR-01**: Gunakan Search API resmi atau strategi request tahan-blokir (seperti custom user-agents, proxy rotators) untuk mencari putusan di MK/MA guna meminimalkan risiko CAPTCHA/blokir IP.
-- [ ] **JR-02**: Manfaatkan LLM untuk menguraikan teks "Amar Putusan" MK/MA secara cerdas dan memetakan dampaknya ke pasal terkait secara presisi (disposisi: `INVALIDATED`, `CONDITIONALLY_VALID`, dll.).
+- [x] **JR-01**: Gunakan Search API resmi atau strategi request tahan-blokir (seperti custom user-agents, proxy rotators) untuk mencari putusan di MK/MA guna meminimalkan risiko CAPTCHA/blokir IP.
+- [x] **JR-02**: Manfaatkan LLM untuk menguraikan teks "Amar Putusan" MK/MA secara cerdas dan memetakan dampaknya ke pasal terkait secara presisi (disposisi: `INVALIDATED`, `CONDITIONALLY_VALID`, dll.).
 
 ### 5. Fitur Kustomisasi & Performa (OCR & PERF)
 - [ ] **OCR-01**: Sediakan toggle kustom Docling OCR di UI admin untuk memaksa/mematikan OCR per dokumen.
@@ -37,15 +37,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ASYNC-01    | Phase 9 | In Planning |
-| ASYNC-02    | Phase 9 | In Planning |
-| ASYNC-03    | Phase 9 | In Planning |
-| ASYNC-04    | Phase 10 | In Planning |
-| STRUC-01    | Phase 11 | In Planning |
-| CHUNK-01    | Phase 11 | In Planning |
-| PAR-01      | Phase 10 | In Planning |
-| JR-01       | Phase 12 | In Planning |
-| JR-02       | Phase 12 | In Planning |
+| ASYNC-01    | Phase 9 | Implemented |
+| ASYNC-02    | Phase 9 | Implemented |
+| ASYNC-03    | Phase 9 | Implemented |
+| ASYNC-04    | Phase 10 | Implemented |
+| STRUC-01    | Phase 11 | Implemented |
+| CHUNK-01    | Phase 11 | Implemented |
+| PAR-01      | Phase 10 | Implemented |
+| JR-01       | Phase 12 | Implemented |
+| JR-02       | Phase 12 | Implemented |
 | OCR-01      | Phase 13 | In Planning |
 | PERF-01     | Phase 13 | In Planning |
 | CLEAN-01    | Phase 13 | In Planning |

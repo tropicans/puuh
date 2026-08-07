@@ -46,10 +46,16 @@ export function inferOutcomeFromAmar(amarText: string): JudicialOutcome {
     if (text.includes('ditarik kembali') || text.includes('mencabut permohonan')) {
         return 'WITHDRAWN';
     }
-    if (text.includes('dikabulkan untuk seluruhnya') || text.includes('mengabulkan permohonan seluruhnya')) {
+    if (
+        (text.includes('mengabulkan') || text.includes('dikabulkan')) && 
+        text.includes('seluruhnya')
+    ) {
         return 'GRANTED';
     }
-    if (text.includes('dikabulkan untuk sebagian') || text.includes('mengabulkan permohonan untuk sebagian')) {
+    if (
+        (text.includes('mengabulkan') || text.includes('dikabulkan')) && 
+        text.includes('sebagian')
+    ) {
         return 'PARTIALLY_GRANTED';
     }
     if (text.includes('menolak permohonan')) {
@@ -66,17 +72,18 @@ export function inferDispositionFromExcerpt(excerpt: string, outcome: JudicialOu
         text.includes('tidak mempunyai kekuatan hukum mengikat') ||
         text.includes('dinyatakan tidak berlaku') ||
         text.includes('batal') ||
-        text.includes('dicabut')
+        text.includes('dicabut') ||
+        text.includes('bertentangan dengan')
     ) {
         return 'INVALIDATED';
     }
 
-    if (text.includes('konstitusional bersyarat')) {
-        return 'CONDITIONALLY_VALID';
-    }
-
     if (text.includes('inkonstitusional bersyarat')) {
         return 'CONDITIONALLY_INVALID';
+    }
+
+    if (text.includes('konstitusional bersyarat')) {
+        return 'CONDITIONALLY_VALID';
     }
 
     if (outcome === 'REJECTED' || outcome === 'INADMISSIBLE') {

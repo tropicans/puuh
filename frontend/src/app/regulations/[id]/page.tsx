@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { VersionTimeline } from '@/components/regulations/VersionTimeline';
 import { ComparisonView } from '@/components/comparison/ComparisonView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,6 +72,15 @@ export default function RegulationDetailPage({ params }: PageProps) {
     const [selectedVersions, setSelectedVersions] = useState<string[]>([]);
     const [syncingJudicial, setSyncingJudicial] = useState(false);
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const fetchRegulation = async () => {
@@ -209,7 +218,7 @@ export default function RegulationDetailPage({ params }: PageProps) {
 
     const handleSyncJudicial = async () => {
         setSyncingJudicial(true);
-        setSyncMessage(null);
+        setSyncMessage('Memulai sinkronisasi...');
         try {
             const response = await fetch(`/api/regulations/${id}/judicial-reviews/sync`, {
                 method: 'POST'
@@ -217,13 +226,62 @@ export default function RegulationDetailPage({ params }: PageProps) {
             const data = await response.json();
             if (!response.ok || !data.success) {
                 setSyncMessage(data.error || 'Gagal sinkronisasi putusan judicial review');
+                setSyncingJudicial(false);
                 return;
             }
 
-            setSyncMessage(`Sinkronisasi selesai: ${data.synced || 0} kandidat diproses. Silakan refresh halaman.`);
+            const { taskId } = data;
+            setSyncMessage('Mengantre pemrosesan...');
+
+            pollIntervalRef.current = setInterval(async () => {
+                try {
+                    const taskRes = await fetch(`/api/tasks/${taskId}`);
+                    if (!taskRes.ok) {
+                        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                        setSyncMessage('Gagal memantau status pemrosesan.');
+                        setSyncingJudicial(false);
+                        return;
+                    }
+                    const taskData = await taskRes.json();
+                    if (!taskData.success || !taskData.task) {
+                        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                        setSyncMessage(taskData.error || 'Tugas tidak ditemukan.');
+                        setSyncingJudicial(false);
+                        return;
+                    }
+
+                    const task = taskData.task;
+                    if (task.status === 'PENDING') {
+                        setSyncMessage('Tugas mengantre...');
+                    } else if (task.status === 'PROCESSING') {
+                        const progressStr = task.progress ? `[${task.progress}%] ` : '';
+                        const stepMsg = task.result && typeof task.result === 'object' && 'message' in task.result
+                            ? (task.result as any).message
+                            : 'Memproses analisis...';
+                        setSyncMessage(`${progressStr}${stepMsg}`);
+                    } else if (task.status === 'SUCCESS') {
+                        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                        const finalResult = task.result;
+                        setSyncMessage(`Sinkronisasi berhasil: ${finalResult?.synced || 0} putusan diproses.`);
+                        setSyncingJudicial(false);
+                        // Reload window to show fresh synced data
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else if (task.status === 'FAILED') {
+                        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                        setSyncMessage(`Gagal sinkronisasi: ${task.error || 'Terjadi kesalahan.'}`);
+                        setSyncingJudicial(false);
+                    }
+                } catch (err) {
+                    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+                    setSyncMessage(err instanceof Error ? err.message : 'Terjadi kesalahan.');
+                    setSyncingJudicial(false);
+                }
+            }, 2000);
+
         } catch (syncError) {
             setSyncMessage(syncError instanceof Error ? syncError.message : 'Gagal sinkronisasi putusan judicial review');
-        } finally {
             setSyncingJudicial(false);
         }
     };
