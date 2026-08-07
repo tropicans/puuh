@@ -9,6 +9,7 @@ import articleChangesRouter from './article-changes';
 import usersRouter from './users';
 import seedRouter from './seed';
 import dbStatusRouter from './db-status';
+import tasksRouter from './tasks';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/article-changes', articleChangesRouter);
 router.use('/users', usersRouter);
 router.use('/seed', seedRouter);
 router.use('/db-status', dbStatusRouter);
+router.use('/tasks', tasksRouter);
 
 export default router;

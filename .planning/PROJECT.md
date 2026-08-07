@@ -26,12 +26,17 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ## Next Milestone: v3.0 Optimasi, Cleanup & Fitur Lanjutan
 
-**Goal:** Menyelesaikan hutang teknis, meningkatkan kinerja, dan menambahkan fungsionalitas kustomisasi ekstraksi.
+**Goal:** Mengimplementasikan optimasi performa, akurasi, dan skalabilitas untuk pemrosesan PDF secara asinkron, parsing pasal berbasis LLM Structured Outputs, dan sinkronisasi JR yang andal.
 
 **Target features:**
+- **ASYNC-01**: Background task queue untuk pemrosesan PDF dan sinkronisasi Judicial Review.
+- **STRUC-01**: Penggunaan LLM Structured Outputs (JSON Schema/Response Format) untuk ekstraksi pasal.
+- **CHUNK-01**: Chunked LLM parsing untuk dokumen besar untuk mengurangi ketergantungan pada regex fallback.
+- **PAR-01**: Paralelisasi pemrosesan halaman dalam Vision OCR.
+- **JR-01**: Integrasi API pencarian resmi/resiliensi scraping dan LLM mapping untuk dampak uji materi.
 - **OCR-01**: Dynamic Docling OCR toggle per PDF type.
-- **PERF-01**: Extraction result caching for repeated PDFs.
-- **Refactoring**: Membersihkan 39 lint warnings `no-explicit-any` di backend.
+- **PERF-01**: Extraction result caching untuk dokumen PDF berulang.
+- **Refactoring**: Membersihkan lint warnings `no-explicit-any` di backend.
 
 ## Requirements
 
@@ -70,7 +75,14 @@ Ensure highly accurate extraction and representation of legal clauses (pasal) an
 
 ### Active
 
-*(none)*
+- **ASYNC-01**: Background task queue untuk pemrosesan PDF dan sinkronisasi Judicial Review.
+- **STRUC-01**: Penggunaan LLM Structured Outputs untuk ekstraksi pasal.
+- **CHUNK-01**: Chunked LLM parsing untuk dokumen besar.
+- **PAR-01**: Paralelisasi pemrosesan halaman dalam Vision OCR.
+- **JR-01**: Integrasi API pencarian resmi/resiliensi scraping dan LLM mapping untuk dampak uji materi.
+- **OCR-01**: Dynamic Docling OCR toggle per PDF type.
+- **PERF-01**: Extraction result caching untuk dokumen PDF berulang.
+- **Refactoring**: Membersihkan lint warnings `no-explicit-any` di backend.
 
 ### Out of Scope
 
