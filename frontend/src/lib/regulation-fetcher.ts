@@ -134,58 +134,73 @@ async function searchBPK(info: RegulationInfo, onProgress?: ProgressCallback): P
     const html = await response.text();
     const results: BPKSearchResult[] = [];
 
-    // Extract all Download links: /Download/{id}/{filename}.pdf
-    const downloadRegex = /href="(\/Download\/(\d+)\/([^"]+\.pdf))"/gi;
-    const detailRegex = /href="(\/Details\/(\d+)\/([^"]+))"/gi;
+    // Parse search results card by card
+    const cardBlocks = html.split('<div class="card">');
+    if (cardBlocks.length > 1) {
+        for (const card of cardBlocks.slice(1)) {
+            // Extract details link
+            const detailRegex = /href="(\/Details\/(\d+)\/([^"]+))"/i;
+            const detailMatch = card.match(detailRegex);
+            if (!detailMatch) continue;
 
-    // Build a map of detail page IDs to their slugs
-    const detailPages = new Map<string, { url: string; slug: string; title: string }>();
-    let detailMatch;
-    while ((detailMatch = detailRegex.exec(html)) !== null) {
-        const [, path, id, slug] = detailMatch;
-        // Try to find the title text near this link
-        const titleRegex = new RegExp(`<a[^>]*href="${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>([^<]+)</a>`, 'i');
-        const titleMatch = html.match(titleRegex);
-        detailPages.set(id, {
-            url: `${BPK_BASE}${path}`,
-            slug,
-            title: titleMatch?.[1]?.trim() || slug,
-        });
-    }
+            const [, detailPath, , slug] = detailMatch;
 
-    // Extract all download links and match them
-    let dlMatch;
-    while ((dlMatch = downloadRegex.exec(html)) !== null) {
-        const [, path, id, filename] = dlMatch;
-        const detail = detailPages.get(id) || { url: `${BPK_BASE}/Details/${id}`, slug: filename, title: filename };
-        results.push({
-            detailUrl: detail.url,
-            downloadUrl: `${BPK_BASE}${path}`,
-            title: detail.title,
-            slug: detail.slug,
-        });
-    }
+            // Extract download link inside the card
+            const downloadRegex = /href="(\/Download\/(\d+)\/([^"]+\.pdf))"/i;
+            const downloadMatch = card.match(downloadRegex);
+            const downloadUrl = downloadMatch ? `${BPK_BASE}${downloadMatch[1]}` : null;
 
-    // If no direct download links found in search results, try to get them from detail pages
-    if (results.length === 0 && detailPages.size > 0) {
-        onProgress?.('Memeriksa halaman detail untuk link download...');
-        // Check first few detail pages that match our regulation type
-        const prefix = typeInfo.bpkSlugPrefix.toLowerCase();
-        const matchingDetails = [...detailPages.values()]
-            .filter(d => d.slug.toLowerCase().includes(prefix))
-            .slice(0, 3);
-
-        for (const detail of matchingDetails) {
-            const dlUrl = await extractDownloadFromDetailPage(detail.url);
-            if (dlUrl) {
-                results.push({
-                    detailUrl: detail.url,
-                    downloadUrl: dlUrl,
-                    title: detail.title,
-                    slug: detail.slug,
-                });
+            // Try to extract full title snippet from text-gray-600 block
+            const titleRegex = /class="[^"]*text-gray-600[^"]*"[^>]*>([\s\S]*?)<\/div>/i;
+            const titleMatch = card.match(titleRegex);
+            let title = '';
+            if (titleMatch) {
+                title = titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+            } else {
+                // Fallback to details link text
+                const anchorRegex = new RegExp(`<a[^>]*href="${detailPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>([\s\S]*?)</a>`, 'i');
+                const anchorMatch = card.match(anchorRegex);
+                title = anchorMatch ? anchorMatch[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : slug;
             }
-            await sleep(500); // Be polite to the server
+
+            const decodedSlug = decodeURIComponent(slug).trim();
+            const decodedTitle = decodeURIComponent(title).trim();
+
+            results.push({
+                detailUrl: `${BPK_BASE}${detailPath}`,
+                downloadUrl,
+                title: decodedTitle || decodedSlug,
+                slug: decodedSlug,
+            });
+        }
+    }
+
+    // Fallback: If card-based parsing found nothing, use the old global regex parsing
+    if (results.length === 0) {
+        const downloadRegex = /href="(\/Download\/(\d+)\/([^"]+\.pdf))"/gi;
+        const detailRegex = /href="(\/Details\/(\d+)\/([^"]+))"/gi;
+        const detailPages = new Map<string, { url: string; slug: string; title: string }>();
+        let detailMatch;
+        while ((detailMatch = detailRegex.exec(html)) !== null) {
+            const [, path, id, slug] = detailMatch;
+            const titleRegex = new RegExp(`<a[^>]*href="${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>([^<]+)</a>`, 'i');
+            const titleMatch = html.match(titleRegex);
+            detailPages.set(id, {
+                url: `${BPK_BASE}${path}`,
+                slug,
+                title: titleMatch?.[1]?.trim() || slug,
+            });
+        }
+        let dlMatch;
+        while ((dlMatch = downloadRegex.exec(html)) !== null) {
+            const [, path, id, filename] = dlMatch;
+            const detail = detailPages.get(id) || { url: `${BPK_BASE}/Details/${id}`, slug: filename, title: filename };
+            results.push({
+                detailUrl: detail.url,
+                downloadUrl: `${BPK_BASE}${path}`,
+                title: detail.title,
+                slug: detail.slug,
+            });
         }
     }
 
@@ -201,7 +216,7 @@ async function searchBPK(info: RegulationInfo, onProgress?: ProgressCallback): P
 
         // Must match type prefix
         const typeMatch = combined.includes(prefix);
-        // Must match number  
+        // Must match number
         const numMatch = combined.includes(`no-${numberStr}`) ||
             combined.includes(`no.${numberStr}`) ||
             combined.includes(`no ${numberStr}`) ||
@@ -215,8 +230,20 @@ async function searchBPK(info: RegulationInfo, onProgress?: ProgressCallback): P
         return typeMatch && (numMatch || yearMatch);
     });
 
-    // If strict filtering removed everything, return all results (search was already filtered by number+year)
+    // If strict filtering removed everything, return all results
     const finalResults = filtered.length > 0 ? filtered : results.slice(0, 5);
+
+    // If any final candidate does not have a downloadUrl, fetch it from detail page
+    for (const candidate of finalResults.slice(0, 3)) {
+        if (!candidate.downloadUrl) {
+            onProgress?.(`Mengambil link download dari halaman detail: ${candidate.title}...`);
+            const dlUrl = await extractDownloadFromDetailPage(candidate.detailUrl);
+            if (dlUrl) {
+                candidate.downloadUrl = dlUrl;
+            }
+            await sleep(500);
+        }
+    }
 
     console.log(`BPK Search: found ${results.length} total, ${filtered.length} filtered, returning ${finalResults.length}`);
     return finalResults;
